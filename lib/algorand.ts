@@ -269,11 +269,9 @@ export async function createAlgorandToken(
       assetName: tokenData.name,
       manager: managerAddress,
       reserve: reserveAddress,
-      // ✅ Removed clawback: undefined entirely
       total: Math.floor(totalSupplyBaseUnits),
       decimals: tokenData.decimals,
       assetURL: tokenData.website || '',
-      assetMetadataHash: undefined,
       note: new Uint8Array(Buffer.from(tokenData.description || '')),
     };
     
@@ -281,12 +279,6 @@ export async function createAlgorandToken(
     if (tokenData.pausable && freezeAddress) {
       assetCreateParams.freeze = freezeAddress;
     }
-    
-    // Only include clawback address if token is pausable (clawback functionality)
-    // For now, we don't include clawback unless specifically needed
-    // if (tokenData.pausable && clawbackAddress) {
-    //   assetCreateParams.clawback = clawbackAddress;
-    // }
     
     console.log('Asset creation parameters:', JSON.stringify({
       ...assetCreateParams,
