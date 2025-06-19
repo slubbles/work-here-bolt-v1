@@ -275,10 +275,16 @@ export async function createAlgorandToken(
       note: new Uint8Array(Buffer.from(tokenData.description || '')),
     };
     
-    // Only include freeze address if token is pausable AND freezeAddress exists
+    // Only include freeze address if token is pausable
     if (tokenData.pausable && freezeAddress) {
       assetCreateParams.freeze = freezeAddress;
     }
+    
+    // Only include clawback address if token is pausable (clawback functionality)
+    // For now, we don't include clawback unless specifically needed
+    // if (tokenData.pausable && clawbackAddress) {
+    //   assetCreateParams.clawback = clawbackAddress;
+    // }
     
     console.log('Asset creation parameters:', JSON.stringify({
       ...assetCreateParams,
