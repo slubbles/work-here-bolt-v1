@@ -269,14 +269,17 @@ export async function createAlgorandToken(
       assetName: tokenData.name,
       manager: managerAddress,
       reserve: reserveAddress,
-      freeze: freezeAddress,
-      clawback: undefined,
       total: Math.floor(totalSupplyBaseUnits),
       decimals: tokenData.decimals,
       assetURL: tokenData.website || '',
       assetMetadataHash: undefined,
       note: new Uint8Array(Buffer.from(tokenData.description || '')),
     };
+    
+    // Only include freeze address if token is pausable
+    if (tokenData.pausable && freezeAddress) {
+      assetCreateParams.freeze = freezeAddress;
+    }
     
     console.log('Asset creation parameters:', JSON.stringify({
       ...assetCreateParams,
