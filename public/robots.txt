@@ -1,0 +1,63 @@
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://snarbles.xyz/sitemap.xml
+
+# Crawl-delay for respectful crawling
+Crawl-delay: 1
+
+# Specific rules for major search engines
+User-agent: Googlebot
+Allow: /
+Crawl-delay: 0
+
+User-agent: Bingbot
+Allow: /
+Crawl-delay: 1
+
+User-agent: Slurp
+Allow: /
+
+User-agent: DuckDuckBot
+Allow: /
+
+User-agent: Baiduspider
+Allow: /
+
+User-agent: YandexBot
+Allow: /
+
+User-agent: facebookexternalhit
+Allow: /
+
+User-agent: Twitterbot
+Allow: /
+
+User-agent: LinkedInBot
+Allow: /
+
+# Block access to sensitive areas
+Disallow: /admin/
+Disallow: /api/
+Disallow: /_next/
+Disallow: /private/
+Disallow: /*.json$
+Disallow: /temp/
+Disallow: /cache/
+
+# Allow important pages for SEO
+Allow: /create
+Allow: /dashboard
+Allow: /tokenomics
+Allow: /verify
+Allow: /pSsNHPck_400x400.jpg
+Allow: /manifest.json
+Allow: /sitemap.xml
+
+# Host directive
+Host: https://snarbles.xyz
+
+# Additional directives for better crawling
+Request-rate: 1/10s
+Visit-time: 0400-0800

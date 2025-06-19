@@ -1,0 +1,632 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Import Inter font */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+:root {
+  --foreground-rgb: 254, 253, 224;
+  --background-start-rgb: 0, 0, 0;
+  --background-end-rgb: 0, 0, 0;
+}
+
+[data-theme="dark"] {
+  --background: 0 0% 3%;
+  --foreground: 58 94% 96%;
+  --card: 0 0% 5%;
+  --card-foreground: 58 94% 96%;
+  --popover: 0 0% 5%;
+  --popover-foreground: 58 94% 96%;
+  --primary: 0 84% 60%;
+  --primary-foreground: 58 94% 96%;
+  --secondary: 0 0% 8%;
+  --secondary-foreground: 58 94% 96%;
+  --muted: 0 0% 8%;
+  --muted-foreground: 0 0% 65%;
+  --accent: 0 0% 8%;
+  --accent-foreground: 58 94% 96%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 58 94% 96%;
+  --border: 0 0% 12%;
+  --input: 0 0% 8%;
+  --ring: 0 84% 60%;
+  --radius: 0.75rem;
+}
+
+[data-theme="light"] {
+  --background: 58 94% 97%;
+  --foreground: 222.2 84% 4.9%;
+  --card: 58 94% 98%;
+  --card-foreground: 222.2 84% 4.9%;
+  --popover: 58 94% 98%;
+  --popover-foreground: 222.2 84% 4.9%;
+  --primary: 0 84% 60%;
+  --primary-foreground: 0 0% 98%;
+  --secondary: 210 40% 98%;
+  --secondary-foreground: 222.2 84% 4.9%;
+  --muted: 210 40% 96%;
+  --muted-foreground: 215.4 16.3% 46.9%;
+  --accent: 210 40% 96%;
+  --accent-foreground: 222.2 84% 4.9%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 214.3 31.8% 91.4%;
+  --input: 214.3 31.8% 91.4%;
+  --ring: 0 84% 60%;
+  --radius: 0.75rem;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  html {
+    scroll-behavior: smooth;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  }
+  
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+    min-height: 100vh;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  [data-theme="dark"] body {
+    background: radial-gradient(ellipse at top, rgba(15, 15, 15, 0.9) 0%, rgba(0, 0, 0, 1) 100%);
+  }
+  
+  [data-theme="light"] body {
+    background: radial-gradient(ellipse at top, rgba(254, 253, 224, 0.9) 0%, rgba(248, 250, 252, 1) 100%);
+  }
+}
+
+@layer components {
+  .font-inter {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  }
+
+  .app-background {
+    @apply bg-background relative;
+    transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  [data-theme="dark"] .app-background {
+    background: radial-gradient(ellipse at top, rgba(15, 15, 15, 0.9) 0%, rgba(0, 0, 0, 1) 100%);
+  }
+  
+  [data-theme="light"] .app-background {
+    background: radial-gradient(ellipse at top, rgba(254, 253, 224, 0.9) 0%, rgba(248, 250, 252, 1) 100%);
+  }
+  
+  .glass-card {
+    @apply backdrop-blur-xl border rounded-xl transition-all duration-300;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  }
+  
+  [data-theme="dark"] .glass-card {
+    background: rgba(5, 5, 5, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 
+      0 8px 32px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  }
+  
+  [data-theme="light"] .glass-card {
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    box-shadow: 
+      0 8px 32px rgba(0, 0, 0, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  }
+  
+  .glass-card-hover {
+    @apply glass-card transition-all duration-300 cursor-pointer;
+  }
+  
+  .glass-card-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+  }
+  
+  [data-theme="dark"] .glass-card-hover:hover {
+    background: rgba(10, 10, 10, 0.9);
+    border-color: rgba(239, 68, 68, 0.3);
+    box-shadow: 
+      0 12px 40px rgba(0, 0, 0, 0.4),
+      0 0 0 1px rgba(239, 68, 68, 0.2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  }
+  
+  [data-theme="light"] .glass-card-hover:hover {
+    background: rgba(255, 255, 255, 0.95);
+    border-color: rgba(239, 68, 68, 0.3);
+    box-shadow: 
+      0 12px 40px rgba(0, 0, 0, 0.12),
+      0 0 0 1px rgba(239, 68, 68, 0.2),
+      inset 0 1px 0 rgba(255, 255, 255, 1);
+  }
+  
+  .gradient-text {
+    background: linear-gradient(135deg, #EF4444 0%, #DC2626 50%, #B91C1C 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: 700;
+  }
+  
+  .token-preview-circle {
+    @apply w-24 h-24 rounded-full flex items-center justify-center font-bold text-xl;
+    background: linear-gradient(135deg, #EF4444 0%, #DC2626 50%, #B91C1C 100%);
+    color: #fefde0;
+    box-shadow: 
+      0 8px 24px rgba(239, 68, 68, 0.4),
+      0 0 0 4px rgba(239, 68, 68, 0.1);
+    position: relative;
+  }
+  
+  [data-theme="light"] .token-preview-circle {
+    color: #ffffff;
+  }
+  
+  .token-preview-circle::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: inherit;
+    background: linear-gradient(135deg, #EF4444, #DC2626, #B91C1C);
+    z-index: -1;
+    opacity: 0.3;
+    filter: blur(8px);
+  }
+  
+  .feature-card {
+    @apply glass-card p-6 cursor-pointer transition-all duration-300;
+    border-radius: 16px;
+  }
+  
+  .feature-card:hover {
+    transform: translateY(-1px);
+  }
+  
+  .feature-card.active {
+    border-color: rgba(239, 68, 68, 0.5);
+    background: rgba(239, 68, 68, 0.05);
+  }
+  
+  [data-theme="dark"] .feature-card.active {
+    background: rgba(239, 68, 68, 0.1);
+    box-shadow: 
+      0 8px 32px rgba(239, 68, 68, 0.2),
+      inset 0 1px 0 rgba(239, 68, 68, 0.2);
+  }
+  
+  [data-theme="light"] .feature-card.active {
+    background: rgba(239, 68, 68, 0.08);
+    box-shadow: 
+      0 8px 32px rgba(239, 68, 68, 0.15),
+      inset 0 1px 0 rgba(239, 68, 68, 0.1);
+  }
+
+  .hero-section {
+    @apply bg-background relative overflow-hidden;
+    min-height: 100vh;
+  }
+  
+  .hero-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle at 20% 80%, rgba(239, 68, 68, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(239, 68, 68, 0.1) 0%, transparent 50%);
+    pointer-events: none;
+  }
+
+  .stats-card {
+    @apply glass-card p-6 text-center transition-all duration-300;
+  }
+  
+  .stats-card:hover {
+    transform: translateY(-2px);
+  }
+
+  .feature-icon {
+    @apply w-12 h-12 mx-auto mb-4 p-3 rounded-xl text-red-500 transition-all duration-300;
+    background: rgba(239, 68, 68, 0.1);
+  }
+
+  .step-number {
+    @apply w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm;
+    background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
+    color: #fefde0;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+  }
+  
+  [data-theme="light"] .step-number {
+    color: #ffffff;
+  }
+
+  .testimonial-card {
+    @apply glass-card p-8 text-left transition-all duration-300;
+  }
+  
+  .testimonial-card:hover {
+    transform: translateY(-2px);
+  }
+
+  .cta-section {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.95) 0%, rgba(220, 38, 38, 0.95) 100%);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .cta-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E") repeat;
+    pointer-events: none;
+  }
+
+  .input-enhanced {
+    @apply border text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-red-500/50 focus:border-red-500/50 transition-all duration-200;
+    backdrop-filter: blur(10px);
+  }
+  
+  [data-theme="dark"] .input-enhanced {
+    background: rgba(5, 5, 5, 0.8);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+  
+  [data-theme="light"] .input-enhanced {
+    background: rgba(255, 255, 255, 0.9);
+    border-color: rgba(0, 0, 0, 0.12);
+  }
+  
+  .input-enhanced:focus {
+    box-shadow: 
+      0 0 0 3px rgba(239, 68, 68, 0.1),
+      0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+
+  .button-enhanced {
+    @apply transition-all duration-200 font-medium relative overflow-hidden;
+    letter-spacing: -0.01em;
+  }
+  
+  .button-enhanced::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s;
+  }
+  
+  .button-enhanced:hover::before {
+    left: 100%;
+  }
+
+  .text-enhanced {
+    letter-spacing: -0.01em;
+    line-height: 1.6;
+  }
+
+  /* Enhanced wallet button animations */
+  .wallet-connect-button {
+    @apply relative overflow-hidden;
+    background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
+    box-shadow: 
+      0 4px 14px rgba(59, 130, 246, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .wallet-connect-button:hover {
+    transform: translateY(-1px);
+    box-shadow: 
+      0 8px 25px rgba(59, 130, 246, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  }
+
+  .wallet-connect-button::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.6s;
+  }
+
+  .wallet-connect-button:hover::before {
+    left: 100%;
+  }
+
+  /* Algorand wallet button styling with new green color */
+  .algorand-wallet-button {
+    @apply relative overflow-hidden;
+    background: linear-gradient(135deg, #76f935 0%, #5dd128 100%);
+    box-shadow: 
+      0 4px 14px rgba(118, 249, 53, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .algorand-wallet-button:hover {
+    transform: translateY(-1px);
+    box-shadow: 
+      0 8px 25px rgba(118, 249, 53, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  }
+
+  .algorand-wallet-button::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.6s;
+  }
+
+  .algorand-wallet-button:hover::before {
+    left: 100%;
+  }
+
+  /* Wallet status indicators */
+  .wallet-status-connected {
+    @apply relative;
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(22, 163, 74, 0.1) 100%);
+    border: 1px solid rgba(34, 197, 94, 0.3);
+    backdrop-filter: blur(10px);
+  }
+
+  .wallet-status-connected::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.05), rgba(22, 163, 74, 0.05));
+    z-index: -1;
+  }
+
+  .enhanced-tabs {
+    @apply p-1 rounded-xl h-14;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+  }
+
+  .enhanced-tab-trigger {
+    @apply text-foreground rounded-lg font-semibold transition-all duration-200 h-12 text-base relative;
+    box-shadow: none;
+  }
+
+  .enhanced-tab-trigger[data-state="active"] {
+    background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
+    color: #fefde0;
+    box-shadow: 
+      0 2px 8px rgba(239, 68, 68, 0.3),
+      0 0 0 1px rgba(239, 68, 68, 0.5);
+  }
+  
+  [data-theme="light"] .enhanced-tab-trigger[data-state="active"] {
+    color: #ffffff;
+  }
+
+  .enhanced-tab-trigger:hover:not([data-state="active"]) {
+    background: rgba(239, 68, 68, 0.1);
+  }
+  
+  .floating-action {
+    @apply fixed bottom-6 right-6 z-50;
+    animation: float 3s ease-in-out infinite;
+  }
+  
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+  }
+  
+  .progress-indicator {
+    @apply fixed top-0 left-0 right-0 h-1 bg-red-500 z-50;
+    transform-origin: left;
+    animation: progress 2s ease-out;
+  }
+  
+  @keyframes progress {
+    0% { transform: scaleX(0); }
+    100% { transform: scaleX(1); }
+  }
+  
+  .pulse-ring {
+    @apply absolute inset-0 rounded-full border-2 border-red-500;
+    animation: pulse-ring 2s cubic-bezier(0.455, 0.03, 0.515, 0.955) infinite;
+  }
+  
+  @keyframes pulse-ring {
+    0% {
+      transform: scale(0.8);
+      opacity: 1;
+    }
+    100% {
+      transform: scale(1.2);
+      opacity: 0;
+    }
+  }
+  
+  .shimmer {
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite;
+  }
+  
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+
+  /* Enhanced animations */
+  @keyframes slide-in-from-top {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-in {
+    animation-fill-mode: both;
+  }
+
+  .slide-in-from-top-2 {
+    animation: slide-in-from-top 0.2s ease-out;
+  }
+
+  /* Light mode specific improvements */
+  [data-theme="light"] .cta-section {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.9) 0%, rgba(220, 38, 38, 0.9) 100%);
+    color: white;
+  }
+
+  [data-theme="light"] .cta-section h2,
+  [data-theme="light"] .cta-section h3,
+  [data-theme="light"] .cta-section p {
+    color: white !important;
+  }
+
+  [data-theme="light"] .hero-section {
+    background: radial-gradient(ellipse at top, rgba(254, 253, 224, 0.95) 0%, rgba(248, 250, 252, 1) 100%);
+  }
+
+  /* Better contrast for light mode text */
+  [data-theme="light"] .text-muted-foreground {
+    color: hsl(215.4 16.3% 35%) !important;
+  }
+
+  [data-theme="light"] .glass-card .text-muted-foreground {
+    color: hsl(215.4 16.3% 40%) !important;
+  }
+
+  /* Enhanced button styles for light mode */
+  [data-theme="light"] .button-enhanced {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  [data-theme="light"] .button-enhanced:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  }
+
+  /* Loading states */
+  .loading-skeleton {
+    @apply bg-muted animate-pulse rounded;
+  }
+
+  /* Micro-interactions */
+  .hover-lift {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .hover-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  }
+
+  /* Mobile optimizations */
+  @media (max-width: 768px) {
+    .glass-card {
+      border-radius: 12px;
+    }
+    
+    .hero-section {
+      padding-top: 2rem;
+    }
+    
+    .token-preview-circle {
+      @apply w-20 h-20 text-lg;
+    }
+  }
+
+  /* Reduced motion preferences */
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+/* Enhanced scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(to bottom, rgba(239, 68, 68, 0.6), rgba(220, 38, 38, 0.6));
+  border-radius: 4px;
+  transition: background 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(to bottom, rgba(239, 68, 68, 0.8), rgba(220, 38, 38, 0.8));
+}
+
+/* Typography improvements */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  @apply text-foreground;
+}
+
+p {
+  letter-spacing: -0.01em;
+  line-height: 1.7;
+  @apply text-foreground;
+}
+
+/* Focus styles for accessibility */
+*:focus-visible {
+  outline: 2px solid rgba(239, 68, 68, 0.5);
+  outline-offset: 2px;
+}
+
+/* Enhanced wallet adapter button styling */
+.wallet-adapter-button {
+  @apply font-semibold rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl;
+  letter-spacing: -0.01em;
+}
+
+.wallet-adapter-button:not([disabled]):hover {
+  transform: translateY(-1px);
+}
+
+/* Custom wallet button overrides */
+.wallet-adapter-button-trigger .wallet-adapter-button {
+  @apply h-12 px-6 text-base;
+}

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Snarbles - Token Creation Platform</title>
+    <description>Latest updates from the #1 token creation platform</description>
+    <link>https://snarbles.xyz</link>
+    <atom:link href="https://snarbles.xyz/feed.xml" rel="self" type="application/rss+xml"/>
+    <language>en-us</language>
+    <lastBuildDate>Thu, 02 Jan 2025 12:00:00 GMT</lastBuildDate>
+    <managingEditor>team@snarbles.xyz (Snarbles Team)</managingEditor>
+    <webMaster>team@snarbles.xyz (Snarbles Team)</webMaster>
+    <category>Technology</category>
+    <category>Cryptocurrency</category>
+    <category>Blockchain</category>
+    
+    <item>
+      <title>Snarbles Platform Launch</title>
+      <description>Create cryptocurrency tokens in 30 seconds with no coding required</description>
+      <link>https://snarbles.xyz</link>
+      <guid>https://snarbles.xyz/news/platform-launch</guid>
+      <pubDate>Thu, 02 Jan 2025 12:00:00 GMT</pubDate>
+      <category>Launch</category>
+    </item>
+  </channel>
+</rss>
