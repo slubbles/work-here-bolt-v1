@@ -272,24 +272,38 @@ export async function createAlgorandToken(
       total: Math.floor(totalSupplyBaseUnits),
       decimals: tokenData.decimals,
       assetURL: tokenData.website || '',
-      note: new Uint8Array(Buffer.from(tokenData.description || '')),
+      // TEMPORARILY REMOVED: note field to isolate address validation issue
+      // note: new Uint8Array(Buffer.from(tokenData.description || '')),
     };
     
-    // Only include freeze address if token is pausable
+    // CRITICAL FIX: Only include freeze address if token is pausable
+    // algosdk v3.0.0 doesn't allow undefined values - we must completely omit the field
     if (tokenData.pausable && freezeAddress) {
       assetCreateParams.freeze = freezeAddress;
     }
+    // Note: Do not set freeze to undefined - completely omit it instead
     
-    // Only include clawback address if token is pausable (clawback functionality)
-    // For now, we don't include clawback unless specifically needed
+    // CRITICAL FIX: Do not include clawback unless specifically needed
+    // algosdk v3.0.0 doesn't allow undefined values - we must completely omit the field
     // if (tokenData.pausable && clawbackAddress) {
     //   assetCreateParams.clawback = clawbackAddress;
     // }
+    // Note: Do not set clawback to undefined - completely omit it instead
+    
+    // CRITICAL DEBUG: Log final parameters before transaction creation
+    console.log('=== FINAL ASSET CREATION PARAMETERS DEBUG ===');
+    console.log('Final assetCreateParams:', JSON.stringify(assetCreateParams, null, 2));
+    console.log('Parameters check:');
+    Object.keys(assetCreateParams).forEach(key => {
+      const value = assetCreateParams[key];
+      console.log(`  ${key}:`, typeof value, value === null ? 'NULL' : value === undefined ? 'UNDEFINED' : 'OK', value);
+    });
+    console.log('=== END FINAL PARAMETERS DEBUG ===');
     
     console.log('Asset creation parameters:', JSON.stringify({
       ...assetCreateParams,
       suggestedParams: 'REDACTED_FOR_BREVITY',
-      note: `Buffer(${assetCreateParams.note.length} bytes)`
+      // note: `Buffer(${assetCreateParams.note?.length || 0} bytes)`
     }, null, 2));
     
     const assetCreateTxn = algosdk.makeAssetCreateTxnWithSuggestedParamsFromObject({
@@ -312,56 +326,14 @@ export async function createAlgorandToken(
     console.log('Transaction prototype:', Object.getPrototypeOf(assetCreateTxn));
     console.log('Transaction has get_obj_for_encoding method:', 'get_obj_for_encoding' in assetCreateTxn);
     
-    // Test the get_obj_for_encoding method
-    try {
-      if (typeof assetCreateTxn.get_obj_for_encoding === 'function') {
-        const encodingTest = assetCreateTxn.get_obj_for_encoding();
-        console.log('✓ get_obj_for_encoding test successful, result type:', typeof encodingTest);
-      } else {
-        console.error('❌ get_obj_for_encoding is not a function!');
-      }
-    } catch (encodingError) {
-      console.error('❌ get_obj_for_encoding test failed:', encodingError);
-    }
-    
-    // Implement transaction serialization/deserialization fix
-    console.log('Applying transaction serialization fix...');
-    let finalTransaction;
-    
-    try {
-      // Serialize the transaction to ensure it's properly formatted
-      const encodedTxn = algosdk.encodeUnsignedTransaction(assetCreateTxn);
-      console.log('✓ Transaction encoded successfully, length:', encodedTxn.length);
-      
-      // Deserialize it back to create a fresh transaction object
-      const rehydratedTxn = algosdk.decodeUnsignedTransaction(encodedTxn);
-      console.log('✓ Transaction rehydrated successfully');
-      console.log('Rehydrated transaction details:', {
-        type: rehydratedTxn.type,
-        from: rehydratedTxn.from.toString(),
-        constructor: rehydratedTxn.constructor.name,
-        hasGetObjForEncoding: typeof rehydratedTxn.get_obj_for_encoding === 'function',
-        getObjForEncodingType: typeof rehydratedTxn.get_obj_for_encoding
-      });
-      
-      // Test the rehydrated transaction's get_obj_for_encoding method
-      if (typeof rehydratedTxn.get_obj_for_encoding === 'function') {
-        const rehydratedEncodingTest = rehydratedTxn.get_obj_for_encoding();
-        console.log('✓ Rehydrated get_obj_for_encoding test successful, result type:', typeof rehydratedEncodingTest);
-        finalTransaction = rehydratedTxn;
-      } else {
-        console.warn('⚠️ Rehydrated transaction missing get_obj_for_encoding, using original');
-        finalTransaction = assetCreateTxn;
-      }
-    } catch (serializationError) {
-      console.error('❌ Transaction serialization failed, using original:', serializationError);
-      finalTransaction = assetCreateTxn;
-    }
+    // SIMPLIFIED: Skip complex transaction serialization/deserialization for now
+    // This was causing compatibility issues with Pera Wallet
+    console.log('Using original transaction directly...');
 
     console.log('Signing Algorand asset creation transaction...');
     
-    // Sign the transaction
-    const signedTxn = await signTransaction(finalTransaction);
+    // Sign the transaction using the original transaction directly
+    const signedTxn = await signTransaction(assetCreateTxn);
     
     if (!signedTxn || signedTxn.length === 0) {
       throw new AlgorandError('Transaction signing failed or was cancelled');
