@@ -400,7 +400,8 @@ export async function createAlgorandToken(
     console.log('Submitting transaction to Algorand network...');
     
     // Submit the transaction
-    const { txId } = await algodClient.sendRawTransaction(signedTxn).do();
+    const response = await algodClient.sendRawTransaction(signedTxn).do();
+    const txId = response.txid || response.txId;
     
     console.log('Transaction submitted, waiting for confirmation...', txId);
     
@@ -408,7 +409,7 @@ export async function createAlgorandToken(
     const confirmedTxn = await algosdk.waitForConfirmation(algodClient, txId, 10);
     
     // Get the asset ID from the transaction
-    const assetId = confirmedTxn['asset-index'];
+    const assetId = confirmedTxn.assetIndex || confirmedTxn['asset-index'];
     
     if (!assetId) {
       throw new AlgorandError('Asset creation succeeded but asset ID not found');
@@ -530,25 +531,35 @@ export async function transferAlgorandAsset(
       throw new AlgorandError('Insufficient ALGO balance for transaction fee');
     }
 
-    const suggestedParams = await algodClient.getTransactionParams().do();
+    const rawSuggestedParams = await algodClient.getTransactionParams().do();
+    const suggestedParams = {
+      ...rawSuggestedParams,
+      fee: typeof rawSuggestedParams.fee === 'bigint' ? Number(rawSuggestedParams.fee) : rawSuggestedParams.fee,
+      firstValid: typeof rawSuggestedParams.firstValid === 'bigint' ? Number(rawSuggestedParams.firstValid) : rawSuggestedParams.firstValid,
+      lastValid: typeof rawSuggestedParams.lastValid === 'bigint' ? Number(rawSuggestedParams.lastValid) : rawSuggestedParams.lastValid,
+      genesisHash: rawSuggestedParams.genesisHash,
+      genesisID: rawSuggestedParams.genesisID,
+      minFee: typeof rawSuggestedParams.minFee === 'bigint' ? Number(rawSuggestedParams.minFee) : rawSuggestedParams.minFee
+    };
     
     const transferTxn = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
-      from: fromAddress,
-      to: toAddress,
+      sender: fromAddress,
+      receiver: toAddress,
       assetIndex: assetId,
       amount: Math.floor(amount * Math.pow(10, decimals)),
       suggestedParams,
     });
 
     // Sign the transaction
-    const signedTxn = await signTransaction([transferTxn]);
+    const signedTxn = await signTransaction(transferTxn);
     
     if (!signedTxn || signedTxn.length === 0) {
       throw new AlgorandError('Transaction signing failed or was cancelled');
     }
     
     // Submit the transaction
-    const { txId } = await algodClient.sendRawTransaction(signedTxn).do();
+    const response = await algodClient.sendRawTransaction(signedTxn).do();
+    const txId = response.txid || response.txId;
     
     // Wait for confirmation
     await algosdk.waitForConfirmation(algodClient, txId, 10);
@@ -610,25 +621,35 @@ export async function optInToAsset(
       throw new AlgorandError('Insufficient ALGO balance for opt-in transaction and minimum balance requirements');
     }
 
-    const suggestedParams = await algodClient.getTransactionParams().do();
+    const rawSuggestedParams = await algodClient.getTransactionParams().do();
+    const suggestedParams = {
+      ...rawSuggestedParams,
+      fee: typeof rawSuggestedParams.fee === 'bigint' ? Number(rawSuggestedParams.fee) : rawSuggestedParams.fee,
+      firstValid: typeof rawSuggestedParams.firstValid === 'bigint' ? Number(rawSuggestedParams.firstValid) : rawSuggestedParams.firstValid,
+      lastValid: typeof rawSuggestedParams.lastValid === 'bigint' ? Number(rawSuggestedParams.lastValid) : rawSuggestedParams.lastValid,
+      genesisHash: rawSuggestedParams.genesisHash,
+      genesisID: rawSuggestedParams.genesisID,
+      minFee: typeof rawSuggestedParams.minFee === 'bigint' ? Number(rawSuggestedParams.minFee) : rawSuggestedParams.minFee
+    };
     
     const optInTxn = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
-      from: walletAddress,
-      to: walletAddress,
+      sender: walletAddress,
+      receiver: walletAddress,
       assetIndex: assetId,
       amount: 0,
       suggestedParams,
     });
 
     // Sign the transaction
-    const signedTxn = await signTransaction([optInTxn]);
+    const signedTxn = await signTransaction(optInTxn);
     
     if (!signedTxn || signedTxn.length === 0) {
       throw new AlgorandError('Transaction signing failed or was cancelled');
     }
     
     // Submit the transaction
-    const { txId } = await algodClient.sendRawTransaction(signedTxn).do();
+    const response = await algodClient.sendRawTransaction(signedTxn).do();
+    const txId = response.txid || response.txId;
     
     // Wait for confirmation
     await algosdk.waitForConfirmation(algodClient, txId, 10);

@@ -155,51 +155,9 @@ export function AlgorandWalletProvider({ children }: AlgorandWalletProviderProps
     setError(null);
 
     try {
-      console.log('=== PERA WALLET SIGN TRANSACTION DEBUG START ===');
-      console.log('Input txn parameter:', txn);
-      console.log('Input txn type:', typeof txn);
-      console.log('Input txn constructor:', txn?.constructor?.name);
-      console.log('Input txn is array:', Array.isArray(txn));
+      console.log('Signing transaction with Pera Wallet...');
       
-      if (Array.isArray(txn)) {
-        console.log('Transaction array length:', txn.length);
-        txn.forEach((tx, index) => {
-          console.log(`Transaction ${index}:`, {
-            type: typeof tx,
-            constructor: tx?.constructor?.name,
-            hasGetObjForEncoding: typeof tx?.get_obj_for_encoding === 'function',
-            getObjForEncodingType: typeof tx?.get_obj_for_encoding,
-            txType: tx?.type,
-            from: tx?.from?.toString?.(),
-            fee: tx?.fee
-          });
-          
-          // Check if it's a valid algosdk Transaction
-          if (tx && typeof tx === 'object') {
-            console.log(`Transaction ${index} properties:`, Object.keys(tx));
-            console.log(`Transaction ${index} prototype:`, Object.getPrototypeOf(tx));
-            console.log(`Transaction ${index} has get_obj_for_encoding:`, 'get_obj_for_encoding' in tx);
-          }
-        });
-      } else {
-        console.log('Single transaction:', {
-          type: typeof txn,
-          constructor: txn?.constructor?.name,
-          hasGetObjForEncoding: typeof txn?.get_obj_for_encoding === 'function',
-          getObjForEncodingType: typeof txn?.get_obj_for_encoding,
-          txType: txn?.type,
-          from: txn?.from?.toString?.(),
-          fee: txn?.fee
-        });
-        
-        if (txn && typeof txn === 'object') {
-          console.log('Transaction properties:', Object.keys(txn));
-          console.log('Transaction prototype:', Object.getPrototypeOf(txn));
-          console.log('Transaction has get_obj_for_encoding:', 'get_obj_for_encoding' in txn);
-        }
-      }
-      
-      console.log('Signing Algorand transaction...');
+      // CRITICAL FIX: Pera Wallet expects an array of transactions
       const signedTxn = await peraWallet.signTransaction([txn]);
       
       if (!signedTxn || signedTxn.length === 0) {
@@ -207,35 +165,11 @@ export function AlgorandWalletProvider({ children }: AlgorandWalletProviderProps
       }
       
       console.log('✓ Transaction signed successfully');
-      console.log('Signed transaction type:', typeof signedTxn[0]);
-      console.log('Signed transaction length:', signedTxn[0]?.length);
-      console.log('=== PERA WALLET SIGN TRANSACTION DEBUG END ===');
-      
       return signedTxn[0];
     } catch (error) {
       console.error('Failed to sign transaction:', error);
-      console.error('=== PERA WALLET SIGNING ERROR DEBUG ===');
-      console.error('Error type:', typeof error);
-      console.error('Error constructor:', error?.constructor?.name);
-      console.error('Error message:', error?.message);
-      console.error('Error stack:', error?.stack);
-      console.error('=== END PERA WALLET ERROR DEBUG ===');
-      
-      let errorMessage = 'Failed to sign transaction';
-      if (error instanceof Error) {
-        if (error.message.includes('cancelled') || error.message.includes('rejected')) {
-          errorMessage = 'Transaction cancelled by user';
-        } else if (error.message.includes('get_obj_for_encoding')) {
-          errorMessage = 'Transaction format error. This may be due to a library compatibility issue. Please try refreshing the page and reconnecting your wallet.';
-        } else if (error.message.includes('insufficient')) {
-          errorMessage = 'Insufficient balance for transaction';
-        } else {
-          errorMessage = error.message;
-        }
-      }
-      
-      setError(errorMessage);
-      throw new Error(errorMessage);
+      setError(error instanceof Error ? error.message : 'Failed to sign transaction');
+      throw error;
     }
   };
 
