@@ -233,14 +233,27 @@ export async function createAlgorandToken(
     console.log('Getting transaction parameters...');
     const rawSuggestedParams = await algodClient.getTransactionParams().do();
     
-    // Convert any BigInt values to regular numbers to avoid serialization issues
-    const suggestedParams = convertBigIntToNumber(rawSuggestedParams);
+    // CRITICAL FIX: Don't convert the entire object - preserve important structures
+    // Only convert specific BigInt fields while preserving Uint8Arrays and other structures
+    const suggestedParams = {
+      ...rawSuggestedParams,
+      fee: typeof rawSuggestedParams.fee === 'bigint' ? Number(rawSuggestedParams.fee) : rawSuggestedParams.fee,
+      firstRound: typeof rawSuggestedParams.firstRound === 'bigint' ? Number(rawSuggestedParams.firstRound) : rawSuggestedParams.firstRound,
+      lastRound: typeof rawSuggestedParams.lastRound === 'bigint' ? Number(rawSuggestedParams.lastRound) : rawSuggestedParams.lastRound,
+      firstValid: typeof rawSuggestedParams.firstValid === 'bigint' ? Number(rawSuggestedParams.firstValid) : rawSuggestedParams.firstValid,
+      lastValid: typeof rawSuggestedParams.lastValid === 'bigint' ? Number(rawSuggestedParams.lastValid) : rawSuggestedParams.lastValid,
+      // Keep genesisHash as-is (should be Uint8Array)
+      genesisHash: rawSuggestedParams.genesisHash,
+      genesisID: rawSuggestedParams.genesisID,
+      minFee: typeof rawSuggestedParams.minFee === 'bigint' ? Number(rawSuggestedParams.minFee) : rawSuggestedParams.minFee
+    };
     
     console.log('✓ Got suggested params:', {
       fee: suggestedParams.fee,
       firstRound: suggestedParams.firstRound,
       lastRound: suggestedParams.lastRound,
-      genesisHash: suggestedParams.genesisHash,
+      genesisHashType: typeof suggestedParams.genesisHash,
+      genesisHashLength: suggestedParams.genesisHash?.length,
       genesisID: suggestedParams.genesisID
     });
     
