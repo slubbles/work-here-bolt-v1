@@ -238,8 +238,6 @@ export async function createAlgorandToken(
     const suggestedParams = {
       ...rawSuggestedParams,
       fee: typeof rawSuggestedParams.fee === 'bigint' ? Number(rawSuggestedParams.fee) : rawSuggestedParams.fee,
-      firstRound: typeof rawSuggestedParams.firstRound === 'bigint' ? Number(rawSuggestedParams.firstRound) : rawSuggestedParams.firstRound,
-      lastRound: typeof rawSuggestedParams.lastRound === 'bigint' ? Number(rawSuggestedParams.lastRound) : rawSuggestedParams.lastRound,
       firstValid: typeof rawSuggestedParams.firstValid === 'bigint' ? Number(rawSuggestedParams.firstValid) : rawSuggestedParams.firstValid,
       lastValid: typeof rawSuggestedParams.lastValid === 'bigint' ? Number(rawSuggestedParams.lastValid) : rawSuggestedParams.lastValid,
       // Keep genesisHash as-is (should be Uint8Array)
@@ -250,8 +248,8 @@ export async function createAlgorandToken(
     
     console.log('✓ Got suggested params:', {
       fee: suggestedParams.fee,
-      firstRound: suggestedParams.firstRound,
-      lastRound: suggestedParams.lastRound,
+      firstValid: suggestedParams.firstValid,
+      lastValid: suggestedParams.lastValid,
       genesisHashType: typeof suggestedParams.genesisHash,
       genesisHashLength: suggestedParams.genesisHash?.length,
       genesisID: suggestedParams.genesisID
@@ -304,7 +302,7 @@ export async function createAlgorandToken(
     // Only include fields that have valid values - never pass undefined/null to algosdk
     console.log('Creating asset creation transaction...');
     const assetCreateParams: any = {
-      from: fromAddress,
+      sender: fromAddress,  // Fix: use 'sender' not 'from'
       suggestedParams: suggestedParams,
       defaultFrozen: false,
       unitName: tokenData.symbol,
