@@ -73,13 +73,13 @@ export async function getAlgorandAccountInfo(address: string) {
       ? Number(accountInfo.amount) / 1000000 
       : accountInfo.amount / 1000000;
     
-    const minBalance = typeof accountInfo['min-balance'] === 'bigint'
-      ? Number(accountInfo['min-balance']) / 1000000
-      : (accountInfo['min-balance'] || 0) / 1000000;
+    const minBalance = typeof accountInfo.minBalance === 'bigint'
+      ? Number(accountInfo.minBalance) / 1000000
+      : (accountInfo.minBalance || 0) / 1000000;
     
-    const totalAssets = typeof accountInfo['total-assets-opted-in'] === 'bigint'
-      ? Number(accountInfo['total-assets-opted-in'])
-      : accountInfo['total-assets-opted-in'] || 0;
+    const totalAssets = typeof accountInfo.totalAssetsOptedIn === 'bigint'
+      ? Number(accountInfo.totalAssetsOptedIn)
+      : accountInfo.totalAssetsOptedIn || 0;
     
     return {
       success: true,
