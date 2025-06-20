@@ -7,16 +7,21 @@ const account1 = algosdk.generateAccount();
 const account2 = algosdk.generateAccount();
 const account3 = algosdk.generateAccount();
 
+// Convert public keys to address strings
+const address1 = algosdk.encodeAddress(account1.publicKey);
+const address2 = algosdk.encodeAddress(account2.publicKey);
+const address3 = algosdk.encodeAddress(account3.publicKey);
+
 console.log('Generated valid addresses:');
-console.log('- Address 1:', account1.addr);
-console.log('- Address 2:', account2.addr);
-console.log('- Address 3:', account3.addr);
+console.log('- Address 1:', address1);
+console.log('- Address 2:', address2);
+console.log('- Address 3:', address3);
 
 // Verify addresses are valid
 try {
-  algosdk.decodeAddress(account1.addr);
-  algosdk.decodeAddress(account2.addr);
-  algosdk.decodeAddress(account3.addr);
+  algosdk.decodeAddress(address1);
+  algosdk.decodeAddress(address2);
+  algosdk.decodeAddress(address3);
   console.log('✓ All addresses are valid');
 } catch (e) {
   console.error('✗ Address validation failed:', e.message);
@@ -25,7 +30,7 @@ try {
 
 // Test transaction creation with valid addresses
 const testParams = {
-  from: account1.addr,
+  from: address1,
   suggestedParams: {
     fee: 1000,
     firstRound: 1000,
@@ -37,8 +42,8 @@ const testParams = {
   defaultFrozen: false,
   unitName: 'TEST',
   assetName: 'Test Token',
-  manager: account2.addr,
-  reserve: account3.addr,
+  manager: address2,
+  reserve: address3,
   total: 1000000,
   decimals: 6
 };
@@ -63,7 +68,7 @@ try {
 console.log('\nTesting pausable token creation...');
 const pausableParams = {
   ...testParams,
-  freeze: account1.addr  // Add freeze address for pausable token
+  freeze: address1  // Add freeze address for pausable token
 };
 
 try {
