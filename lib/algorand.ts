@@ -168,7 +168,16 @@ export async function createAlgorandToken(
     console.log('Input walletAddress:', walletAddress);
     console.log('Input walletAddress type:', typeof walletAddress);
     console.log('Input walletAddress length:', walletAddress?.length);
-    console.log('Input tokenData:', JSON.stringify(tokenData, null, 2));
+    
+    // Create a custom JSON replacer to handle BigInt values
+    const jsonReplacer = (key: string, value: any) => {
+      if (typeof value === 'bigint') {
+        return value.toString() + 'n';
+      }
+      return value;
+    };
+    
+    console.log('Input tokenData:', JSON.stringify(tokenData, jsonReplacer, 2));
     
     // Validate inputs
     if (!isValidAlgorandAddress(walletAddress)) {
@@ -205,9 +214,28 @@ export async function createAlgorandToken(
     
     console.log('✓ Balance check passed');
 
+    // Convert BigInt values to regular numbers to avoid serialization issues
+    const convertBigIntToNumber = (value: any): any => {
+      if (typeof value === 'bigint') {
+        return Number(value);
+      }
+      if (typeof value === 'object' && value !== null) {
+        const converted: any = {};
+        for (const key in value) {
+          converted[key] = convertBigIntToNumber(value[key]);
+        }
+        return converted;
+      }
+      return value;
+    };
+
     // Get suggested transaction parameters
     console.log('Getting transaction parameters...');
-    const suggestedParams = await algodClient.getTransactionParams().do();
+    const rawSuggestedParams = await algodClient.getTransactionParams().do();
+    
+    // Convert any BigInt values to regular numbers to avoid serialization issues
+    const suggestedParams = convertBigIntToNumber(rawSuggestedParams);
+    
     console.log('✓ Got suggested params:', {
       fee: suggestedParams.fee,
       firstRound: suggestedParams.firstRound,
@@ -259,7 +287,8 @@ export async function createAlgorandToken(
     
     console.log('✓ All address validations passed');
 
-    // Prepare asset creation transaction
+    // CRITICAL FIX: Build asset creation parameters dynamically
+    // Only include fields that have valid values - never pass undefined/null to algosdk
     console.log('Creating asset creation transaction...');
     const assetCreateParams: any = {
       from: fromAddress,
@@ -271,15 +300,22 @@ export async function createAlgorandToken(
       reserve: reserveAddress,
       total: Math.floor(totalSupplyBaseUnits),
       decimals: tokenData.decimals,
-      assetURL: tokenData.website || '',
-      // TEMPORARILY REMOVED: note field to isolate address validation issue
-      // note: new Uint8Array(Buffer.from(tokenData.description || '')),
     };
-    
-    // CRITICAL FIX: Only include freeze address if token is pausable
-    // algosdk v3.0.0 doesn't allow undefined values - we must completely omit the field
+
+    // Only add optional fields if they have valid values
+    if (tokenData.website && tokenData.website.trim() !== '') {
+      assetCreateParams.assetURL = tokenData.website;
+    }
+
+    // CRITICAL: Only add freeze address if token is pausable
+    // algosdk v3.0.0 requires complete omission of undefined fields
     if (tokenData.pausable && freezeAddress) {
       assetCreateParams.freeze = freezeAddress;
+    }
+
+    // Add note field only if description exists
+    if (tokenData.description && tokenData.description.trim() !== '') {
+      assetCreateParams.note = new TextEncoder().encode(tokenData.description);
     }
     // Note: Do not set freeze to undefined - completely omit it instead
     
@@ -292,7 +328,7 @@ export async function createAlgorandToken(
     
     // CRITICAL DEBUG: Log final parameters before transaction creation
     console.log('=== FINAL ASSET CREATION PARAMETERS DEBUG ===');
-    console.log('Final assetCreateParams:', JSON.stringify(assetCreateParams, null, 2));
+    console.log('Final assetCreateParams:', JSON.stringify(assetCreateParams, jsonReplacer, 2));
     console.log('Parameters check:');
     Object.keys(assetCreateParams).forEach(key => {
       const value = assetCreateParams[key];
@@ -304,7 +340,7 @@ export async function createAlgorandToken(
       ...assetCreateParams,
       suggestedParams: 'REDACTED_FOR_BREVITY',
       // note: `Buffer(${assetCreateParams.note?.length || 0} bytes)`
-    }, null, 2));
+    }, jsonReplacer, 2));
     
     const assetCreateTxn = algosdk.makeAssetCreateTxnWithSuggestedParamsFromObject({
       ...assetCreateParams
@@ -373,8 +409,14 @@ export async function createAlgorandToken(
     console.error('=== ALGORAND TOKEN CREATION ERROR DEBUG ===');
     console.error('Error type:', typeof error);
     console.error('Error constructor:', error?.constructor?.name);
-    console.error('Error message:', error?.message);
-    console.error('Error stack:', error?.stack);
+    
+    if (error instanceof Error) {
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+    } else {
+      console.error('Error value:', error);
+    }
+    
     console.error('=== END ERROR DEBUG ===');
     
     let errorMessage = 'Failed to create token';
