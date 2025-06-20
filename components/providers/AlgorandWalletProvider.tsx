@@ -155,21 +155,63 @@ export function AlgorandWalletProvider({ children }: AlgorandWalletProviderProps
     setError(null);
 
     try {
-      console.log('Signing transaction with Pera Wallet...');
+      console.log('=== PERA WALLET SIGN TRANSACTION DEBUG START ===');
+      console.log('Input txn parameter:', txn);
+      console.log('Input txn type:', typeof txn);
+      console.log('Input txn constructor:', txn?.constructor?.name);
       
-      // CRITICAL FIX: Pera Wallet expects an array of transactions
-      const signedTxn = await peraWallet.signTransaction([txn]);
+      // Import algosdk dynamically
+      const algosdk = await import('algosdk');
+      
+      // CRITICAL FIX: Encode the transaction as bytes before signing
+      let encodedTxn;
+      try {
+        encodedTxn = algosdk.encodeUnsignedTransaction(txn);
+        console.log('✓ Transaction encoded successfully, length:', encodedTxn.length);
+      } catch (encodeError) {
+        console.error('Failed to encode transaction:', encodeError);
+        throw new Error('Failed to encode transaction for signing');
+      }
+      
+      console.log('Signing encoded transaction with Pera Wallet...');
+      
+      // Pera Wallet expects an array of encoded transactions
+      const signedTxn = await peraWallet.signTransaction([encodedTxn]);
       
       if (!signedTxn || signedTxn.length === 0) {
         throw new Error('Transaction signing failed');
       }
       
       console.log('✓ Transaction signed successfully');
+      console.log('Signed transaction type:', typeof signedTxn[0]);
+      console.log('Signed transaction length:', signedTxn[0]?.length);
+      console.log('=== PERA WALLET SIGN TRANSACTION DEBUG END ===');
+      
       return signedTxn[0];
     } catch (error) {
       console.error('Failed to sign transaction:', error);
-      setError(error instanceof Error ? error.message : 'Failed to sign transaction');
-      throw error;
+      console.error('=== PERA WALLET SIGNING ERROR DEBUG ===');
+      console.error('Error type:', typeof error);
+      console.error('Error constructor:', error?.constructor?.name);
+      console.error('Error message:', error?.message);
+      console.error('Error stack:', error?.stack);
+      console.error('=== END PERA WALLET ERROR DEBUG ===');
+      
+      let errorMessage = 'Failed to sign transaction';
+      if (error instanceof Error) {
+        if (error.message.includes('cancelled') || error.message.includes('rejected')) {
+          errorMessage = 'Transaction cancelled by user';
+        } else if (error.message.includes('encode')) {
+          errorMessage = 'Transaction format error. Please try refreshing the page and reconnecting your wallet.';
+        } else if (error.message.includes('insufficient')) {
+          errorMessage = 'Insufficient balance for transaction';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
+      setError(errorMessage);
+      throw new Error(errorMessage);
     }
   };
 
