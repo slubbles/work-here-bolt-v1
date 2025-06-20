@@ -7,10 +7,10 @@ const account1 = algosdk.generateAccount();
 const account2 = algosdk.generateAccount();
 const account3 = algosdk.generateAccount();
 
-// Convert public keys to address strings
-const address1 = algosdk.encodeAddress(account1.publicKey);
-const address2 = algosdk.encodeAddress(account2.publicKey);
-const address3 = algosdk.encodeAddress(account3.publicKey);
+// Extract address strings from the Address objects
+const address1 = algosdk.encodeAddress(account1.addr.publicKey);
+const address2 = algosdk.encodeAddress(account2.addr.publicKey);
+const address3 = algosdk.encodeAddress(account3.addr.publicKey);
 
 console.log('Generated valid addresses:');
 console.log('- Address 1:', address1);
