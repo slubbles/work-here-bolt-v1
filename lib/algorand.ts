@@ -347,6 +347,25 @@ export async function createAlgorandToken(
     });
     
     console.log('✓ Asset creation transaction created successfully');
+    
+    // Enhanced transaction debugging
+    console.log('=== TRANSACTION STRUCTURE DEBUG ===');
+    console.log('Transaction type:', assetCreateTxn.type);
+    console.log('Transaction from (Address object):', assetCreateTxn.from);
+    console.log('Transaction from (string):', assetCreateTxn.from.toString());
+    console.log('Transaction fee:', assetCreateTxn.fee);
+    console.log('Transaction firstRound:', assetCreateTxn.firstRound);
+    console.log('Transaction lastRound:', assetCreateTxn.lastRound);
+    
+    // Check asset creation specific fields
+    if (assetCreateTxn.assetParams) {
+      console.log('Asset params manager:', assetCreateTxn.assetParams.manager?.toString());
+      console.log('Asset params reserve:', assetCreateTxn.assetParams.reserve?.toString());
+      console.log('Asset params freeze:', assetCreateTxn.assetParams.freeze?.toString());
+      console.log('Asset params clawback:', assetCreateTxn.assetParams.clawback?.toString());
+    }
+    console.log('=== END TRANSACTION STRUCTURE DEBUG ===');
+    
     console.log('Raw transaction details:', {
       type: assetCreateTxn.type,
       from: assetCreateTxn.from.toString(),
@@ -368,13 +387,14 @@ export async function createAlgorandToken(
 
     console.log('Signing Algorand asset creation transaction...');
     
-    // Sign the transaction using the original transaction directly
+    // Sign the transaction - Pera Wallet expects the raw transaction object
     const signedTxn = await signTransaction(assetCreateTxn);
     
     if (!signedTxn || signedTxn.length === 0) {
       throw new AlgorandError('Transaction signing failed or was cancelled');
     }
 
+    console.log('✓ Transaction signed successfully, length:', signedTxn.length);
     console.log('Submitting transaction to Algorand network...');
     
     // Submit the transaction
