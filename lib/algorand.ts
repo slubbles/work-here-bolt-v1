@@ -483,7 +483,7 @@ export async function getAlgorandAssetInfo(assetId: number) {
         explorerUrl: `${ALGORAND_NETWORK_INFO.explorer}/asset/${assetId}`,
         totalSupply: assetInfo.params.total,
         decimals: assetInfo.params.decimals,
-        unitName: assetInfo.params['unit-name'],
+        unitName: assetInfo.params.unitName,
         assetName: assetInfo.params.name,
         creator: assetInfo.params.creator,
         manager: assetInfo.params.manager,
