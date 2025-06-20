@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import algosdk from 'algosdk';
 
 // Define types for Pera Wallet
 interface PeraWalletConnect {
@@ -155,36 +156,51 @@ export function AlgorandWalletProvider({ children }: AlgorandWalletProviderProps
     setError(null);
 
     try {
-      console.log('Signing Algorand transaction with Pera Wallet...');
+      console.log('=== PERA WALLET SIGN TRANSACTION DEBUG START ===');
+      console.log('Input transaction:', {
+        type: typeof txn,
+        constructor: txn?.constructor?.name,
+        isTransaction: txn instanceof algosdk.Transaction,
+        hasGetObjForEncoding: typeof txn?.get_obj_for_encoding === 'function'
+      });
       
-      // Import algosdk for encoding the transaction
-      const algosdk = await import('algosdk');
+      // Validate that we have a proper algosdk.Transaction object
+      if (!(txn instanceof algosdk.Transaction)) {
+        throw new Error('Invalid transaction object - must be algosdk.Transaction instance');
+      }
       
-      // Encode the transaction before passing to Pera Wallet
-      // This ensures the transaction is in the correct format
-      const encodedTxn = algosdk.encodeUnsignedTransaction(txn);
+      console.log('✓ Transaction validation passed');
+      console.log('Sending raw transaction object directly to Pera Wallet...');
       
-      console.log('Transaction encoded successfully, sending to Pera Wallet...');
-      
-      // Pass the encoded transaction to Pera Wallet
-      const signedTxn = await peraWallet.signTransaction([encodedTxn]);
+      // CRITICAL FIX: Pass the raw transaction object directly
+      // Pera Wallet expects an array of algosdk.Transaction objects, not encoded bytes
+      const signedTxn = await peraWallet.signTransaction([txn]);
       
       if (!signedTxn || signedTxn.length === 0) {
-        throw new Error('Transaction signing failed');
+        throw new Error('Transaction signing failed - no signed transaction returned');
       }
       
       console.log('✓ Transaction signed successfully');
+      console.log('Signed transaction type:', typeof signedTxn[0]);
+      console.log('Signed transaction length:', signedTxn[0]?.length);
+      console.log('=== PERA WALLET SIGN TRANSACTION DEBUG END ===');
       
       return signedTxn[0];
     } catch (error) {
       console.error('Failed to sign transaction:', error);
+      console.error('=== PERA WALLET SIGNING ERROR DEBUG ===');
+      console.error('Error type:', typeof error);
+      console.error('Error constructor:', error?.constructor?.name);
+      console.error('Error message:', error?.message);
+      console.error('Error stack:', error?.stack);
+      console.error('=== END PERA WALLET ERROR DEBUG ===');
       
       let errorMessage = 'Failed to sign transaction';
       if (error instanceof Error) {
         if (error.message.includes('cancelled') || error.message.includes('rejected')) {
           errorMessage = 'Transaction cancelled by user';
-        } else if (error.message.includes('t.map') || error.message.includes('getEncodingSchema') || error.message.includes('encode')) {
-          errorMessage = 'Transaction format error. Please try refreshing the page and reconnecting your wallet.';
+        } else if (error.message.includes('getEncodingSchema') || error.message.includes('t.map')) {
+          errorMessage = 'Transaction format error. The transaction object may be corrupted. Please try refreshing the page and reconnecting your wallet.';
         } else if (error.message.includes('insufficient')) {
           errorMessage = 'Insufficient balance for transaction';
         } else {
