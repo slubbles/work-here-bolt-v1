@@ -233,14 +233,12 @@ export async function createAlgorandToken(
     console.log('Getting transaction parameters...');
     const rawSuggestedParams = await algodClient.getTransactionParams().do();
     
-    // CRITICAL FIX: Don't convert the entire object - preserve important structures
-    // Only convert specific BigInt fields while preserving Uint8Arrays and other structures
+    // Handle BigInt conversion while preserving Uint8Arrays and other important structures
     const suggestedParams = {
       ...rawSuggestedParams,
       fee: typeof rawSuggestedParams.fee === 'bigint' ? Number(rawSuggestedParams.fee) : rawSuggestedParams.fee,
       firstValid: typeof rawSuggestedParams.firstValid === 'bigint' ? Number(rawSuggestedParams.firstValid) : rawSuggestedParams.firstValid,
       lastValid: typeof rawSuggestedParams.lastValid === 'bigint' ? Number(rawSuggestedParams.lastValid) : rawSuggestedParams.lastValid,
-      // Keep genesisHash as-is (should be Uint8Array)
       genesisHash: rawSuggestedParams.genesisHash,
       genesisID: rawSuggestedParams.genesisID,
       minFee: typeof rawSuggestedParams.minFee === 'bigint' ? Number(rawSuggestedParams.minFee) : rawSuggestedParams.minFee

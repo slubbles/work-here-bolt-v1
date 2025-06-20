@@ -157,8 +157,8 @@ export function AlgorandWalletProvider({ children }: AlgorandWalletProviderProps
     try {
       console.log('Signing Algorand transaction with Pera Wallet...');
       
-      // CRITICAL FIX: Pass the raw transaction object to Pera Wallet
-      // Pera Wallet expects an array of raw transaction objects and handles encoding internally
+      // Pass the transaction object to Pera Wallet
+      // Pera Wallet v1.3.4+ properly handles raw transaction objects
       const signedTxn = await peraWallet.signTransaction([txn]);
       
       if (!signedTxn || signedTxn.length === 0) {
@@ -175,8 +175,8 @@ export function AlgorandWalletProvider({ children }: AlgorandWalletProviderProps
       if (error instanceof Error) {
         if (error.message.includes('cancelled') || error.message.includes('rejected')) {
           errorMessage = 'Transaction cancelled by user';
-        } else if (error.message.includes('getEncodingSchema') || error.message.includes('encode')) {
-          errorMessage = 'Transaction format error. This may be due to a library compatibility issue. Please try refreshing the page and reconnecting your wallet.';
+        } else if (error.message.includes('t.map') || error.message.includes('getEncodingSchema') || error.message.includes('encode')) {
+          errorMessage = 'Transaction format error. Please try refreshing the page and reconnecting your wallet.';
         } else if (error.message.includes('insufficient')) {
           errorMessage = 'Insufficient balance for transaction';
         } else {
