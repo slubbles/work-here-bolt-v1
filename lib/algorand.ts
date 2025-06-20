@@ -362,35 +362,26 @@ export async function createAlgorandToken(
     // Enhanced transaction debugging
     console.log('=== TRANSACTION STRUCTURE DEBUG ===');
     console.log('Transaction type:', assetCreateTxn.type);
-    console.log('Transaction from (Address object):', assetCreateTxn.from);
-    console.log('Transaction from (string):', assetCreateTxn.from.toString());
+    console.log('Transaction sender:', assetCreateTxn.sender?.toString());
     console.log('Transaction fee:', assetCreateTxn.fee);
-    console.log('Transaction firstRound:', assetCreateTxn.firstRound);
-    console.log('Transaction lastRound:', assetCreateTxn.lastRound);
+    console.log('Transaction firstValid:', assetCreateTxn.firstValid);
+    console.log('Transaction lastValid:', assetCreateTxn.lastValid);
     
     // Check asset creation specific fields
-    if (assetCreateTxn.assetParams) {
-      console.log('Asset params manager:', assetCreateTxn.assetParams.manager?.toString());
-      console.log('Asset params reserve:', assetCreateTxn.assetParams.reserve?.toString());
-      console.log('Asset params freeze:', assetCreateTxn.assetParams.freeze?.toString());
-      console.log('Asset params clawback:', assetCreateTxn.assetParams.clawback?.toString());
-    }
+    console.log('Asset params exist:', !!assetCreateTxn.assetParams);
     console.log('=== END TRANSACTION STRUCTURE DEBUG ===');
     
     console.log('Raw transaction details:', {
       type: assetCreateTxn.type,
-      from: assetCreateTxn.from.toString(),
+      sender: assetCreateTxn.sender?.toString(),
       fee: assetCreateTxn.fee,
-      firstRound: assetCreateTxn.firstRound,
-      lastRound: assetCreateTxn.lastRound,
-      constructor: assetCreateTxn.constructor.name,
-      hasGetObjForEncoding: typeof assetCreateTxn.get_obj_for_encoding === 'function',
-      getObjForEncodingType: typeof assetCreateTxn.get_obj_for_encoding
+      firstValid: assetCreateTxn.firstValid,
+      lastValid: assetCreateTxn.lastValid,
+      constructor: assetCreateTxn.constructor.name
     });
     
     console.log('Transaction object properties:', Object.keys(assetCreateTxn));
     console.log('Transaction prototype:', Object.getPrototypeOf(assetCreateTxn));
-    console.log('Transaction has get_obj_for_encoding method:', 'get_obj_for_encoding' in assetCreateTxn);
     
     // SIMPLIFIED: Skip complex transaction serialization/deserialization for now
     // This was causing compatibility issues with Pera Wallet
