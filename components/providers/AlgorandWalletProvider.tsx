@@ -157,9 +157,17 @@ export function AlgorandWalletProvider({ children }: AlgorandWalletProviderProps
     try {
       console.log('Signing Algorand transaction with Pera Wallet...');
       
-      // Pass the transaction object to Pera Wallet
-      // Pera Wallet v1.3.4+ properly handles raw transaction objects
-      const signedTxn = await peraWallet.signTransaction([txn]);
+      // Import algosdk for encoding the transaction
+      const algosdk = await import('algosdk');
+      
+      // Encode the transaction before passing to Pera Wallet
+      // This ensures the transaction is in the correct format
+      const encodedTxn = algosdk.encodeUnsignedTransaction(txn);
+      
+      console.log('Transaction encoded successfully, sending to Pera Wallet...');
+      
+      // Pass the encoded transaction to Pera Wallet
+      const signedTxn = await peraWallet.signTransaction([encodedTxn]);
       
       if (!signedTxn || signedTxn.length === 0) {
         throw new Error('Transaction signing failed');
