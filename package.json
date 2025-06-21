@@ -10,9 +10,9 @@
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.28.0",
-    "@perawallet/connect": "^1.4.4",
+    "@perawallet/connect": "^1.4.2",
     "@supabase/supabase-js": "^2.39.0",
-    "algosdk": "^3.2.1",
+    "algosdk": "^3.3.1",
     "@radix-ui/react-accordion": "^1.1.2",
     "@radix-ui/react-alert-dialog": "^1.0.5",
     "@radix-ui/react-aspect-ratio": "^1.0.3",
