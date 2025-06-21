@@ -174,18 +174,18 @@ export function AlgorandWalletProvider({ children }: AlgorandWalletProviderProps
       
       // CRITICAL FIX: Pass the raw transaction object directly
       // Pera Wallet expects an array of algosdk.Transaction objects, not encoded bytes
-      const signedTxn = await peraWallet.signTransaction([txn]);
+      const signedTxn = await peraWallet.signTransaction([[{ txn: txn }]]);
       
       if (!signedTxn || signedTxn.length === 0) {
         throw new Error('Transaction signing failed - no signed transaction returned');
       }
       
       console.log('✓ Transaction signed successfully');
-      console.log('Signed transaction type:', typeof signedTxn[0]);
-      console.log('Signed transaction length:', signedTxn[0]?.length);
+      console.log('Signed transaction type:', typeof signedTxn[0][0]);
+      console.log('Signed transaction length:', signedTxn[0][0]?.length);
       console.log('=== PERA WALLET SIGN TRANSACTION DEBUG END ===');
       
-      return signedTxn[0];
+      return signedTxn[0][0];
     } catch (error) {
       console.error('Failed to sign transaction:', error);
       console.error('=== PERA WALLET SIGNING ERROR DEBUG ===');
