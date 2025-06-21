@@ -641,8 +641,9 @@ export async function optInToAsset(
     // Sign the transaction
     const signedTxn = await signTransaction(optInTxn);
     
-    if (!signedTxn || signedTxn.length === 0) {
-      throw new AlgorandError('Transaction signing failed or was cancelled');
+    // Verify we have a Uint8Array before submission
+    if (!(signedTxn instanceof Uint8Array)) {
+      throw new AlgorandError(`Invalid signed transaction format: expected Uint8Array, got ${typeof signedTxn}`);
     }
     
     // Submit the transaction

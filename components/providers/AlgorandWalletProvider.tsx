@@ -170,37 +170,70 @@ export function AlgorandWalletProvider({ children }: AlgorandWalletProviderProps
       }
       
       console.log('✓ Transaction validation passed');
-      console.log('Sending raw transaction object directly to Pera Wallet...');
+      console.log('Preparing transaction for Pera Wallet signing...');
+
+      // Format transaction for Pera Wallet - it expects SignerTransaction[][]
+      const signerTransaction = {
+        txn: txn,
+        signers: [address]
+      };
+
+      console.log('Formatted SignerTransaction:', signerTransaction);
+      console.log('Calling Pera Wallet signTransaction with nested array format...');
+
+      // CRITICAL FIX: Pera Wallet expects SignerTransaction[][]
+      const signedTxns = await peraWallet.signTransaction([[signerTransaction]]);
       
-      // CRITICAL FIX: Pass the raw transaction object directly
-      // Pera Wallet expects an array of algosdk.Transaction objects, not encoded bytes
-      const signedTxn = await peraWallet.signTransaction([[{ txn: txn }]]);
-      
-      if (!signedTxn || signedTxn.length === 0) {
+      if (!signedTxns || signedTxns.length === 0) {
         throw new Error('Transaction signing failed - no signed transaction returned');
       }
       
-      console.log('✓ Transaction signed successfully');
-      console.log('Signed transaction type:', typeof signedTxn[0][0]);
-      console.log('Signed transaction length:', signedTxn[0][0]?.length);
+      console.log('✓ Pera Wallet signTransaction completed');
+      console.log('Signed transactions response:', signedTxns);
+      console.log('Signed transactions type:', typeof signedTxns);
+      console.log('Signed transactions length:', signedTxns?.length);
+      
+      // Extract the first signed transaction
+      const firstSignedTxn = signedTxns[0];
+      console.log('First signed transaction:', firstSignedTxn);
+      console.log('First signed transaction type:', typeof firstSignedTxn);
+      console.log('First signed transaction constructor:', firstSignedTxn?.constructor?.name);
+
+      // Ensure we have a Uint8Array for submission
+      let signedTxnBytes: Uint8Array;
+      
+      if (firstSignedTxn instanceof Uint8Array) {
+        console.log('✓ Already Uint8Array, using directly');
+        signedTxnBytes = firstSignedTxn;
+      } else if (Array.isArray(firstSignedTxn)) {
+        console.log('Converting array to Uint8Array');
+        signedTxnBytes = new Uint8Array(firstSignedTxn);
+      } else if (firstSignedTxn && typeof firstSignedTxn === 'object' && firstSignedTxn.blob) {
+        console.log('Extracting blob property');
+        signedTxnBytes = new Uint8Array(firstSignedTxn.blob);
+      } else {
+        console.error('Unexpected signed transaction format:', firstSignedTxn);
+        throw new Error(`Unexpected signed transaction format: ${typeof firstSignedTxn}`);
+      }
+
+      console.log('✓ Final signed transaction bytes type:', signedTxnBytes.constructor.name);
+      console.log('✓ Final signed transaction bytes length:', signedTxnBytes.length);
       console.log('=== PERA WALLET SIGN TRANSACTION DEBUG END ===');
       
-      return signedTxn[0][0];
+      return signedTxnBytes;
     } catch (error) {
-      console.error('Failed to sign transaction:', error);
-      console.error('=== PERA WALLET SIGNING ERROR DEBUG ===');
+      console.error('=== PERA WALLET SIGN TRANSACTION ERROR ===');
+      console.error('Error during transaction signing:', error);
       console.error('Error type:', typeof error);
       console.error('Error constructor:', error?.constructor?.name);
       console.error('Error message:', error?.message);
       console.error('Error stack:', error?.stack);
-      console.error('=== END PERA WALLET ERROR DEBUG ===');
+      console.error('=== END PERA WALLET ERROR ===');
       
       let errorMessage = 'Failed to sign transaction';
       if (error instanceof Error) {
         if (error.message.includes('cancelled') || error.message.includes('rejected')) {
           errorMessage = 'Transaction cancelled by user';
-        } else if (error.message.includes('getEncodingSchema') || error.message.includes('t.map')) {
-          errorMessage = 'Transaction format error. The transaction object may be corrupted. Please try refreshing the page and reconnecting your wallet.';
         } else if (error.message.includes('insufficient')) {
           errorMessage = 'Insufficient balance for transaction';
         } else {
@@ -209,7 +242,7 @@ export function AlgorandWalletProvider({ children }: AlgorandWalletProviderProps
       }
       
       setError(errorMessage);
-      throw new Error(errorMessage);
+      throw new Error(`Transaction signing failed: ${errorMessage}`);
     }
   };
 
