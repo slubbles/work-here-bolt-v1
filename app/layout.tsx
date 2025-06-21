@@ -1,9 +1,19 @@
 import './globals.css';
 import type { Metadata } from 'next';
-import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
-import WalletContextProvider from '@/components/providers/WalletProvider';
 import { Toaster } from '@/components/ui/toaster';
+import dynamic from 'next/dynamic';
+
+// Dynamically import components that use browser APIs
+const Navbar = dynamic(() => import('@/components/layout/Navbar'), {
+  ssr: false,
+  loading: () => <div className="h-16 bg-background border-b" />
+});
+
+const WalletContextProvider = dynamic(() => import('@/components/providers/WalletProvider'), {
+  ssr: false,
+  loading: () => <div />
+});
 
 export const metadata: Metadata = {
   title: 'Snarbles - Create Your Own Token in 30 Seconds',
