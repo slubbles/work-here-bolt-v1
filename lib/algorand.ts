@@ -60,7 +60,7 @@ export async function getAlgorandAccountInfo(
     const algodClient = createAlgodClient(network);
     const accountInfo = await algodClient.accountInformation(walletAddress).do();
     
-    const balance = accountInfo.amount / 1000000; // Convert microAlgos to Algos
+    const balance = Number(accountInfo.amount) / 1000000; // Convert microAlgos to Algos
     const assets = accountInfo.assets || [];
     
     console.log(`Account balance: ${balance} ALGO, Assets: ${assets.length}`);
@@ -209,7 +209,7 @@ export async function createAlgorandToken(
     
     // Calculate total supply with decimals
     const totalSupplyWithDecimals = BigInt(
-      Math.floor(parseFloat(tokenData.totalSupply) * Math.pow(10, tokenData.decimals))
+      Math.floor(parseFloat(tokenData.totalSupply) * Math.pow(10, tokenData.decimals)).toString()
     );
     
     // Create ARC-3 compliant metadata
