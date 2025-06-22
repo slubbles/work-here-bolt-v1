@@ -50,7 +50,13 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
 
   // Wallet connections
   const { connected: solanaConnected, publicKey: solanaPublicKey, wallet: solanaWallet } = useWallet();
-  const { connected: algorandConnected, address: algorandAddress, signTransaction: algorandSignTransaction } = useAlgorandWallet();
+  const { 
+    connected: algorandConnected, 
+    address: algorandAddress, 
+    signTransaction: algorandSignTransaction,
+    selectedNetwork: algorandSelectedNetwork,
+    setSelectedNetwork: setAlgorandSelectedNetwork 
+  } = useAlgorandWallet();
 
   useEffect(() => {
     setMounted(true);
@@ -61,7 +67,17 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
     if (algorandConnected && algorandAddress && (tokenData.network === 'algorand-testnet' || tokenData.network === 'algorand-mainnet')) {
       checkAlgorandWalletStatus();
     }
-  }, [algorandConnected, algorandAddress, tokenData.network]);
+  }, [algorandConnected, algorandAddress, tokenData.network, algorandSelectedNetwork]);
+
+  // Sync form network with wallet network
+  useEffect(() => {
+    if (algorandConnected && (tokenData.network === 'algorand-testnet' || tokenData.network === 'algorand-mainnet')) {
+      // If the wallet network doesn't match the form network, update the wallet
+      if (algorandSelectedNetwork !== tokenData.network) {
+        setAlgorandSelectedNetwork(tokenData.network);
+      }
+    }
+  }, [tokenData.network, algorandConnected, algorandSelectedNetwork, setAlgorandSelectedNetwork]);
 
   const checkAlgorandWalletStatus = async () => {
     if (!algorandAddress) return;
@@ -318,7 +334,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
       cost: '~$0.001',
       recommended: false,
       color: 'bg-[#76f935]/20 text-[#76f935] border-[#76f935]/30',
-      available: algorandConnected
+      available: algorandConnected && algorandSelectedNetwork === 'algorand-testnet'
     },
     {
       value: 'algorand-mainnet',
@@ -327,7 +343,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
       cost: '~$0.002',
       recommended: false,
       color: 'bg-[#00d4aa]/20 text-[#00d4aa] border-[#00d4aa]/30',
-      available: algorandConnected
+      available: algorandConnected && algorandSelectedNetwork === 'algorand-mainnet'
     }
   ];
 
@@ -487,7 +503,10 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
                         )}
                         {!network.available && (
                           <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30 text-xs">
-                            Connect Wallet
+                            {network.value.startsWith('algorand') ? 
+                              `Switch to ${network.value === 'algorand-mainnet' ? 'MainNet' : 'TestNet'}` : 
+                              'Connect Wallet'
+                            }
                           </Badge>
                         )}
                       </div>
@@ -508,7 +527,10 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
             <Alert>
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
-                Please connect a wallet for your selected network to continue with token creation.
+                {selectedNetwork?.value.startsWith('algorand') && algorandConnected ? 
+                  `Please switch your Algorand wallet to ${selectedNetwork.label} to continue.` :
+                  'Please connect a wallet for your selected network to continue with token creation.'
+                }
               </AlertDescription>
             </Alert>
           )}

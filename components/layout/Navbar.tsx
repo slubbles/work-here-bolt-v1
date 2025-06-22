@@ -29,7 +29,10 @@ export default function Navbar() {
     connected: algorandConnected, 
     address: algorandAddress, 
     connect: connectAlgorand, 
-    disconnect: disconnectAlgorand 
+    disconnect: disconnectAlgorand,
+    selectedNetwork: algorandSelectedNetwork,
+    setSelectedNetwork: setAlgorandSelectedNetwork,
+    networkConfig: algorandNetworkConfig
   } = useAlgorandWallet();
 
   useEffect(() => {
@@ -214,7 +217,9 @@ export default function Navbar() {
                         <div className="w-5 h-5 rounded bg-[#76f935]/20 flex items-center justify-center">
                           <span className="text-[#76f935] font-bold text-xs">A</span>
                         </div>
-                        <div className="text-[#76f935] text-sm font-medium">{formatAddress(algorandAddress)}</div>
+                        <div className="text-[#76f935] text-sm font-medium">
+                          {formatAddress(algorandAddress)} ({algorandNetworkConfig?.isMainnet ? 'MainNet' : 'TestNet'})
+                        </div>
                       </div>
                       <Button
                         variant="ghost"
@@ -315,8 +320,12 @@ export default function Navbar() {
                             <span className="text-white font-bold text-sm">A</span>
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-foreground font-medium text-sm">Algorand Wallet</p>
-                            <p className="text-muted-foreground text-xs">For Algorand ASA tokens</p>
+                            <p className="text-foreground font-medium text-sm">
+                              Algorand {algorandNetworkConfig?.isMainnet ? 'MainNet' : 'TestNet'}
+                            </p>
+                            <p className="text-muted-foreground text-xs">
+                              {algorandNetworkConfig?.name || 'Algorand Network'}
+                            </p>
                             {algorandConnected && algorandAddress && (
                               <div className="flex items-center space-x-2 mt-1">
                                 <p className="text-[#76f935] text-xs font-mono">{formatAddress(algorandAddress)}</p>
@@ -345,13 +354,34 @@ export default function Navbar() {
                         )}
                       </div>
                       {algorandConnected ? (
-                        <Button
-                          variant="outline"
-                          onClick={handleAlgorandDisconnect}
-                          className="w-full border-border text-muted-foreground hover:bg-muted rounded-lg h-9 text-sm font-medium"
-                        >
-                          Disconnect Algorand
-                        </Button>
+                        <div className="space-y-2">
+                          {/* Network Switcher */}
+                          <div className="flex gap-1 bg-muted rounded-lg p-1">
+                            <Button
+                              variant={algorandSelectedNetwork === 'algorand-testnet' ? 'default' : 'ghost'}
+                              size="sm"
+                              onClick={() => setAlgorandSelectedNetwork('algorand-testnet')}
+                              className="flex-1 text-xs"
+                            >
+                              TestNet
+                            </Button>
+                            <Button
+                              variant={algorandSelectedNetwork === 'algorand-mainnet' ? 'default' : 'ghost'}
+                              size="sm"
+                              onClick={() => setAlgorandSelectedNetwork('algorand-mainnet')}
+                              className="flex-1 text-xs"
+                            >
+                              MainNet
+                            </Button>
+                          </div>
+                          <Button
+                            variant="outline"
+                            onClick={handleAlgorandDisconnect}
+                            className="w-full border-border text-muted-foreground hover:bg-muted rounded-lg h-9 text-sm font-medium"
+                          >
+                            Disconnect
+                          </Button>
+                        </div>
                       ) : (
                         <Button
                           onClick={handleAlgorandConnect}
@@ -505,7 +535,9 @@ export default function Navbar() {
                         <span className="text-[#76f935] font-bold text-sm">A</span>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <span className="text-foreground font-medium">Algorand</span>
+                        <span className="text-foreground font-medium">
+                          Algorand {algorandNetworkConfig?.isMainnet ? 'MainNet' : 'TestNet'}
+                        </span>
                         {algorandConnected && algorandAddress && (
                           <div className="flex items-center space-x-2 mt-1">
                             <p className="text-[#76f935] text-xs font-mono truncate">{formatAddress(algorandAddress)}</p>
@@ -534,13 +566,34 @@ export default function Navbar() {
                     )}
                   </div>
                   {algorandConnected ? (
-                    <Button
-                      variant="outline"
-                      onClick={handleAlgorandDisconnect}
-                      className="w-full border-border text-muted-foreground hover:bg-muted h-12 rounded-xl"
-                    >
-                      Disconnect Algorand
-                    </Button>
+                    <div className="space-y-3">
+                      {/* Mobile Network Switcher */}
+                      <div className="flex gap-2">
+                        <Button
+                          variant={algorandSelectedNetwork === 'algorand-testnet' ? 'default' : 'outline'}
+                          onClick={() => setAlgorandSelectedNetwork('algorand-testnet')}
+                          className="flex-1 h-10"
+                          size="sm"
+                        >
+                          TestNet
+                        </Button>
+                        <Button
+                          variant={algorandSelectedNetwork === 'algorand-mainnet' ? 'default' : 'outline'}
+                          onClick={() => setAlgorandSelectedNetwork('algorand-mainnet')}
+                          className="flex-1 h-10"
+                          size="sm"
+                        >
+                          MainNet
+                        </Button>
+                      </div>
+                      <Button
+                        variant="outline"
+                        onClick={handleAlgorandDisconnect}
+                        className="w-full border-border text-muted-foreground hover:bg-muted h-12 rounded-xl"
+                      >
+                        Disconnect
+                      </Button>
+                    </div>
                   ) : (
                     <Button
                       onClick={handleAlgorandConnect}
