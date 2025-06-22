@@ -220,6 +220,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
           supabaseHelpers.uploadMetadataToStorage,
           tokenData.network
         );
+        );
 
         setDeploymentProgress(60);
 
@@ -935,7 +936,6 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
           algorandSignTransaction,
           supabaseHelpers.uploadMetadataToStorage,
           tokenData.network
-        );
 
         if (result.success) {
           // Auto opt-in creator to the new token
