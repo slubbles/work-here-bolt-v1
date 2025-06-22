@@ -54,9 +54,14 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
         description: 'Production Network - ~$2-5'
       },
       'algorand-testnet': { 
-        name: 'Algorand TestNet', 
+        name: 'Algorand TestNet',
         color: 'bg-[#76f935]/20 text-[#76f935] border-[#76f935]/30',
         description: 'Ultra Low Cost - ~$0.001'
+      },
+      'algorand-mainnet': {
+        name: 'Algorand MainNet',
+        color: 'bg-[#00d4aa]/20 text-[#00d4aa] border-[#00d4aa]/30', 
+        description: 'Production Network - ~$0.002'
       },
       'soon-network': {
         name: 'Soon Network',
@@ -189,7 +194,14 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
         <div className="pt-8 border-t border-border text-center">
           <div className="flex items-center justify-center space-x-2 text-green-500">
             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-            <p className="text-base font-bold">Ready for deployment to {networkInfo.name}</p>
+            <p className="text-base font-bold">
+              Ready for deployment to {networkInfo.name}
+              {network.includes('algorand') && (
+                <span className="ml-2 text-sm opacity-75">
+                  ({network === 'algorand-mainnet' ? 'Production' : 'Testing'})
+                </span>
+              )}
+            </p>
           </div>
         </div>
       </div>
@@ -203,9 +215,16 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
         <div className="space-y-4">
           <div className="flex justify-between items-center p-4 bg-muted/30 rounded-xl">
             <span className="text-muted-foreground font-semibold text-base">Network:</span>
-            <Badge className={`${networkInfo.color} text-xs px-3 py-1 rounded-lg font-semibold`}>
-              {networkInfo.name}
-            </Badge>
+            <div className="flex items-center space-x-2">
+              <Badge className={`${networkInfo.color} text-xs px-3 py-1 rounded-lg font-semibold`}>
+                {networkInfo.name}
+              </Badge>
+              {network.includes('algorand') && (
+                <span className="text-xs text-muted-foreground">
+                  ({network === 'algorand-mainnet' ? 'Production' : 'Testing'})
+                </span>
+              )}
+            </div>
           </div>
           
           <div className="flex justify-between items-center p-4 bg-muted/30 rounded-xl">

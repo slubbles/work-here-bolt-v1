@@ -361,7 +361,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
       value: 'algorand-mainnet',
       label: 'Algorand MainNet',
       description: 'Production Network',
-      cost: '~$0.001',
+      cost: '~$0.002',
       recommended: false,
       color: 'bg-[#00d4aa]/20 text-[#00d4aa] border-[#00d4aa]/30',
       available: algorandConnected && isPeraWalletReady,
@@ -391,8 +391,10 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
             <CardTitle className="text-2xl font-bold text-foreground">🎉 Token Created Successfully!</CardTitle>
             <CardDescription className="text-lg">
               Your <strong>{tokenData.name} ({tokenData.symbol})</strong> token is now live on{' '}
-              {deploymentResult.network === 'algorand-testnet' ? 'Algorand TestNet' : 
-               deploymentResult.network === 'algorand-mainnet' ? 'Algorand MainNet' : 'Solana Network'}!
+              <span className="font-bold text-blue-600">
+                {deploymentResult.network === 'algorand-testnet' ? 'Algorand TestNet' : 
+                 deploymentResult.network === 'algorand-mainnet' ? 'Algorand MainNet' : 'Solana Network'}
+              </span>!
               <br />
               <span className="text-sm text-muted-foreground mt-2 block">
                 ✅ Token details have been saved to your dashboard history.
@@ -404,7 +406,10 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
               <div className="inline-flex items-center space-x-2 bg-muted/50 rounded-lg px-4 py-2">
                 <Network className="w-4 h-4 text-muted-foreground" />
                 <span className="text-sm font-medium">
-                  {deploymentResult.network?.startsWith('algorand') ? 'Asset ID' : 'Token Address'}:
+                  {deploymentResult.network?.startsWith('algorand') 
+                    ? `Asset ID (${deploymentResult.network === 'algorand-mainnet' ? 'MainNet' : 'TestNet'})`
+                    : 'Token Address'
+                  }:
                 </span>
                 <code className="text-sm font-mono bg-background px-2 py-1 rounded">
                   {deploymentResult.assetId || deploymentResult.tokenAddress}
@@ -426,10 +431,12 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
               <AlertDescription>
                 <div className="space-y-2">
                   <p className="font-semibold text-blue-600">
-                    🔗 {deploymentResult.network?.startsWith('algorand') ? 'Algorand' : 'Solana'} Token Created!
+                    🔗 {deploymentResult.network?.startsWith('algorand') 
+                      ? `Algorand ${deploymentResult.network === 'algorand-mainnet' ? 'MainNet' : 'TestNet'}` 
+                      : 'Solana'} Token Created!
                   </p>
                   <p className="text-sm">
-                    {deploymentResult.network?.startsWith('algorand') 
+                    {deploymentResult.network?.startsWith('algorand')
                       ? 'To see your token in Pera Wallet, you need to opt-in to receive it.'
                       : 'Your token is now available on the Solana blockchain.'
                     }
@@ -444,7 +451,9 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
                 className="w-full"
                 variant="outline"
               >
-                🔍 View on {deploymentResult.network?.startsWith('algorand') ? 'AlgoExplorer' : 'Explorer'}
+                🔍 View on {deploymentResult.network?.startsWith('algorand') 
+                  ? `${deploymentResult.network === 'algorand-mainnet' ? 'MainNet ' : 'TestNet '}Explorer` 
+                  : 'Solana Explorer'}
               </Button>
               
               <div className="grid grid-cols-2 gap-3">
@@ -588,7 +597,12 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
               <div className="flex justify-between items-center">
                 <span className="text-muted-foreground">Network:</span>
                 <span className="font-medium">
-                  {algorandNetworkConfig?.name || 'Algorand Network'}
+                  <Badge className={algorandNetworkConfig?.isMainnet 
+                    ? 'bg-[#00d4aa]/20 text-[#00d4aa] border-[#00d4aa]/30'
+                    : 'bg-[#76f935]/20 text-[#76f935] border-[#76f935]/30'
+                  }>
+                    {algorandNetworkConfig?.name || 'Algorand Network'}
+                  </Badge>
                 </span>
               </div>
               <div className="flex justify-between items-center">
@@ -601,14 +615,14 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
                   ? 'bg-green-500/20 text-green-400 border-green-500/30'
                   : 'bg-red-500/20 text-red-400 border-red-500/30'
                 }>
-                  {algorandWalletStatus.canCreateToken ? 'Yes' : 'Insufficient Balance'}
+                  {algorandWalletStatus.canCreateToken ? '✅ Yes' : '❌ Insufficient Balance'}
                 </Badge>
               </div>
               {!algorandWalletStatus.canCreateToken && (
                 <Alert>
                   <AlertTriangle className="h-4 w-4" />
                   <AlertDescription>
-                    You need at least {algorandWalletStatus.recommendedBalance} ALGO to create a token.
+                    You need at least <strong>{algorandWalletStatus.recommendedBalance} ALGO</strong> to create a token on {algorandNetworkConfig?.name}.
                     Current balance: {algorandWalletStatus.balance?.toFixed(4)} ALGO
                   </AlertDescription>
                 </Alert>
@@ -846,15 +860,15 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
               className="w-full bg-red-500 hover:bg-red-600 text-white h-12 text-lg font-semibold"
             >
               {isDeploying ? (
-                <>
+                <div className="flex items-center space-x-3">
                   <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                  Creating Token...
-                </>
+                  <span>Creating on {selectedNetwork?.label}...</span>
+                </div>
               ) : (
-                <>
+                <div className="flex items-center space-x-2">
                   <Rocket className="w-5 h-5 mr-2" />
-                  🚀 Deploy to {selectedNetwork?.label}
-                </>
+                  <span>🚀 Deploy to {selectedNetwork?.label}</span>
+                </div>
               )}
             </Button>
 
