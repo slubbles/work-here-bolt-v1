@@ -50,7 +50,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
 
   // Wallet connections
   const { connected: solanaConnected, publicKey: solanaPublicKey, wallet: solanaWallet } = useWallet();
-  const { connected: algorandConnected, address: algorandAddress, signTransaction: algorandSignTransaction } = useAlgorandWallet();
+  const { connected: algorandConnected, address: algorandAddress, signTransaction: algorandSignTransaction, selectedNetwork: algorandSelectedNetwork, setSelectedNetwork: setAlgorandSelectedNetwork } = useAlgorandWallet();
 
   useEffect(() => {
     setMounted(true);
@@ -58,19 +58,28 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
 
   useEffect(() => {
     // Check Algorand wallet status when connected
-    if (algorandConnected && algorandAddress) {
+    if (algorandConnected && algorandAddress && (tokenData.network === 'algorand-testnet' || tokenData.network === 'algorand-mainnet')) {
       checkAlgorandWalletStatus();
     }
-  }, [algorandConnected, algorandAddress]);
+  }, [algorandConnected, algorandAddress, tokenData.network]);
+
+  // Update Algorand network when token network changes
+  useEffect(() => {
+    if (tokenData.network === 'algorand-testnet' || tokenData.network === 'algorand-mainnet') {
+      if (algorandSelectedNetwork !== tokenData.network) {
+        setAlgorandSelectedNetwork(tokenData.network);
+      }
+    }
+  }, [tokenData.network, algorandSelectedNetwork, setAlgorandSelectedNetwork]);
 
   const checkAlgorandWalletStatus = async () => {
     if (!algorandAddress) return;
     
     try {
-      const status = await checkWalletConnection(algorandAddress);
+      const status = await checkWalletConnection(algorandAddress, tokenData.network);
       setAlgorandWalletStatus(status);
     } catch (error) {
-      console.error('Error checking Algorand wallet status:', error);
+      console.error(`Error checking Algorand wallet status for ${tokenData.network}:`, error);
     }
   };
 
@@ -170,7 +179,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
     setDeploymentResult(null);
 
     try {
-      const isAlgorandNetwork = tokenData.network === 'algorand-testnet';
+      const isAlgorandNetwork = tokenData.network === 'algorand-testnet' || tokenData.network === 'algorand-mainnet';
       
       if (isAlgorandNetwork) {
         // Algorand deployment
@@ -198,7 +207,8 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
           algorandAddress,
           algorandTokenData,
           algorandSignTransaction,
-          supabaseHelpers.uploadMetadataToStorage
+          supabaseHelpers.uploadMetadataToStorage,
+          tokenData.network
         );
 
         if (result.success) {
@@ -209,7 +219,8 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
               const optInResult = await optInToAsset(
                 algorandAddress,
                 result.assetId,
-                algorandSignTransaction
+                algorandSignTransaction,
+                tokenData.network
               );
               
               if (optInResult.success) {
@@ -224,7 +235,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
 
           setDeploymentResult({
             ...result,
-            network: 'algorand-testnet',
+            network: tokenData.network,
             explorerUrl: result.details?.explorerUrl,
             message: 'Token created and you have been automatically opted-in!'
           });
@@ -235,7 +246,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
             symbol: tokenData.symbol,
             assetId: result.assetId,
             transactionId: result.transactionId
-          }, 'algorand-testnet');
+          }, tokenData.network);
         } else {
           setError(result.error || 'Failed to create Algorand token');
         }
@@ -317,6 +328,15 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
       recommended: false,
       color: 'bg-[#76f935]/20 text-[#76f935] border-[#76f935]/30',
       available: algorandConnected
+    },
+    {
+      value: 'algorand-mainnet',
+      label: 'Algorand MainNet',
+      description: 'Production Network - Low Cost',
+      cost: '~$0.002',
+      recommended: false,
+      color: 'bg-[#00d4aa]/20 text-[#00d4aa] border-[#00d4aa]/30',
+      available: algorandConnected
     }
   ];
 
@@ -342,7 +362,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
             <CardTitle className="text-2xl font-bold text-foreground">🎉 Token Created Successfully!</CardTitle>
             <CardDescription className="text-lg">
               Your <strong>{tokenData.name} ({tokenData.symbol})</strong> token is now live on{' '}
-              {deploymentResult.network === 'algorand-testnet' ? 'Algorand TestNet' : 'Solana Network'}!
+              {deploymentResult.network === 'algorand-testnet' ? 'Algorand TestNet' : deploymentResult.network === 'algorand-mainnet' ? 'Algorand MainNet' : 'Solana Network'}!
               <br />
               <span className="text-sm text-muted-foreground mt-2 block">
                 ✅ Token details have been saved to your dashboard history.
@@ -354,7 +374,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
               <div className="inline-flex items-center space-x-2 bg-muted/50 rounded-lg px-4 py-2">
                 <Network className="w-4 h-4 text-muted-foreground" />
                 <span className="text-sm font-medium">
-                  {deploymentResult.network === 'algorand-testnet' ? 'Asset ID' : 'Token Address'}:
+                  {deploymentResult.network === 'algorand-testnet' || deploymentResult.network === 'algorand-mainnet' ? 'Asset ID' : 'Token Address'}:
                 </span>
                 <code className="text-sm font-mono bg-background px-2 py-1 rounded">
                   {deploymentResult.assetId || deploymentResult.tokenAddress}
@@ -362,7 +382,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
               </div>
             </div>
 
-            {deploymentResult.network === 'algorand-testnet' && (
+            {(deploymentResult.network === 'algorand-testnet' || deploymentResult.network === 'algorand-mainnet') && (
               <Alert className="border-green-500/30 bg-green-500/10">
                 <CheckCircle className="h-4 w-4 text-green-500" />
                 <AlertDescription className="text-green-600">
@@ -376,10 +396,10 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
               <AlertDescription>
                 <div className="space-y-2">
                   <p className="font-semibold text-blue-600">
-                    🔗 {deploymentResult.network === 'algorand-testnet' ? 'Algorand' : 'Solana'} Token Created!
+                    🔗 {deploymentResult.network === 'algorand-testnet' || deploymentResult.network === 'algorand-mainnet' ? 'Algorand' : 'Solana'} Token Created!
                   </p>
                   <p className="text-sm">
-                    {deploymentResult.network === 'algorand-testnet' 
+                    {deploymentResult.network === 'algorand-testnet' || deploymentResult.network === 'algorand-mainnet'
                       ? 'To see your token in Pera Wallet, you need to opt-in to receive it.'
                       : 'Your token is now available on the Solana blockchain.'
                     }
@@ -394,7 +414,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
                 className="w-full"
                 variant="outline"
               >
-                🔍 View on {deploymentResult.network === 'algorand-testnet' ? 'AlgoExplorer' : 'Explorer'}
+                🔍 View on {deploymentResult.network === 'algorand-testnet' || deploymentResult.network === 'algorand-mainnet' ? 'AlgoExplorer' : 'Explorer'}
               </Button>
               
               <div className="grid grid-cols-2 gap-3">
@@ -505,13 +525,16 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
       </Card>
 
       {/* Algorand Wallet Status */}
-      {tokenData.network === 'algorand-testnet' && algorandConnected && algorandWalletStatus && (
+      {(tokenData.network === 'algorand-testnet' || tokenData.network === 'algorand-mainnet') && algorandConnected && algorandWalletStatus && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <Shield className="w-5 h-5" />
               <span>Algorand Wallet Status</span>
             </CardTitle>
+            <CardDescription>
+              Wallet status for {tokenData.network === 'algorand-mainnet' ? 'MainNet' : 'TestNet'}
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
@@ -746,7 +769,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
           {/* Deploy Button */}
           <Button
             onClick={handleDeploy}
-            disabled={!canDeploy || isDeploying || (tokenData.network === 'algorand-testnet' && algorandWalletStatus && !algorandWalletStatus.canCreateToken)}
+            disabled={!canDeploy || isDeploying || ((tokenData.network === 'algorand-testnet' || tokenData.network === 'algorand-mainnet') && algorandWalletStatus && !algorandWalletStatus.canCreateToken)}
             className="w-full bg-red-500 hover:bg-red-600 text-white h-12 text-lg font-semibold"
           >
             {isDeploying ? (
