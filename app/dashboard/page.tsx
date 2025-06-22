@@ -37,6 +37,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useWallet } from '@solana/wallet-adapter-react';
+import { useAlgorandWallet } from '@/components/providers/AlgorandWalletProvider';
 import { 
   getTokenData, 
   transferTokens, 
@@ -95,130 +96,6 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingTokens, setIsLoadingTokens] = useState(false);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-  const [userTokens, setUserTokens] = useState<UserToken[]>([]);
-  const [solBalance, setSolBalance] = useState(0);
-  const [showTransferModal, setShowTransferModal] = useState(false);
-  const [showMintModal, setShowMintModal] = useState(false);
-  const [showBurnModal, setShowBurnModal] = useState(false);
-  const [showMetadataModal, setShowMetadataModal] = useState(false);
-  const [metadataForm, setMetadataForm] = useState({
-    website: '',
-    twitter: '',
-    github: '',
-    logoUri: ''
-  });
-
-  // Solana wallet integration
-  const { connected, publicKey, wallet } = useWallet();
-
-  useEffect(() => {
-    if (connected && publicKey) {
-      loadUserData();
-    }
-  }, [connected, publicKey]);
-
-  const loadUserData = async () => {
-    if (!publicKey) return;
-
-    setIsLoadingTokens(true);
-    setError('');
-
-    try {
-      // Get SOL balance
-      const solBalanceResult = await getSolBalance(publicKey.toBase58());
-      if (solBalanceResult.success) {
-        setSolBalance(solBalanceResult.balance);
-      }
-
-      // Fetch user's token accounts with enhanced data
-      const userTokens = await fetchUserTokensWithData(publicKey);
-      setUserTokens(userTokens);
-
-    } catch (error) {
-      console.error('Error loading user data:', error);
-      setError('Failed to load user data');
-    } finally {
-      setIsLoadingTokens(false);
-    }
-  };
-
-  const fetchUserTokensWithData = async (userPublicKey: PublicKey): Promise<UserToken[]> => {
-    try {
-      // Get all token accounts for the user
-      const tokenAccounts = await connection.getParsedTokenAccountsByOwner(
-        userPublicKey,
-        { programId: TOKEN_PROGRAM_ID }
-      );
-
-      const tokens: UserToken[] = [];
-
-      for (const tokenAccount of tokenAccounts.value) {
-        const accountData = tokenAccount.account.data.parsed.info;
-        const mintAddress = accountData.mint;
-        const balance = accountData.tokenAmount.uiAmount || 0;
-        const decimals = accountData.tokenAmount.decimals;
-
-        // Skip tokens with zero balance
-        if (balance === 0) continue;
-
-        try {
-          // Try to find our custom token data
-          const customTokenData = await findCustomTokenData(mintAddress);
-          
-          if (customTokenData) {
-            // Generate realistic price data
-            const currentPrice = 0.05 + Math.random() * 0.1; // $0.05 - $0.15
-            const priceChange = (Math.random() - 0.5) * 20; // -10% to +10%
-            
-            // Generate price history
-            const priceHistory = generatePriceHistory(currentPrice, 30);
-            
-            // Generate recent transactions
-            const recentTransactions = generateRecentTransactions(customTokenData.symbol, userPublicKey.toBase58());
-            
-            // This is a token created through our platform
-            tokens.push({
-              address: customTokenData.address,
-              name: customTokenData.name,
-              symbol: customTokenData.symbol,
-              balance: balance,
-              value: `$${(balance * currentPrice).toFixed(2)}`,
-              change: `${priceChange >= 0 ? '+' : ''}${priceChange.toFixed(1)}%`,
-              holders: Math.floor(50 + Math.random() * 200), // Simulated holder count
-              totalSupply: (customTokenData.totalSupply / Math.pow(10, decimals)).toLocaleString(),
-              mintAddress: mintAddress,
-              decimals: decimals,
-              isPaused: customTokenData.isPaused,
-              features: customTokenData.features,
-              metadata: customTokenData.metadata,
-              priceHistory,
-              recentTransactions
-            });
-          } else {
-            // This is a regular SPL token, create basic info
-            const currentPrice = 0.01 + Math.random() * 0.05;
-            const priceChange = (Math.random() - 0.5) * 10;
-            
-            tokens.push({
-              address: mintAddress,
-              name: `Token ${mintAddress.slice(0, 8)}...`,
-              symbol: 'UNK',
-              balance: balance,
-              value: `$${(balance * currentPrice).toFixed(2)}`,
-              change: `${priceChange >= 0 ? '+' : ''}${priceChange.toFixed(1)}%`,
-              holders: Math.floor(10 + Math.random() * 50),
-              totalSupply: 'Unknown',
-              mintAddress: mintAddress,
-              decimals: decimals,
-              isPaused: false,
-              features: {
-                canMint: false,
-                canBurn: false,
-                canPause: false,
-              },
-              metadata: {
-                logoUri: '',
               },
               priceHistory: generatePriceHistory(currentPrice, 30),
               recentTransactions: []
