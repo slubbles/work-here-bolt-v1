@@ -675,7 +675,6 @@ export async function getAlgorandAssetInfo(assetId: number) {
           console.log('Extracted metadata:', metadata);
         } else {
           console.warn('Failed to fetch ARC-3 metadata, HTTP status:', metadataResponse.status);
-          }
         }
       } catch (error: any) {
         if (error.name === 'AbortError') {
