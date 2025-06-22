@@ -33,7 +33,8 @@ import {
   Twitter,
   Github,
   Edit3,
-  Share2
+  Share2,
+  Network
 } from 'lucide-react';
 import Link from 'next/link';
 import { useWallet } from '@solana/wallet-adapter-react';
@@ -51,14 +52,14 @@ import {
   PROGRAM_ID
 } from '@/lib/solana';
 import { 
-  getAlgorandAccountInfo, 
-  getAlgorandAssetInfo, 
-  transferAlgorandAsset, 
-  mintAlgorandTokens, 
-  burnAlgorandTokens, 
-  pauseAlgorandToken, 
+  getAlgorandAccountInfo,
+  getAlgorandAssetInfo,
+  transferAlgorandAsset,
+  mintAlgorandTokens,
+  burnAlgorandTokens,
+  pauseAlgorandToken,
   unpauseAlgorandToken,
-  ALGORAND_NETWORK_INFO 
+  ALGORAND_NETWORK_INFO
 } from '@/lib/algorand';
 import { PublicKey } from '@solana/web3.js';
 import { TOKEN_PROGRAM_ID, getAssociatedTokenAddress } from '@solana/spl-token';
@@ -72,11 +73,10 @@ interface UserToken {
   change: string;
   holders: number;
   totalSupply: string;
-  mintAddress?: string; // For Solana tokens
-  assetId?: number; // For Algorand tokens
+  mintAddress: string;
   decimals: number;
   isPaused: boolean;
-  network: 'solana' | 'algorand'; // Added network type
+  network: 'solana' | 'algorand';
   features: {
     canMint: boolean;
     canBurn: boolean;
@@ -123,24 +123,17 @@ export default function DashboardPage() {
     logoUri: ''
   });
 
-  // Solana wallet integration
+  // Wallet integrations
   const { connected: solanaConnected, publicKey: solanaPublicKey, wallet: solanaWallet } = useWallet();
-  
-  // Algorand wallet integration
   const { 
     connected: algorandConnected, 
     address: algorandAddress, 
     signTransaction: algorandSignTransaction,
-    balance: algorandBalance 
+    balance: algorandBalance
   } = useAlgorandWallet();
 
-  // Check if any wallet is connected
-  const isAnyWalletConnected = solanaConnected || algorandConnected;
-
   useEffect(() => {
-    if (isAnyWalletConnected) {
-      loadUserData();
-    }
+    loadUserData();
   }, [solanaConnected, solanaPublicKey, algorandConnected, algorandAddress]);
 
   const loadUserData = async () => {
@@ -148,30 +141,27 @@ export default function DashboardPage() {
     setError('');
 
     try {
-      let allTokens: UserToken[] = [];
+      const allTokens: UserToken[] = [];
 
-      // Load Solana tokens if Solana wallet is connected
+      // Load Solana tokens
       if (solanaConnected && solanaPublicKey) {
         console.log('Loading Solana tokens...');
-        const solanaBalanceResult = await getSolBalance(solanaPublicKey.toBase58());
-        if (solanaBalanceResult.success) {
-          setSolBalance(solanaBalanceResult.balance);
+        const solBalanceResult = await getSolBalance(solanaPublicKey.toBase58());
+        if (solBalanceResult.success) {
+          setSolBalance(solBalanceResult.balance);
         }
 
-        const solanaTokens = await fetchSolanaTokensWithData(solanaPublicKey);
-        allTokens = [...allTokens, ...solanaTokens];
+        const solanaTokens = await fetchSolanaTokens(solanaPublicKey);
+        allTokens.push(...solanaTokens);
       }
 
-      // Load Algorand tokens if Algorand wallet is connected
+      // Load Algorand tokens
       if (algorandConnected && algorandAddress) {
         console.log('Loading Algorand tokens...');
-        const algorandAccountInfo = await getAlgorandAccountInfo(algorandAddress);
-        if (algorandAccountInfo.success) {
-          setAlgoBalance(algorandAccountInfo.balance);
-          
-          const algorandTokens = await fetchAlgorandTokensWithData(algorandAddress, algorandAccountInfo.assets);
-          allTokens = [...allTokens, ...algorandTokens];
-        }
+        setAlgoBalance(algorandBalance || 0);
+
+        const algorandTokens = await fetchAlgorandTokens(algorandAddress);
+        allTokens.push(...algorandTokens);
       }
 
       setUserTokens(allTokens);
@@ -184,9 +174,8 @@ export default function DashboardPage() {
     }
   };
 
-  const fetchSolanaTokensWithData = async (userPublicKey: PublicKey): Promise<UserToken[]> => {
+  const fetchSolanaTokens = async (userPublicKey: PublicKey): Promise<UserToken[]> => {
     try {
-      // Get all token accounts for the user
       const tokenAccounts = await connection.getParsedTokenAccountsByOwner(
         userPublicKey,
         { programId: TOKEN_PROGRAM_ID }
@@ -200,25 +189,15 @@ export default function DashboardPage() {
         const balance = accountData.tokenAmount.uiAmount || 0;
         const decimals = accountData.tokenAmount.decimals;
 
-        // Skip tokens with zero balance
         if (balance === 0) continue;
 
         try {
-          // Try to find our custom token data
           const customTokenData = await findCustomTokenData(mintAddress);
           
           if (customTokenData) {
-            // Generate realistic price data
-            const currentPrice = 0.05 + Math.random() * 0.1; // $0.05 - $0.15
-            const priceChange = (Math.random() - 0.5) * 20; // -10% to +10%
+            const currentPrice = 0.05 + Math.random() * 0.1;
+            const priceChange = (Math.random() - 0.5) * 20;
             
-            // Generate price history
-            const priceHistory = generatePriceHistory(currentPrice, 30);
-            
-            // Generate recent transactions
-            const recentTransactions = generateRecentTransactions(customTokenData.symbol, userPublicKey.toBase58());
-            
-            // This is a token created through our platform
             tokens.push({
               address: customTokenData.address,
               name: customTokenData.name,
@@ -226,7 +205,7 @@ export default function DashboardPage() {
               balance: balance,
               value: `$${(balance * currentPrice).toFixed(2)}`,
               change: `${priceChange >= 0 ? '+' : ''}${priceChange.toFixed(1)}%`,
-              holders: Math.floor(50 + Math.random() * 200), // Simulated holder count
+              holders: Math.floor(50 + Math.random() * 200),
               totalSupply: (customTokenData.totalSupply / Math.pow(10, decimals)).toLocaleString(),
               mintAddress: mintAddress,
               decimals: decimals,
@@ -234,42 +213,12 @@ export default function DashboardPage() {
               network: 'solana',
               features: customTokenData.features,
               metadata: customTokenData.metadata,
-              priceHistory,
-              recentTransactions
-            });
-          } else {
-            // This is a regular SPL token, create basic info
-            const currentPrice = 0.01 + Math.random() * 0.05;
-            const priceChange = (Math.random() - 0.5) * 10;
-            
-            tokens.push({
-              address: mintAddress,
-              name: `Token ${mintAddress.slice(0, 8)}...`,
-              symbol: 'UNK',
-              balance: balance,
-              value: `$${(balance * currentPrice).toFixed(2)}`,
-              change: `${priceChange >= 0 ? '+' : ''}${priceChange.toFixed(1)}%`,
-              holders: Math.floor(10 + Math.random() * 50),
-              totalSupply: 'Unknown',
-              mintAddress: mintAddress,
-              decimals: decimals,
-              isPaused: false,
-              network: 'solana',
-              features: {
-                canMint: false,
-                canBurn: false,
-                canPause: false,
-              },
-              metadata: {
-                logoUri: '',
-              },
               priceHistory: generatePriceHistory(currentPrice, 30),
-              recentTransactions: []
+              recentTransactions: generateRecentTransactions(customTokenData.symbol, userPublicKey.toBase58())
             });
           }
         } catch (tokenError) {
           console.error(`Error processing Solana token ${mintAddress}:`, tokenError);
-          // Continue with next token
         }
       }
 
@@ -280,58 +229,62 @@ export default function DashboardPage() {
     }
   };
 
-  const fetchAlgorandTokensWithData = async (walletAddress: string, assets: any[]): Promise<UserToken[]> => {
+  const fetchAlgorandTokens = async (userAddress: string): Promise<UserToken[]> => {
     try {
+      const accountInfo = await getAlgorandAccountInfo(userAddress);
+      if (!accountInfo.success) {
+        console.error('Failed to get Algorand account info:', accountInfo.error);
+        return [];
+      }
+
       const tokens: UserToken[] = [];
+      const assets = accountInfo.assets || [];
 
       for (const asset of assets) {
-        const assetId = asset['asset-id'];
-        const balance = asset.amount;
-        
-        // Skip assets with zero balance
-        if (balance === 0) continue;
-
         try {
-          // Get detailed asset information
-          const assetInfoResult = await getAlgorandAssetInfo(assetId);
+          const assetId = asset['asset-id'];
+          const balance = asset.amount || 0;
+
+          if (balance === 0) continue;
+
+          const assetInfo = await getAlgorandAssetInfo(assetId);
+          if (!assetInfo.success) continue;
+
+          const assetData = assetInfo.data;
+          const decimals = assetData.decimals || 0;
+          const uiBalance = balance / Math.pow(10, decimals);
           
-          if (assetInfoResult.success) {
-            const assetInfo = assetInfoResult.data;
-            const decimals = assetInfo.decimals || 0;
-            const adjustedBalance = balance / Math.pow(10, decimals);
-            
-            // Generate realistic price data
-            const currentPrice = 0.01 + Math.random() * 0.1;
-            const priceChange = (Math.random() - 0.5) * 15;
-            
-            tokens.push({
-              address: assetId.toString(),
-              name: assetInfo.assetName || `Asset ${assetId}`,
-              symbol: assetInfo.unitName || 'ASA',
-              balance: adjustedBalance,
-              value: `$${(adjustedBalance * currentPrice).toFixed(2)}`,
-              change: `${priceChange >= 0 ? '+' : ''}${priceChange.toFixed(1)}%`,
-              holders: Math.floor(25 + Math.random() * 150),
-              totalSupply: (assetInfo.totalSupply / Math.pow(10, decimals)).toLocaleString(),
-              assetId: assetId,
-              decimals: decimals,
-              isPaused: false, // Algorand doesn't have a direct pause concept, but we can simulate
-              network: 'algorand',
-              features: {
-                canMint: assetInfo.manager === walletAddress,
-                canBurn: assetInfo.reserve === walletAddress,
-                canPause: assetInfo.freeze === walletAddress,
-              },
-              metadata: {
-                logoUri: '',
-                website: assetInfo.url || undefined,
-              },
-              priceHistory: generatePriceHistory(currentPrice, 30),
-              recentTransactions: generateRecentTransactions(assetInfo.unitName || 'ASA', walletAddress)
-            });
-          }
+          const currentPrice = 0.01 + Math.random() * 0.05;
+          const priceChange = (Math.random() - 0.5) * 15;
+
+          tokens.push({
+            address: assetId.toString(),
+            name: assetData.assetName || `Asset ${assetId}`,
+            symbol: assetData.unitName || 'ASA',
+            balance: uiBalance,
+            value: `$${(uiBalance * currentPrice).toFixed(2)}`,
+            change: `${priceChange >= 0 ? '+' : ''}${priceChange.toFixed(1)}%`,
+            holders: Math.floor(10 + Math.random() * 100),
+            totalSupply: (assetData.totalSupply / Math.pow(10, decimals)).toLocaleString(),
+            mintAddress: assetId.toString(),
+            decimals: decimals,
+            isPaused: assetData.defaultFrozen || false,
+            network: 'algorand',
+            features: {
+              canMint: !!assetData.manager,
+              canBurn: !!assetData.reserve,
+              canPause: !!assetData.freeze,
+            },
+            metadata: {
+              logoUri: '',
+              website: assetData.url || undefined,
+            },
+            priceHistory: generatePriceHistory(currentPrice, 30),
+            recentTransactions: generateRecentTransactions(assetData.unitName || 'ASA', userAddress)
+          });
+
         } catch (assetError) {
-          console.error(`Error processing Algorand asset ${assetId}:`, assetError);
+          console.error(`Error processing Algorand asset:`, assetError);
         }
       }
 
@@ -339,6 +292,38 @@ export default function DashboardPage() {
     } catch (error) {
       console.error('Error fetching Algorand tokens:', error);
       return [];
+    }
+  };
+
+  const findCustomTokenData = async (mintAddress: string) => {
+    try {
+      const programAccounts = await connection.getProgramAccounts(PROGRAM_ID, {
+        filters: [{ dataSize: 1000 }]
+      });
+
+      for (const account of programAccounts) {
+        try {
+          const tokenDataResult = await getTokenData(account.pubkey.toString());
+          if (tokenDataResult.success && tokenDataResult.data.mint.toString() === mintAddress) {
+            return {
+              address: account.pubkey.toString(),
+              name: tokenDataResult.data.name,
+              symbol: tokenDataResult.data.symbol,
+              totalSupply: tokenDataResult.data.totalSupply.toNumber(),
+              isPaused: tokenDataResult.data.isPaused,
+              features: tokenDataResult.data.features,
+              metadata: tokenDataResult.data.metadata
+            };
+          }
+        } catch (err) {
+          continue;
+        }
+      }
+
+      return null;
+    } catch (error) {
+      console.error('Error finding custom token data:', error);
+      return null;
     }
   };
 
@@ -350,8 +335,7 @@ export default function DashboardPage() {
       const date = new Date();
       date.setDate(date.getDate() - i);
       
-      // Add some realistic price movement
-      const change = (Math.random() - 0.5) * 0.1; // ±10% daily change
+      const change = (Math.random() - 0.5) * 0.1;
       price = Math.max(0.001, price * (1 + change));
       
       history.push({
@@ -386,65 +370,33 @@ export default function DashboardPage() {
     return transactions;
   };
 
-  const findCustomTokenData = async (mintAddress: string) => {
-    try {
-      // Get all program accounts that might be our custom tokens
-      const programAccounts = await connection.getProgramAccounts(PROGRAM_ID, {
-        filters: [
-          {
-            dataSize: 1000, // Approximate size of TokenData account
-          }
-        ]
-      });
-
-      // Check each account to see if it matches our mint
-      for (const account of programAccounts) {
-        try {
-          // Try to deserialize as TokenData
-          const tokenDataResult = await getTokenData(account.pubkey.toString());
-          if (tokenDataResult.success && tokenDataResult.data.mint.toString() === mintAddress) {
-            return {
-              address: account.pubkey.toString(),
-              name: tokenDataResult.data.name,
-              symbol: tokenDataResult.data.symbol,
-              totalSupply: tokenDataResult.data.totalSupply.toNumber(),
-              isPaused: tokenDataResult.data.isPaused,
-              features: tokenDataResult.data.features,
-              metadata: tokenDataResult.data.metadata
-            };
-          }
-        } catch (err) {
-          // Not a valid TokenData account, continue
-          continue;
-        }
-      }
-
-      return null;
-    } catch (error) {
-      console.error('Error finding custom token data:', error);
-      return null;
-    }
-  };
-
   const clearMessages = () => {
     setError('');
     setSuccess('');
   };
 
+  const getCorrectTransferFunction = (token: UserToken) => {
+    return token.network === 'solana' ? transferTokens : transferAlgorandAsset;
+  };
+
+  const getCorrectMintFunction = (token: UserToken) => {
+    return token.network === 'solana' ? mintTokens : mintAlgorandTokens;
+  };
+
+  const getCorrectBurnFunction = (token: UserToken) => {
+    return token.network === 'solana' ? burnTokens : burnAlgorandTokens;
+  };
+
+  const getCorrectPauseFunction = (token: UserToken) => {
+    return token.network === 'solana' 
+      ? (token.isPaused ? unpauseToken : pauseToken)
+      : (token.isPaused ? unpauseAlgorandToken : pauseAlgorandToken);
+  };
+
   const handleTransfer = async () => {
-    if (!isAnyWalletConnected) {
-      setError('Please connect your wallet');
-      return;
-    }
-
-    if (!transferAmount || !transferAddress) {
-      setError('Please fill in both amount and recipient address');
-      return;
-    }
-
     const token = userTokens[selectedToken];
-    if (!token) {
-      setError('No token selected');
+    if (!token || !transferAmount || !transferAddress) {
+      setError('Please fill in both amount and recipient address');
       return;
     }
 
@@ -453,17 +405,12 @@ export default function DashboardPage() {
 
     try {
       let result;
-      
-      if (token.network === 'algorand' && algorandConnected && algorandAddress && token.assetId) {
-        result = await transferAlgorandAsset(
-          algorandAddress,
-          transferAddress,
-          token.assetId,
-          parseFloat(transferAmount),
-          token.decimals,
-          algorandSignTransaction
-        );
-      } else if (token.network === 'solana' && solanaWallet) {
+
+      if (token.network === 'solana') {
+        if (!solanaWallet || !solanaConnected || !solanaPublicKey) {
+          throw new Error('Solana wallet not connected');
+        }
+
         result = await transferTokens(
           solanaWallet.adapter,
           token.address,
@@ -472,7 +419,18 @@ export default function DashboardPage() {
           token.decimals
         );
       } else {
-        throw new Error('Invalid token or wallet configuration');
+        if (!algorandSignTransaction || !algorandAddress) {
+          throw new Error('Algorand wallet not connected');
+        }
+
+        result = await transferAlgorandAsset(
+          algorandAddress,
+          transferAddress,
+          parseInt(token.address),
+          parseFloat(transferAmount),
+          token.decimals,
+          algorandSignTransaction
+        );
       }
 
       if (result.success) {
@@ -480,7 +438,6 @@ export default function DashboardPage() {
         setTransferAmount('');
         setTransferAddress('');
         setShowTransferModal(false);
-        // Reload user data to update balances
         loadUserData();
       } else {
         setError(result.error || 'Transfer failed');
@@ -494,19 +451,9 @@ export default function DashboardPage() {
   };
 
   const handleMint = async () => {
-    if (!isAnyWalletConnected) {
-      setError('Please connect your wallet');
-      return;
-    }
-
-    if (!mintAmount) {
-      setError('Please enter amount to mint');
-      return;
-    }
-
     const token = userTokens[selectedToken];
-    if (!token) {
-      setError('No token selected');
+    if (!token || !mintAmount) {
+      setError('Please enter amount to mint');
       return;
     }
 
@@ -520,17 +467,12 @@ export default function DashboardPage() {
 
     try {
       let result;
-      
-      if (token.network === 'algorand' && algorandConnected && algorandAddress && token.assetId) {
-        result = await mintAlgorandTokens(
-          token.assetId,
-          mintAmount,
-          algorandAddress, // recipient
-          algorandAddress, // manager (same as current user)
-          token.decimals,
-          algorandSignTransaction
-        );
-      } else if (token.network === 'solana' && solanaWallet) {
+
+      if (token.network === 'solana') {
+        if (!solanaWallet || !solanaConnected || !solanaPublicKey) {
+          throw new Error('Solana wallet not connected');
+        }
+
         result = await mintTokens(
           solanaWallet.adapter,
           token.address,
@@ -538,14 +480,24 @@ export default function DashboardPage() {
           token.decimals
         );
       } else {
-        throw new Error('Invalid token or wallet configuration');
+        if (!algorandSignTransaction || !algorandAddress) {
+          throw new Error('Algorand wallet not connected');
+        }
+
+        result = await mintAlgorandTokens(
+          parseInt(token.address),
+          mintAmount,
+          algorandAddress,
+          algorandAddress,
+          token.decimals,
+          algorandSignTransaction
+        );
       }
 
       if (result.success) {
         setSuccess(`Successfully minted ${mintAmount} ${token.symbol}`);
         setMintAmount('');
         setShowMintModal(false);
-        // Reload user data to update balances
         loadUserData();
       } else {
         setError(result.error || 'Minting failed');
@@ -559,19 +511,9 @@ export default function DashboardPage() {
   };
 
   const handleBurn = async () => {
-    if (!isAnyWalletConnected) {
-      setError('Please connect your wallet');
-      return;
-    }
-
-    if (!burnAmount) {
-      setError('Please enter amount to burn');
-      return;
-    }
-
     const token = userTokens[selectedToken];
-    if (!token) {
-      setError('No token selected');
+    if (!token || !burnAmount) {
+      setError('Please enter amount to burn');
       return;
     }
 
@@ -585,16 +527,12 @@ export default function DashboardPage() {
 
     try {
       let result;
-      
-      if (token.network === 'algorand' && algorandConnected && algorandAddress && token.assetId) {
-        result = await burnAlgorandTokens(
-          token.assetId,
-          burnAmount,
-          algorandAddress,
-          token.decimals,
-          algorandSignTransaction
-        );
-      } else if (token.network === 'solana' && solanaWallet) {
+
+      if (token.network === 'solana') {
+        if (!solanaWallet || !solanaConnected || !solanaPublicKey) {
+          throw new Error('Solana wallet not connected');
+        }
+
         result = await burnTokens(
           solanaWallet.adapter,
           token.address,
@@ -602,14 +540,23 @@ export default function DashboardPage() {
           token.decimals
         );
       } else {
-        throw new Error('Invalid token or wallet configuration');
+        if (!algorandSignTransaction || !algorandAddress) {
+          throw new Error('Algorand wallet not connected');
+        }
+
+        result = await burnAlgorandTokens(
+          parseInt(token.address),
+          burnAmount,
+          algorandAddress,
+          token.decimals,
+          algorandSignTransaction
+        );
       }
 
       if (result.success) {
         setSuccess(`Successfully burned ${burnAmount} ${token.symbol}`);
         setBurnAmount('');
         setShowBurnModal(false);
-        // Reload user data to update balances
         loadUserData();
       } else {
         setError(result.error || 'Burning failed');
@@ -623,11 +570,6 @@ export default function DashboardPage() {
   };
 
   const handlePauseToggle = async () => {
-    if (!isAnyWalletConnected) {
-      setError('Please connect your wallet');
-      return;
-    }
-
     const token = userTokens[selectedToken];
     if (!token) {
       setError('No token selected');
@@ -644,24 +586,29 @@ export default function DashboardPage() {
 
     try {
       let result;
-      
-      if (token.network === 'algorand' && algorandConnected && algorandAddress && token.assetId) {
-        result = token.isPaused 
-          ? await unpauseAlgorandToken(token.assetId, algorandAddress, algorandSignTransaction)
-          : await pauseAlgorandToken(token.assetId, algorandAddress, algorandSignTransaction);
-      } else if (token.network === 'solana' && solanaWallet) {
+
+      if (token.network === 'solana') {
+        if (!solanaWallet || !solanaConnected || !solanaPublicKey) {
+          throw new Error('Solana wallet not connected');
+        }
+
         result = token.isPaused 
           ? await unpauseToken(solanaWallet.adapter, token.address)
           : await pauseToken(solanaWallet.adapter, token.address);
       } else {
-        throw new Error('Invalid token or wallet configuration');
+        if (!algorandSignTransaction || !algorandAddress) {
+          throw new Error('Algorand wallet not connected');
+        }
+
+        result = token.isPaused
+          ? await unpauseAlgorandToken(parseInt(token.address), algorandAddress, algorandSignTransaction)
+          : await pauseAlgorandToken(parseInt(token.address), algorandAddress, algorandSignTransaction);
       }
 
       if (result.success) {
         const action = token.isPaused ? 'unpaused' : 'paused';
         setSuccess(`Successfully ${action} ${token.symbol}`);
         
-        // Update local state
         setUserTokens(prev => prev.map((t, index) => 
           index === selectedToken ? { ...t, isPaused: !t.isPaused } : t
         ));
@@ -690,20 +637,15 @@ export default function DashboardPage() {
   };
 
   const saveMetadata = async () => {
-    // In a real implementation, this would update the token metadata on-chain
     setSuccess('Metadata update feature coming soon!');
     setShowMetadataModal(false);
   };
 
   const shareToken = async (token: UserToken) => {
-    const explorerUrl = token.network === 'algorand' && token.assetId 
-      ? `${ALGORAND_NETWORK_INFO.explorer}/asset/${token.assetId}`
-      : `https://explorer.solana.com/address/${token.address}?cluster=devnet`;
-    
     const shareData = {
       title: `${token.name} (${token.symbol})`,
-      text: `Check out my token: ${token.name} with ${token.holders} holders!`,
-      url: explorerUrl
+      text: `Check out my ${token.network} token: ${token.name} with ${token.holders} holders!`,
+      url: `${window.location.origin}/verify?token=${token.address}`
     };
 
     if (navigator.share) {
@@ -725,6 +667,32 @@ export default function DashboardPage() {
     setTimeout(() => setSuccess(''), 2000);
   };
 
+  const openInExplorer = (token: UserToken) => {
+    if (token.network === 'algorand') {
+      window.open(`${ALGORAND_NETWORK_INFO.explorer}/asset/${token.address}`, '_blank');
+    } else {
+      window.open(`https://explorer.solana.com/address/${token.mintAddress}?cluster=devnet`, '_blank');
+    }
+  };
+
+  const getNetworkBadge = (network: string) => {
+    if (network === 'algorand') {
+      return (
+        <Badge className="bg-[#76f935]/20 text-[#76f935] border-[#76f935]/30 text-xs px-2 py-1 rounded-lg font-semibold">
+          <span className="w-2 h-2 rounded-full bg-[#76f935] mr-1"></span>
+          Algorand
+        </Badge>
+      );
+    } else {
+      return (
+        <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30 text-xs px-2 py-1 rounded-lg font-semibold">
+          <span className="w-2 h-2 rounded-full bg-blue-500 mr-1"></span>
+          Solana
+        </Badge>
+      );
+    }
+  };
+
   // Calculate total portfolio value
   const totalValue = userTokens.reduce((sum, token) => {
     const value = parseFloat(token.value.replace('$', ''));
@@ -733,7 +701,9 @@ export default function DashboardPage() {
 
   const totalHolders = userTokens.reduce((sum, token) => sum + token.holders, 0);
 
-  // Redirect to wallet connection if no wallet is connected
+  const isAnyWalletConnected = solanaConnected || algorandConnected;
+
+  // Redirect to wallet connection if not connected
   if (!isAnyWalletConnected) {
     return (
       <div className="min-h-screen app-background flex items-center justify-center">
@@ -745,7 +715,7 @@ export default function DashboardPage() {
             <div>
               <h2 className="text-2xl font-bold text-foreground mb-2">Connect Your Wallet</h2>
               <p className="text-muted-foreground">
-                You need to connect a Solana or Algorand wallet to access the dashboard and manage your tokens.
+                You need to connect your Solana or Algorand wallet to access the dashboard and manage your tokens.
               </p>
             </div>
             <div className="text-center">
@@ -766,18 +736,30 @@ export default function DashboardPage() {
         {/* Header */}
         <div className="flex justify-between items-center mb-12">
           <div>
-            <h1 className="text-4xl font-bold text-foreground mb-2">Token Dashboard</h1>
-            <p className="text-muted-foreground">Manage and monitor your token portfolio</p>
+            <h1 className="text-4xl font-bold text-foreground mb-2">Multi-Chain Dashboard</h1>
+            <p className="text-muted-foreground">Manage tokens across Solana and Algorand networks</p>
             <div className="flex items-center space-x-6 mt-2">
               {solanaConnected && solanaPublicKey && (
-                <p className="text-sm text-muted-foreground">
-                  Solana: {solanaPublicKey.toBase58().slice(0, 4)}...{solanaPublicKey.toBase58().slice(-4)} ({solBalance.toFixed(4)} SOL)
-                </p>
+                <div className="flex items-center space-x-2">
+                  <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                  <p className="text-sm text-muted-foreground">
+                    Solana: {solanaPublicKey.toBase58().slice(0, 4)}...{solanaPublicKey.toBase58().slice(-4)}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    ({solBalance.toFixed(4)} SOL)
+                  </p>
+                </div>
               )}
               {algorandConnected && algorandAddress && (
-                <p className="text-sm text-muted-foreground">
-                  Algorand: {algorandAddress.slice(0, 4)}...{algorandAddress.slice(-4)} ({algoBalance.toFixed(4)} ALGO)
-                </p>
+                <div className="flex items-center space-x-2">
+                  <div className="w-2 h-2 rounded-full bg-[#76f935]"></div>
+                  <p className="text-sm text-muted-foreground">
+                    Algorand: {algorandAddress.slice(0, 4)}...{algorandAddress.slice(-4)}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    ({algoBalance.toFixed(4)} ALGO)
+                  </p>
+                </div>
               )}
             </div>
           </div>
@@ -860,7 +842,7 @@ export default function DashboardPage() {
                   {[...new Set(userTokens.map(t => t.network))].length}
                 </p>
               </div>
-              <TrendingUp className="w-8 h-8 text-red-500" />
+              <Network className="w-8 h-8 text-red-500" />
             </div>
           </div>
         </div>
@@ -915,15 +897,11 @@ export default function DashboardPage() {
                           )}
                           <div>
                             <p className="text-foreground font-medium">{token.name}</p>
-                            <div className="flex items-center space-x-2">
-                              <p className="text-muted-foreground text-sm">{token.symbol}</p>
-                              <div className={`w-2 h-2 rounded-full ${
-                                token.network === 'solana' ? 'bg-blue-500' : 'bg-[#76f935]'
-                              }`} title={token.network} />
-                            </div>
+                            <p className="text-muted-foreground text-sm">{token.symbol}</p>
                           </div>
                         </div>
                         <div className="flex items-center space-x-2">
+                          {getNetworkBadge(token.network)}
                           {token.isPaused && (
                             <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">
                               Paused
@@ -970,7 +948,7 @@ export default function DashboardPage() {
                 <div className="glass-card p-6">
                   <div className="mb-4">
                     <h3 className="text-lg font-semibold text-foreground">Token Management</h3>
-                    <p className="text-sm text-muted-foreground">Manage and analyze your token performance</p>
+                    <p className="text-sm text-muted-foreground">Manage and analyze your multi-chain token portfolio</p>
                   </div>
                   <TabsList className="enhanced-tabs grid w-full grid-cols-4">
                     <TabsTrigger value="overview" className="enhanced-tab-trigger">
@@ -996,17 +974,11 @@ export default function DashboardPage() {
                   <div className="glass-card p-6">
                     <div className="flex justify-between items-start mb-6">
                       <div>
-                        <h3 className="text-2xl font-bold text-foreground">{userTokens[selectedToken].name}</h3>
-                        <div className="flex items-center space-x-2">
-                          <p className="text-muted-foreground">{userTokens[selectedToken].symbol}</p>
-                          <Badge className={`${
-                            userTokens[selectedToken].network === 'solana' 
-                              ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' 
-                              : 'bg-[#76f935]/20 text-[#76f935] border-[#76f935]/30'
-                          }`}>
-                            {userTokens[selectedToken].network}
-                          </Badge>
+                        <div className="flex items-center space-x-3 mb-2">
+                          <h3 className="text-2xl font-bold text-foreground">{userTokens[selectedToken].name}</h3>
+                          {getNetworkBadge(userTokens[selectedToken].network)}
                         </div>
+                        <p className="text-muted-foreground">{userTokens[selectedToken].symbol}</p>
                       </div>
                       <div className="flex space-x-2">
                         <Button 
@@ -1020,15 +992,8 @@ export default function DashboardPage() {
                         <Button 
                           variant="outline" 
                           size="sm" 
-                          className="border-border text-muted-foreground hover:bg-muted"
-                          onClick={() => {
-                            const token = userTokens[selectedToken];
-                            if (token.network === 'algorand' && token.assetId) {
-                              window.open(`${ALGORAND_NETWORK_INFO.explorer}/asset/${token.assetId}`, '_blank');
-                            } else if (token.network === 'solana' && token.mintAddress) {
-                              window.open(`https://explorer.solana.com/address/${token.mintAddress}?cluster=devnet`, '_blank');
-                            }
-                          }}
+                          className="border-border text-muted-foreground"
+                          onClick={() => openInExplorer(userTokens[selectedToken])}
                         >
                           <ExternalLink className="w-4 h-4" />
                         </Button>
