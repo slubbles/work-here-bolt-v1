@@ -4,12 +4,20 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables. Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in your .env.local file');
+// Check for placeholder values and provide a more helpful error message
+const isPlaceholderUrl = supabaseUrl?.includes('placeholder') || !supabaseUrl;
+const isPlaceholderKey = supabaseAnonKey?.includes('placeholder') || !supabaseAnonKey;
+
+if (isPlaceholderUrl || isPlaceholderKey) {
+  console.warn('⚠️ Supabase is not configured with real credentials. Some features may not work.');
+  console.warn('To enable Supabase features, update your .env.local file with real Supabase credentials.');
 }
 
-// Create Supabase client
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Create Supabase client with fallback values for development
+export const supabase = createClient(
+  supabaseUrl || 'https://placeholder.supabase.co', 
+  supabaseAnonKey || 'placeholder-key'
+);
 
 // Database Types
 export interface UserProfile {
@@ -54,8 +62,17 @@ export interface CreditTransaction {
 // Helper functions for database operations
 export const supabaseHelpers = {
   // File Upload Operations
+  async checkSupabaseConnection(): Promise<boolean> {
+    const isPlaceholderUrl = !process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL.includes('placeholder');
+    const isPlaceholderKey = !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY.includes('placeholder');
+    return !(isPlaceholderUrl || isPlaceholderKey);
+  },
   async uploadFileToStorage(file: File, bucket: string = 'token-assets', path?: string): Promise<{ success: boolean; url?: string; error?: string }> {
     try {
+      if (!(await this.checkSupabaseConnection())) {
+        return { success: false, error: 'Supabase not configured. Please set up your .env.local file with real Supabase credentials.' };
+      }
+      
       // Generate unique filename if path not provided
       const fileName = path || `${Date.now()}-${Math.random().toString(36).substring(2)}-${file.name}`;
       
@@ -92,6 +109,10 @@ export const supabaseHelpers = {
 
   async deleteFileFromStorage(fileName: string, bucket: string = 'token-assets'): Promise<{ success: boolean; error?: string }> {
     try {
+      if (!(await this.checkSupabaseConnection())) {
+        return { success: false, error: 'Supabase not configured. Please set up your .env.local file with real Supabase credentials.' };
+      }
+      
       const { error } = await supabase.storage
         .from(bucket)
         .remove([fileName]);
@@ -114,6 +135,10 @@ export const supabaseHelpers = {
   // Enhanced upload function for metadata JSON files (ARC-3 compliance)
   async uploadMetadataToStorage(metadata: any, bucket: string = 'token-metadata', fileName?: string): Promise<{ success: boolean; url?: string; error?: string }> {
     try {
+      if (!(await this.checkSupabaseConnection())) {
+        return { success: false, error: 'Supabase not configured. Please set up your .env.local file with real Supabase credentials.' };
+      }
+      
       // Generate unique filename if not provided
       const finalFileName = fileName || `metadata-${Date.now()}-${Math.random().toString(36).substring(2)}.json`;
       
@@ -151,6 +176,10 @@ export const supabaseHelpers = {
 
   // User Profile Operations
   async createUserProfile(userId: string, email?: string) {
+    if (!(await this.checkSupabaseConnection())) {
+      return { success: false, error: 'Supabase not configured. Please set up your .env.local file with real Supabase credentials.' };
+    }
+    
     const { data, error } = await supabase
       .from('user_profiles')
       .insert({
@@ -171,6 +200,10 @@ export const supabaseHelpers = {
   },
 
   async getUserProfile(userId: string) {
+    if (!(await this.checkSupabaseConnection())) {
+      return { success: false, error: 'Supabase not configured. Please set up your .env.local file with real Supabase credentials.' };
+    }
+    
     const { data, error } = await supabase
       .from('user_profiles')
       .select('*')
@@ -186,6 +219,10 @@ export const supabaseHelpers = {
   },
 
   async updateUserCredits(userId: string, newBalance: number) {
+    if (!(await this.checkSupabaseConnection())) {
+      return { success: false, error: 'Supabase not configured. Please set up your .env.local file with real Supabase credentials.' };
+    }
+    
     const { data, error } = await supabase
       .from('user_profiles')
       .update({ credits_balance: newBalance })
@@ -203,6 +240,10 @@ export const supabaseHelpers = {
 
   // Token Creation History Operations
   async saveTokenCreation(tokenData: Omit<TokenCreationHistory, 'id' | 'created_at'>) {
+    if (!(await this.checkSupabaseConnection())) {
+      return { success: false, error: 'Supabase not configured. Please set up your .env.local file with real Supabase credentials.' };
+    }
+    
     const { data, error } = await supabase
       .from('token_creation_history')
       .insert(tokenData)
@@ -218,6 +259,10 @@ export const supabaseHelpers = {
   },
 
   async getUserTokenHistory(userId: string, limit = 50) {
+    if (!(await this.checkSupabaseConnection())) {
+      return { success: false, error: 'Supabase not configured. Please set up your .env.local file with real Supabase credentials.' };
+    }
+    
     const { data, error } = await supabase
       .from('token_creation_history')
       .select('*')
@@ -235,6 +280,10 @@ export const supabaseHelpers = {
 
   // Credit Transaction Operations
   async addCreditTransaction(transaction: Omit<CreditTransaction, 'id' | 'timestamp'>) {
+    if (!(await this.checkSupabaseConnection())) {
+      return { success: false, error: 'Supabase not configured. Please set up your .env.local file with real Supabase credentials.' };
+    }
+    
     const { data, error } = await supabase
       .from('credit_transactions')
       .insert(transaction)
@@ -250,6 +299,10 @@ export const supabaseHelpers = {
   },
 
   async getUserCreditHistory(userId: string, limit = 100) {
+    if (!(await this.checkSupabaseConnection())) {
+      return { success: false, error: 'Supabase not configured. Please set up your .env.local file with real Supabase credentials.' };
+    }
+    
     const { data, error } = await supabase
       .from('credit_transactions')
       .select('*')
@@ -284,6 +337,10 @@ export const supabaseHelpers = {
   // Deduct credits for feature usage
   async useCredits(userId: string, amount: number, description: string) {
     // First get current balance
+    if (!(await this.checkSupabaseConnection())) {
+      return { success: false, error: 'Supabase not configured. Please set up your .env.local file with real Supabase credentials.' };
+    }
+    
     const profileResult = await this.getUserProfile(userId);
     if (!profileResult.success) {
       return { success: false, error: 'Could not fetch user profile' };
