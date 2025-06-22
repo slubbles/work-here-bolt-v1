@@ -111,44 +111,6 @@ export const supabaseHelpers = {
     }
   },
 
-  // Enhanced upload function for metadata JSON files (ARC-3 compliance)
-  async uploadMetadataToStorage(metadata: any, bucket: string = 'token-metadata', fileName?: string): Promise<{ success: boolean; url?: string; error?: string }> {
-    try {
-      // Generate unique filename if not provided
-      const finalFileName = fileName || `metadata-${Date.now()}-${Math.random().toString(36).substring(2)}.json`;
-      
-      // Convert metadata to JSON string
-      const metadataJson = JSON.stringify(metadata, null, 2);
-      
-      // Create blob from JSON string
-      const blob = new Blob([metadataJson], { type: 'application/json' });
-      
-      // Upload blob to Supabase Storage
-      const { data, error } = await supabase.storage
-        .from(bucket)
-        .upload(finalFileName, blob, {
-          cacheControl: '3600',
-          upsert: false,
-          contentType: 'application/json'
-        });
-
-      if (error) {
-        console.error('Error uploading metadata:', error);
-        return { success: false, error: error.message };
-      }
-
-      // Get public URL
-      const { data: urlData } = supabase.storage
-        .from(bucket)
-        .getPublicUrl(finalFileName);
-
-      return { success: true, url: urlData.publicUrl };
-    } catch (error) {
-      console.error('Error in uploadMetadataToStorage:', error);
-      return { success: false, error: error instanceof Error ? error.message : 'Metadata upload failed' };
-    }
-  },
-
   // User Profile Operations
   async createUserProfile(userId: string, email?: string) {
     const { data, error } = await supabase
