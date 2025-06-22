@@ -107,7 +107,13 @@ export default function Navbar() {
 
   // Don't render until mounted to avoid hydration issues
   if (!mounted) {
-    return null;
+    return (
+      <div className="fixed top-0 left-0 right-0 z-50 h-16 bg-background border-b border-border">
+        <div className="flex items-center justify-center h-full">
+          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-red-500"></div>
+        </div>
+      </div>
+    );
   }
 
   const isAnyWalletConnected = solanaConnected || algorandConnected;
@@ -388,12 +394,51 @@ export default function Navbar() {
                           </Button>
                         </div>
                       ) : (
-                        <Button
-                          onClick={handleAlgorandConnect}
-                          className="w-full bg-gradient-to-r from-[#76f935] to-[#5dd128] hover:from-[#5dd128] hover:to-[#4bb01f] text-white font-medium rounded-lg h-9 text-sm shadow-md hover:shadow-lg transition-all duration-300"
-                        >
-                          Connect Pera Wallet
-                        </Button>
+                        <div className="space-y-2">
+                          {/* Network Selector when not connected */}
+                          <div className="flex gap-1 bg-muted rounded-lg p-1">
+                            <Button
+                              variant={algorandSelectedNetwork === 'algorand-testnet' ? 'default' : 'ghost'}
+                              size="sm"
+                              onClick={() => setAlgorandSelectedNetwork('algorand-testnet')}
+                              className="flex-1 text-xs font-medium"
+                            >
+                              TestNet
+                            </Button>
+                            <Button
+                              variant={algorandSelectedNetwork === 'algorand-mainnet' ? 'default' : 'ghost'}
+                              size="sm"
+                              onClick={() => setAlgorandSelectedNetwork('algorand-mainnet')}
+                              className="flex-1 text-xs font-medium"
+                            >
+                              MainNet
+                            </Button>
+                          </div>
+                          <Button
+                            onClick={handleAlgorandConnect}
+                            disabled={!isPeraWalletReady || algorandIsConnecting}
+                            className="w-full bg-gradient-to-r from-[#76f935] to-[#5dd128] hover:from-[#5dd128] hover:to-[#4bb01f] text-white font-medium rounded-lg h-9 text-sm shadow-md hover:shadow-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {algorandIsConnecting ? (
+                              <div className="flex items-center space-x-2">
+                                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                <span>Connecting...</span>
+                              </div>
+                            ) : !isPeraWalletReady ? (
+                              <div className="flex items-center space-x-2">
+                                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                <span>Initializing...</span>
+                              </div>
+                            ) : (
+                              <div className="flex items-center space-x-2">
+                                <div className="w-5 h-5 rounded bg-white/20 flex items-center justify-center">
+                                  <span className="text-white font-bold text-xs">A</span>
+                                </div>
+                                <span>Connect to {algorandNetworkConfig?.isMainnet ? 'MainNet' : 'TestNet'}</span>
+                              </div>
+                            )}
+                          </Button>
+                        </div>
                       )}
                     </div>
 
@@ -574,7 +619,7 @@ export default function Navbar() {
                     <div className="space-y-3">
                       {/* Mobile Network Switcher */}
                       <div className="space-y-2">
-                        <Label className="text-sm font-medium text-muted-foreground">Algorand Network</Label>
+                        <span className="text-sm font-medium text-muted-foreground">Algorand Network</span>
                         <div className="flex gap-2">
                           <Button
                             variant={algorandSelectedNetwork === 'algorand-testnet' ? 'default' : 'outline'}
@@ -614,11 +659,9 @@ export default function Navbar() {
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      {/* Mobile Network Selector */}
+                      {/* Network Selector when not connected */}
                       <div className="space-y-2">
-                        <Label className="text-sm font-medium text-muted-foreground">Select Network</Label>
-                        <div className="flex gap-2">
-                        <Label className="text-xs font-medium text-muted-foreground">Algorand Network</Label>
+                        <span className="text-sm font-medium text-muted-foreground">Select Network</span>
                         <div className="flex gap-1 bg-muted rounded-lg p-1">
                           <Button
                             variant={algorandSelectedNetwork === 'algorand-testnet' ? 'default' : 'ghost'}
@@ -639,65 +682,30 @@ export default function Navbar() {
                         </div>
                       </div>
                       <Button
-                        variant="outline"
-                        onClick={handleAlgorandDisconnect}
-                        className="w-full border-border text-muted-foreground hover:bg-muted rounded-lg h-9 text-sm font-medium"
+                        onClick={handleAlgorandConnect}
+                        disabled={!isPeraWalletReady || algorandIsConnecting}
+                        className="w-full bg-gradient-to-r from-[#76f935] to-[#5dd128] hover:from-[#5dd128] hover:to-[#4bb01f] text-white font-semibold rounded-xl h-14 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        Disconnect
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      {/* Network Selector when not connected */}
-                      <div className="space-y-2">
-                        <Label className="text-xs font-medium text-muted-foreground">Select Network</Label>
-                        <div className="flex gap-1 bg-muted rounded-lg p-1">
-                        <Button
-                          variant={algorandSelectedNetwork === 'algorand-testnet' ? 'default' : 'outline'}
-                          onClick={() => setAlgorandSelectedNetwork('algorand-testnet')}
-                          className="flex-1 h-12 font-semibold"
-                          className="flex-1 text-xs font-medium"
-                        >
-                          <div className="flex items-center space-x-2">
-                            <div className="w-4 h-4 rounded bg-[#76f935]/20 flex items-center justify-center">
-                              <span className="text-[#76f935] font-bold text-xs">T</span>
+                        {algorandIsConnecting ? (
+                          <div className="flex items-center space-x-3">
+                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                            <span className="text-lg">Connecting...</span>
+                          </div>
+                        ) : !isPeraWalletReady ? (
+                          <div className="flex items-center space-x-3">
+                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                            <span className="text-lg">Initializing...</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center space-x-3">
+                            <div className="w-6 h-6 rounded-lg bg-white/20 flex items-center justify-center">
+                              <span className="text-white font-bold">A</span>
                             </div>
-                            <span>TestNet</span>
+                            <span className="text-lg">
+                              Connect to {algorandNetworkConfig?.isMainnet ? 'MainNet' : 'TestNet'}
+                            </span>
                           </div>
-                        </Button>
-                        <Button
-                          variant={algorandSelectedNetwork === 'algorand-mainnet' ? 'default' : 'outline'}
-                          onClick={() => setAlgorandSelectedNetwork('algorand-mainnet')}
-                          className="flex-1 h-12 font-semibold"
-                          className="flex-1 text-xs font-medium"
-                        >
-                          <div className="flex items-center space-x-2">
-                            <div className="w-4 h-4 rounded bg-[#00d4aa]/20 flex items-center justify-center">
-                              <span className="text-[#00d4aa] font-bold text-xs">M</span>
-                            </div>
-                            <span>MainNet</span>
-                          </div>
-                        </Button>
-                      </div>
-                      </div>
-                      </div>
-                      >
-                        <div className="flex items-center space-x-3">
-                          <div className="w-6 h-6 rounded-lg bg-white/20 flex items-center justify-center">
-                            <span className="text-white font-bold">A</span>
-                          </div>
-                          <span className="text-lg">
-                            {algorandIsConnecting 
-                              ? 'Connecting...' 
-                              : !isPeraWalletReady 
-                                ? 'Initializing...' 
-                                : `Connect to ${algorandNetworkConfig?.isMainnet ? 'MainNet' : 'TestNet'}`
-                            }
-                          </span>
-                        </div>
-                      </Button>
-                    </div>
-                        </div>
+                        )}
                       </Button>
                     </div>
                   )}
