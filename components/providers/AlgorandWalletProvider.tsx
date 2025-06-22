@@ -17,6 +17,8 @@ interface PeraWalletConnect {
 interface AlgorandWalletContextType {
   connected: boolean;
   address: string | null;
+  selectedNetwork: string;
+  setSelectedNetwork: (network: string) => void;
   connect: () => Promise<void>;
   disconnect: () => Promise<void>;
   signTransaction: (txn: any) => Promise<any>;
@@ -35,62 +37,67 @@ interface AlgorandWalletProviderProps {
 export function AlgorandWalletProvider({ children }: AlgorandWalletProviderProps) {
   const [connected, setConnected] = useState(false);
   const [address, setAddress] = useState<string | null>(null);
+  const [selectedNetwork, setSelectedNetwork] = useState<string>('algorand-testnet');
   const [peraWallet, setPeraWallet] = useState<PeraWalletConnect | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [balance, setBalance] = useState<number | null>(null);
 
+  // Initialize wallet when network changes
   useEffect(() => {
-    // Initialize Pera Wallet only on client side
-    const initializeWallet = async () => {
-      try {
-        // Dynamic import to avoid SSR issues
-        const { PeraWalletConnect } = await import('@perawallet/connect');
-        
-        const wallet = new PeraWalletConnect({
-          chainId: 416002, // TestNet chain ID
-        });
-        
-        setPeraWallet(wallet);
-
-        // Check if already connected
-        try {
-          const accounts = await wallet.reconnectSession();
-          if (accounts.length > 0) {
-            setConnected(true);
-            setAddress(accounts[0]);
-            await updateBalance(accounts[0]);
-          }
-        } catch (error) {
-          console.log('No existing Algorand session found');
-        }
-
-        // Listen for disconnect events
-        wallet.connector?.on('disconnect', () => {
-          setConnected(false);
-          setAddress(null);
-          setBalance(null);
-          setError(null);
-        });
-      } catch (error) {
-        console.error('Failed to initialize Pera Wallet:', error);
-        setError('Failed to initialize Algorand wallet');
-      }
-    };
-
     initializeWallet();
-  }, []);
+  }, [selectedNetwork]);
+
+  const initializeWallet = async () => {
+    // Initialize Pera Wallet only on client side
+    try {
+      // Dynamic import to avoid SSR issues
+      const { PeraWalletConnect } = await import('@perawallet/connect');
+      const { getAlgorandNetwork } = await import('@/lib/algorand');
+      
+      const networkConfig = getAlgorandNetwork(selectedNetwork);
+      
+      const wallet = new PeraWalletConnect({
+        chainId: networkConfig.chainId,
+      });
+      
+      setPeraWallet(wallet);
+
+      // Check if already connected
+      try {
+        const accounts = await wallet.reconnectSession();
+        if (accounts.length > 0) {
+          setConnected(true);
+          setAddress(accounts[0]);
+          await updateBalance(accounts[0]);
+        }
+      } catch (error) {
+        console.log(`No existing Algorand session found for ${selectedNetwork}`);
+      }
+
+      // Listen for disconnect events
+      wallet.connector?.on('disconnect', () => {
+        setConnected(false);
+        setAddress(null);
+        setBalance(null);
+        setError(null);
+      });
+    } catch (error) {
+      console.error(`Failed to initialize Pera Wallet for ${selectedNetwork}:`, error);
+      setError('Failed to initialize Algorand wallet');
+    }
+  };
 
   const updateBalance = async (walletAddress: string) => {
     try {
       const { getAlgorandAccountInfo } = await import('@/lib/algorand');
-      const accountInfo = await getAlgorandAccountInfo(walletAddress);
+      const accountInfo = await getAlgorandAccountInfo(walletAddress, selectedNetwork);
       
       if (accountInfo.success) {
         setBalance(accountInfo.balance);
       }
     } catch (error) {
-      console.error('Failed to update balance:', error);
+      console.error(`Failed to update balance for ${selectedNetwork}:`, error);
     }
   };
 
@@ -110,10 +117,10 @@ export function AlgorandWalletProvider({ children }: AlgorandWalletProviderProps
         await updateBalance(accounts[0]);
         
         // Show success message
-        console.log('Algorand wallet connected successfully:', accounts[0]);
+        console.log(`Algorand wallet connected successfully to ${selectedNetwork}:`, accounts[0]);
       }
     } catch (error) {
-      console.error('Failed to connect to Pera Wallet:', error);
+      console.error(`Failed to connect to Pera Wallet on ${selectedNetwork}:`, error);
       
       let errorMessage = 'Failed to connect to Algorand wallet';
       if (error instanceof Error) {
@@ -143,7 +150,7 @@ export function AlgorandWalletProvider({ children }: AlgorandWalletProviderProps
       setBalance(null);
       setError(null);
     } catch (error) {
-      console.error('Failed to disconnect from Pera Wallet:', error);
+      console.error(`Failed to disconnect from Pera Wallet on ${selectedNetwork}:`, error);
       // Don't throw here, just log the error
     }
   };
@@ -249,6 +256,8 @@ export function AlgorandWalletProvider({ children }: AlgorandWalletProviderProps
   const value: AlgorandWalletContextType = {
     connected,
     address,
+    selectedNetwork,
+    setSelectedNetwork,
     connect,
     disconnect,
     signTransaction,
