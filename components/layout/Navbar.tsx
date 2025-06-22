@@ -216,11 +216,14 @@ export default function Navbar() {
                     <div className="flex items-center space-x-2 bg-gradient-to-r from-[#76f935]/10 to-[#76f935]/10 border border-[#76f935]/30 rounded-lg px-3 py-1.5 backdrop-blur-sm group">
                       <div className="w-2 h-2 bg-[#76f935] rounded-full animate-pulse"></div>
                       <div className="flex items-center space-x-1.5">
-                        <div className="w-5 h-5 rounded bg-[#76f935]/20 flex items-center justify-center">
+                        <div className="w-6 h-6 rounded-lg bg-[#76f935]/20 flex items-center justify-center">
                           <span className="text-[#76f935] font-bold text-xs">A</span>
                         </div>
                         <div className="text-[#76f935] text-sm font-medium">
-                          {formatAddress(algorandAddress)} ({algorandNetworkConfig?.isMainnet ? 'MainNet' : 'TestNet'})
+                          {formatAddress(algorandAddress)}
+                          <span className="ml-1 text-xs opacity-75">
+                            ({algorandNetworkConfig?.isMainnet ? 'MainNet' : 'TestNet'})
+                          </span>
                         </div>
                       </div>
                       <Button
@@ -570,45 +573,133 @@ export default function Navbar() {
                   {algorandConnected ? (
                     <div className="space-y-3">
                       {/* Mobile Network Switcher */}
-                      <div className="flex gap-2">
-                        <Button
-                          variant={algorandSelectedNetwork === 'algorand-testnet' ? 'default' : 'outline'}
-                          onClick={() => setAlgorandSelectedNetwork('algorand-testnet')}
-                          className="flex-1 h-10"
-                          size="sm"
-                        >
-                          TestNet
-                        </Button>
-                        <Button
-                          variant={algorandSelectedNetwork === 'algorand-mainnet' ? 'default' : 'outline'}
-                          onClick={() => setAlgorandSelectedNetwork('algorand-mainnet')}
-                          className="flex-1 h-10"
-                          size="sm"
-                        >
-                          MainNet
-                        </Button>
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-muted-foreground">Algorand Network</Label>
+                        <div className="flex gap-2">
+                          <Button
+                            variant={algorandSelectedNetwork === 'algorand-testnet' ? 'default' : 'outline'}
+                            onClick={() => setAlgorandSelectedNetwork('algorand-testnet')}
+                            className="flex-1 h-12 font-semibold"
+                            size="sm"
+                          >
+                            <div className="flex items-center space-x-2">
+                              <div className="w-4 h-4 rounded bg-[#76f935]/20 flex items-center justify-center">
+                                <span className="text-[#76f935] font-bold text-xs">T</span>
+                              </div>
+                              <span>TestNet</span>
+                            </div>
+                          </Button>
+                          <Button
+                            variant={algorandSelectedNetwork === 'algorand-mainnet' ? 'default' : 'outline'}
+                            onClick={() => setAlgorandSelectedNetwork('algorand-mainnet')}
+                            className="flex-1 h-12 font-semibold"
+                            size="sm"
+                          >
+                            <div className="flex items-center space-x-2">
+                              <div className="w-4 h-4 rounded bg-[#00d4aa]/20 flex items-center justify-center">
+                                <span className="text-[#00d4aa] font-bold text-xs">M</span>
+                              </div>
+                              <span>MainNet</span>
+                            </div>
+                          </Button>
+                        </div>
                       </div>
                       <Button
                         variant="outline"
                         onClick={handleAlgorandDisconnect}
-                        className="w-full border-border text-muted-foreground hover:bg-muted h-12 rounded-xl"
+                        className="w-full border-border text-muted-foreground hover:bg-muted h-12 rounded-xl font-semibold"
+                      >
+                        Disconnect from {algorandNetworkConfig?.isMainnet ? 'MainNet' : 'TestNet'}
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {/* Mobile Network Selector */}
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-muted-foreground">Select Network</Label>
+                        <div className="flex gap-2">
+                        <Label className="text-xs font-medium text-muted-foreground">Algorand Network</Label>
+                        <div className="flex gap-1 bg-muted rounded-lg p-1">
+                          <Button
+                            variant={algorandSelectedNetwork === 'algorand-testnet' ? 'default' : 'ghost'}
+                            size="sm"
+                            onClick={() => setAlgorandSelectedNetwork('algorand-testnet')}
+                            className="flex-1 text-xs font-medium"
+                          >
+                            TestNet
+                          </Button>
+                          <Button
+                            variant={algorandSelectedNetwork === 'algorand-mainnet' ? 'default' : 'ghost'}
+                            size="sm"
+                            onClick={() => setAlgorandSelectedNetwork('algorand-mainnet')}
+                            className="flex-1 text-xs font-medium"
+                          >
+                            MainNet
+                          </Button>
+                        </div>
+                      </div>
+                      <Button
+                        variant="outline"
+                        onClick={handleAlgorandDisconnect}
+                        className="w-full border-border text-muted-foreground hover:bg-muted rounded-lg h-9 text-sm font-medium"
                       >
                         Disconnect
                       </Button>
                     </div>
                   ) : (
-                    <Button
-                      onClick={handleAlgorandConnect}
-                      disabled={!isPeraWalletReady || algorandIsConnecting}
-                      className="w-full bg-gradient-to-r from-[#76f935] to-[#5dd128] hover:from-[#5dd128] hover:to-[#4bb01f] text-white font-semibold rounded-xl h-12 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {algorandIsConnecting 
-                        ? 'Connecting...' 
-                        : !isPeraWalletReady 
-                          ? 'Initializing...' 
-                          : 'Connect Pera Wallet'
-                      }
-                    </Button>
+                    <div className="space-y-3">
+                      {/* Network Selector when not connected */}
+                      <div className="space-y-2">
+                        <Label className="text-xs font-medium text-muted-foreground">Select Network</Label>
+                        <div className="flex gap-1 bg-muted rounded-lg p-1">
+                        <Button
+                          variant={algorandSelectedNetwork === 'algorand-testnet' ? 'default' : 'outline'}
+                          onClick={() => setAlgorandSelectedNetwork('algorand-testnet')}
+                          className="flex-1 h-12 font-semibold"
+                          className="flex-1 text-xs font-medium"
+                        >
+                          <div className="flex items-center space-x-2">
+                            <div className="w-4 h-4 rounded bg-[#76f935]/20 flex items-center justify-center">
+                              <span className="text-[#76f935] font-bold text-xs">T</span>
+                            </div>
+                            <span>TestNet</span>
+                          </div>
+                        </Button>
+                        <Button
+                          variant={algorandSelectedNetwork === 'algorand-mainnet' ? 'default' : 'outline'}
+                          onClick={() => setAlgorandSelectedNetwork('algorand-mainnet')}
+                          className="flex-1 h-12 font-semibold"
+                          className="flex-1 text-xs font-medium"
+                        >
+                          <div className="flex items-center space-x-2">
+                            <div className="w-4 h-4 rounded bg-[#00d4aa]/20 flex items-center justify-center">
+                              <span className="text-[#00d4aa] font-bold text-xs">M</span>
+                            </div>
+                            <span>MainNet</span>
+                          </div>
+                        </Button>
+                      </div>
+                      </div>
+                      </div>
+                      >
+                        <div className="flex items-center space-x-3">
+                          <div className="w-6 h-6 rounded-lg bg-white/20 flex items-center justify-center">
+                            <span className="text-white font-bold">A</span>
+                          </div>
+                          <span className="text-lg">
+                            {algorandIsConnecting 
+                              ? 'Connecting...' 
+                              : !isPeraWalletReady 
+                                ? 'Initializing...' 
+                                : `Connect to ${algorandNetworkConfig?.isMainnet ? 'MainNet' : 'TestNet'}`
+                            }
+                          </span>
+                        </div>
+                      </Button>
+                    </div>
+                        </div>
+                      </Button>
+                    </div>
                   )}
                 </div>
 

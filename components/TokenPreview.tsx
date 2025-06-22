@@ -70,29 +70,29 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
   const networkInfo = getNetworkInfo(network);
 
   return (
-    <div className="xl:sticky xl:top-24 space-y-8">
+    <div className="xl:sticky xl:top-24 space-y-6">
       <div className="text-center space-y-4">
         <div className="flex items-center justify-center space-x-2">
           <Sparkles className="w-5 h-5 text-red-500" />
-          <h2 className="text-3xl font-bold text-foreground">Token Preview</h2>
+          <h2 className="text-4xl font-bold text-foreground">Live Preview</h2>
           <Sparkles className="w-5 h-5 text-red-500" />
         </div>
-        <p className="text-muted-foreground text-lg">
+        <p className="text-muted-foreground text-xl">
           This is how your token will appear after creation
         </p>
       </div>
 
       <div className="text-center">
-        <Badge className={`${networkInfo.color} text-sm px-4 py-2 rounded-xl font-semibold`}>
+        <Badge className={`${networkInfo.color} text-base px-6 py-3 rounded-xl font-bold shadow-md`}>
           <Network className="w-4 h-4 mr-2" />
           {networkInfo.name}
         </Badge>
-        <p className="text-xs text-muted-foreground mt-2">{networkInfo.description}</p>
+        <p className="text-sm text-muted-foreground mt-3">{networkInfo.description}</p>
       </div>
 
-      <div className="glass-card p-8 space-y-8 relative overflow-hidden">
-        <div className="text-center space-y-6 relative z-10">
-          <div className="text-sm text-muted-foreground uppercase tracking-wide font-semibold">Token Details</div>
+      <div className="glass-card p-10 space-y-8 relative overflow-hidden">
+        <div className="text-center space-y-8 relative z-10">
+          <div className="text-base text-muted-foreground uppercase tracking-wide font-bold">Token Details</div>
           
           <div className="flex justify-center relative">
             {logoUrl ? (
@@ -100,44 +100,44 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
                 <img
                   src={logoUrl}
                   alt={name}
-                  className="w-32 h-32 rounded-full object-cover border-4 border-red-500/50 shadow-2xl"
+                  className="w-40 h-40 rounded-full object-cover border-4 border-red-500/50 shadow-2xl"
                 />
-                <div className="absolute -inset-2 bg-gradient-to-r from-red-500/20 to-red-600/20 rounded-full blur-lg"></div>
+                <div className="absolute -inset-3 bg-gradient-to-r from-red-500/20 to-red-600/20 rounded-full blur-lg"></div>
               </div>
             ) : (
-              <div className="token-preview-circle w-32 h-32 text-2xl relative">
+              <div className="token-preview-circle w-40 h-40 text-3xl relative">
                 {symbol.slice(0, 3).toUpperCase() || 'TKN'}
               </div>
             )}
           </div>
 
           <div className="space-y-2">
-            <h3 className="text-3xl font-bold text-foreground">
+            <h3 className="text-4xl font-bold text-foreground">
               {name || 'My Token'}
             </h3>
-            <p className="text-muted-foreground text-xl font-semibold">
+            <p className="text-muted-foreground text-2xl font-bold">
               {symbol.toUpperCase() || 'TKN'}
             </p>
           </div>
 
           {description && (
-            <div className="glass-card p-4 bg-muted/20">
-              <p className="text-muted-foreground leading-relaxed text-base">
+            <div className="glass-card p-6 bg-muted/20 rounded-xl">
+              <p className="text-muted-foreground leading-relaxed text-lg">
                 {description}
               </p>
             </div>
           )}
         </div>
 
-        <div className="text-sm text-muted-foreground uppercase tracking-wide text-center font-semibold">
+        <div className="text-base text-muted-foreground uppercase tracking-wide text-center font-bold">
           Available Actions
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-4">
           <Button 
             variant="outline" 
             size="sm" 
-            className="border-border text-muted-foreground hover:bg-muted hover:text-foreground h-12 rounded-xl text-sm"
+            className="border-border text-muted-foreground hover:bg-muted hover:text-foreground h-14 rounded-xl text-base font-semibold"
           >
             <Send className="w-4 h-4 mr-2" />
             Transfer
@@ -147,7 +147,7 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
             <Button 
               variant="outline" 
               size="sm" 
-              className="border-border text-muted-foreground hover:bg-muted hover:text-foreground h-12 rounded-xl text-sm"
+              className="border-border text-muted-foreground hover:bg-muted hover:text-foreground h-14 rounded-xl text-base font-semibold"
             >
               <Plus className="w-4 h-4 mr-2" />
               Mint
@@ -158,7 +158,7 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
             <Button 
               variant="outline" 
               size="sm" 
-              className="border-border text-muted-foreground hover:bg-muted hover:text-foreground h-12 rounded-xl text-sm"
+              className="border-border text-muted-foreground hover:bg-muted hover:text-foreground h-14 rounded-xl text-base font-semibold"
             >
               <Flame className="w-4 h-4 mr-2" />
               Burn
@@ -169,7 +169,7 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
             <Button 
               variant="outline" 
               size="sm" 
-              className="border-border text-muted-foreground hover:bg-muted hover:text-foreground h-12 rounded-xl text-sm"
+              className="border-border text-muted-foreground hover:bg-muted hover:text-foreground h-14 rounded-xl text-base font-semibold"
             >
               <Pause className="w-4 h-4 mr-2" />
               Pause
@@ -179,69 +179,69 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
           <Button 
             variant="outline" 
             size="sm" 
-            className="border-border text-muted-foreground hover:bg-muted hover:text-foreground h-12 rounded-xl text-sm col-span-2"
+            className="border-border text-muted-foreground hover:bg-muted hover:text-foreground h-14 rounded-xl text-base font-semibold col-span-2"
           >
             <BarChart3 className="w-4 h-4 mr-2" />
             Analytics
           </Button>
         </div>
 
-        <div className="pt-6 border-t border-border text-center">
+        <div className="pt-8 border-t border-border text-center">
           <div className="flex items-center justify-center space-x-2 text-green-500">
             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-            <p className="text-sm font-semibold">Ready for deployment to {networkInfo.name}</p>
+            <p className="text-base font-bold">Ready for deployment to {networkInfo.name}</p>
           </div>
         </div>
       </div>
 
-      <div className="glass-card p-6 space-y-6">
+      <div className="glass-card p-8 space-y-6">
         <div className="flex items-center space-x-2">
           <TrendingUp className="w-5 h-5 text-red-500" />
-          <h4 className="text-foreground font-bold text-xl">Deployment Details</h4>
+          <h4 className="text-foreground font-bold text-2xl">Deployment Details</h4>
         </div>
         
-        <div className="space-y-4 text-base">
-          <div className="flex justify-between items-center p-3 bg-muted/30 rounded-lg">
-            <span className="text-muted-foreground font-medium">Network:</span>
+        <div className="space-y-4">
+          <div className="flex justify-between items-center p-4 bg-muted/30 rounded-xl">
+            <span className="text-muted-foreground font-semibold text-base">Network:</span>
             <Badge className={`${networkInfo.color} text-xs px-3 py-1 rounded-lg font-semibold`}>
               {networkInfo.name}
             </Badge>
           </div>
           
-          <div className="flex justify-between items-center p-3 bg-muted/30 rounded-lg">
-            <span className="text-muted-foreground font-medium">Symbol:</span>
-            <span className="text-foreground font-bold">{symbol.toUpperCase() || 'TKN'}</span>
+          <div className="flex justify-between items-center p-4 bg-muted/30 rounded-xl">
+            <span className="text-muted-foreground font-semibold text-base">Symbol:</span>
+            <span className="text-foreground font-bold text-lg">{symbol.toUpperCase() || 'TKN'}</span>
           </div>
           
-          <div className="flex justify-between items-center p-3 bg-muted/30 rounded-lg">
-            <span className="text-muted-foreground font-medium">Supply:</span>
-            <span className="text-foreground font-bold">{formatSupply(totalSupply) || '1,000,000'}</span>
+          <div className="flex justify-between items-center p-4 bg-muted/30 rounded-xl">
+            <span className="text-muted-foreground font-semibold text-base">Supply:</span>
+            <span className="text-foreground font-bold text-lg">{formatSupply(totalSupply) || '1,000,000'}</span>
           </div>
           
-          <div className="flex justify-between items-center p-3 bg-muted/30 rounded-lg">
-            <span className="text-muted-foreground font-medium">Decimals:</span>
-            <span className="text-foreground font-bold">{decimals || '9'}</span>
+          <div className="flex justify-between items-center p-4 bg-muted/30 rounded-xl">
+            <span className="text-muted-foreground font-semibold text-base">Decimals:</span>
+            <span className="text-foreground font-bold text-lg">{decimals || '6'}</span>
           </div>
         </div>
 
         {(mintable || burnable || pausable) && (
-          <div className="pt-4 border-t border-border">
-            <p className="text-muted-foreground font-semibold mb-4 text-base">Smart Contract Features</p>
-            <div className="flex flex-wrap gap-2">
+          <div className="pt-6 border-t border-border">
+            <p className="text-muted-foreground font-bold mb-4 text-lg">Smart Contract Features</p>
+            <div className="flex flex-wrap gap-3">
               {mintable && (
-                <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-sm px-3 py-2 rounded-lg font-semibold">
+                <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-base px-4 py-2 rounded-xl font-bold">
                   <Plus className="w-3 h-3 mr-1" />
                   Mintable
                 </Badge>
               )}
               {burnable && (
-                <Badge className="bg-red-500/20 text-red-400 border-red-500/30 text-sm px-3 py-2 rounded-lg font-semibold">
+                <Badge className="bg-red-500/20 text-red-400 border-red-500/30 text-base px-4 py-2 rounded-xl font-bold">
                   <Flame className="w-3 h-3 mr-1" />
                   Burnable
                 </Badge>
               )}
               {pausable && (
-                <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30 text-sm px-3 py-2 rounded-lg font-semibold">
+                <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30 text-base px-4 py-2 rounded-xl font-bold">
                   <Pause className="w-3 h-3 mr-1" />
                   Pausable
                 </Badge>

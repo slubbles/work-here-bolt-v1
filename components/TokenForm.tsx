@@ -314,9 +314,10 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
       label: 'Solana Devnet',
       description: 'Testing Environment - Free',
       cost: 'Free',
-      recommended: true,
+      recommended: false,
       color: 'bg-green-500/20 text-green-400 border-green-500/30',
-      available: solanaConnected
+      available: false,
+      comingSoon: true
     },
     {
       value: 'solana-mainnet',
@@ -325,16 +326,18 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
       cost: '~$2-5',
       recommended: false,
       color: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-      available: solanaConnected
+      available: false,
+      comingSoon: true
     },
     {
       value: 'algorand-testnet',
       label: 'Algorand TestNet',
-      description: 'Ultra Low Cost Testing',
+      description: 'Ultra Low Cost Testing - Recommended',
       cost: '~$0.001',
-      recommended: false,
+      recommended: true,
       color: 'bg-[#76f935]/20 text-[#76f935] border-[#76f935]/30',
-      available: algorandConnected && algorandSelectedNetwork === 'algorand-testnet'
+      available: algorandConnected && algorandSelectedNetwork === 'algorand-testnet',
+      comingSoon: false
     },
     {
       value: 'algorand-mainnet',
@@ -343,7 +346,8 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
       cost: '~$0.002',
       recommended: false,
       color: 'bg-[#00d4aa]/20 text-[#00d4aa] border-[#00d4aa]/30',
-      available: algorandConnected && algorandSelectedNetwork === 'algorand-mainnet'
+      available: algorandConnected && algorandSelectedNetwork === 'algorand-mainnet',
+      comingSoon: false
     }
   ];
 
@@ -452,26 +456,28 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
   return (
     <div className="max-w-2xl mx-auto space-y-8">
       {/* Header */}
-      <div className="text-center space-y-4">
+      <div className="text-center space-y-6 mb-8">
         <div className="flex items-center justify-center space-x-2 text-red-500 font-medium text-sm">
           <Rocket className="w-4 h-4" />
           <span className="uppercase tracking-wide">Token Creation</span>
         </div>
-        <h1 className="text-4xl font-bold text-foreground">Create Your Token</h1>
-        <p className="text-muted-foreground text-lg">
-          Design and deploy your custom token in minutes across multiple blockchains
+        <h1 className="text-5xl lg:text-6xl font-bold text-foreground bg-gradient-to-r from-red-500 to-red-600 bg-clip-text text-transparent">
+          Create Your Token
+        </h1>
+        <p className="text-muted-foreground text-xl max-w-2xl mx-auto leading-relaxed">
+          Design and deploy your custom token in minutes on the Algorand blockchain
         </p>
       </div>
 
       {/* Network Selection */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
+          <CardTitle className="flex items-center space-x-3 text-2xl">
             <Network className="w-5 h-5" />
             <span>Choose Network</span>
           </CardTitle>
           <CardDescription>
-            Select the blockchain network where you want to deploy your token
+            Select the blockchain network where you want to deploy your token. Algorand offers ultra-low costs and instant finality.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -479,29 +485,42 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
             {networkOptions.map((network) => (
               <div
                 key={network.value}
-                className={`p-4 rounded-lg border cursor-pointer transition-all ${
+                className={`p-6 rounded-xl border transition-all relative overflow-hidden ${
+                  network.comingSoon 
+                    ? 'border-border/50 bg-muted/30 cursor-not-allowed opacity-60' 
                   tokenData.network === network.value
-                    ? 'border-red-500/50 bg-red-500/5'
+                    ? 'border-red-500/50 bg-red-500/5 ring-2 ring-red-500/20'
                     : network.available
-                    ? 'border-border hover:border-red-500/30 hover:bg-red-500/5'
-                    : 'border-border/50 bg-muted/50 cursor-not-allowed opacity-60'
+                    ? 'border-border hover:border-red-500/30 hover:bg-red-500/5 cursor-pointer'
+                    : network.comingSoon
+                      ? 'border-border/50 bg-muted/30'
+                      : 'border-border/50 bg-muted/50 cursor-not-allowed opacity-60'
                 }`}
-                onClick={() => network.available && updateTokenData('network', network.value)}
+                onClick={() => !network.comingSoon && network.available && updateTokenData('network', network.value)}
               >
+                {network.comingSoon && (
+                  <div className="absolute top-3 right-3">
+                    <Badge className="bg-yellow-500/20 text-yellow-600 border-yellow-500/30 text-xs font-semibold">
+                      Coming Soon
+                    </Badge>
+                  </div>
+                )}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
                     <div className={`w-3 h-3 rounded-full ${
-                      tokenData.network === network.value ? 'bg-red-500' : 'bg-muted-foreground'
+                      tokenData.network === network.value ? 'bg-red-500' : network.comingSoon ? 'bg-muted-foreground/50' : 'bg-muted-foreground'
                     }`} />
                     <div>
                       <div className="flex items-center space-x-2">
-                        <span className="font-semibold text-foreground">{network.label}</span>
+                        <span className={`font-semibold text-lg ${network.comingSoon ? 'text-muted-foreground' : 'text-foreground'}`}>
+                          {network.label}
+                        </span>
                         {network.recommended && (
-                          <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs">
+                          <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs font-semibold">
                             Recommended
                           </Badge>
                         )}
-                        {!network.available && (
+                        {!network.available && !network.comingSoon && (
                           <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30 text-xs">
                             {network.value.startsWith('algorand') ? 
                               `Switch to ${network.value === 'algorand-mainnet' ? 'MainNet' : 'TestNet'}` : 
@@ -510,11 +529,13 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
                           </Badge>
                         )}
                       </div>
-                      <p className="text-sm text-muted-foreground">{network.description}</p>
+                      <p className={`text-sm mt-1 ${network.comingSoon ? 'text-muted-foreground/70' : 'text-muted-foreground'}`}>
+                        {network.description}
+                      </p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <Badge className={network.color}>
+                    <Badge className={`${network.color} font-semibold px-3 py-1`}>
                       {network.cost}
                     </Badge>
                   </div>
@@ -529,7 +550,9 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
               <AlertDescription>
                 {selectedNetwork?.value.startsWith('algorand') && algorandConnected ? 
                   `Please switch your Algorand wallet to ${selectedNetwork.label} to continue.` :
-                  'Please connect a wallet for your selected network to continue with token creation.'
+                  selectedNetwork?.comingSoon ?
+                    `${selectedNetwork.label} support is coming soon! Try Algorand for ultra-low cost token creation.` :
+                    'Please connect a wallet for your selected network to continue with token creation.'
                 }
               </AlertDescription>
             </Alert>
@@ -581,7 +604,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
       {/* Token Details Form */}
       <Card>
         <CardHeader>
-          <CardTitle>Token Details</CardTitle>
+          <CardTitle className="text-2xl">Token Details</CardTitle>
           <CardDescription>
             Configure your token's basic information and properties
           </CardDescription>
@@ -590,55 +613,55 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
           {/* Basic Info */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Token Name *</Label>
+              <Label htmlFor="name" className="text-base font-semibold text-foreground">Token Name *</Label>
               <Input
                 id="name"
                 placeholder="My Awesome Token"
                 value={tokenData.name}
                 onChange={(e) => updateTokenData('name', e.target.value)}
-                className="input-enhanced"
+                className="input-enhanced h-12 text-base"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="symbol">Token Symbol *</Label>
+              <Label htmlFor="symbol" className="text-base font-semibold text-foreground">Token Symbol *</Label>
               <Input
                 id="symbol"
                 placeholder="MAT"
                 value={tokenData.symbol}
                 onChange={(e) => updateTokenData('symbol', e.target.value.toUpperCase())}
-                className="input-enhanced"
+                className="input-enhanced h-12 text-base"
               />
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
+            <Label htmlFor="description" className="text-base font-semibold text-foreground">Description</Label>
             <Textarea
               id="description"
               placeholder="Describe your token's purpose and utility..."
               value={tokenData.description}
               onChange={(e) => updateTokenData('description', e.target.value)}
-              className="input-enhanced min-h-[100px]"
+              className="input-enhanced min-h-[120px] text-base"
             />
           </div>
 
           {/* Token Economics */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="totalSupply">Total Supply *</Label>
+              <Label htmlFor="totalSupply" className="text-base font-semibold text-foreground">Total Supply *</Label>
               <Input
                 id="totalSupply"
                 type="number"
                 placeholder="1000000"
                 value={tokenData.totalSupply}
                 onChange={(e) => updateTokenData('totalSupply', e.target.value)}
-                className="input-enhanced"
+                className="input-enhanced h-12 text-base"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="decimals">Decimals</Label>
+              <Label htmlFor="decimals" className="text-base font-semibold text-foreground">Decimals</Label>
               <Select value={tokenData.decimals} onValueChange={(value) => updateTokenData('decimals', value)}>
-                <SelectTrigger className="input-enhanced">
+                <SelectTrigger className="input-enhanced h-12">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -651,9 +674,9 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
 
           {/* Logo Upload */}
           <div className="space-y-2">
-            <Label htmlFor="logo">Logo Image</Label>
+            <Label htmlFor="logo" className="text-base font-semibold text-foreground">Logo Image</Label>
             <div className="space-y-4">
-              <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
+              <div className="border-2 border-dashed border-border rounded-xl p-8 text-center hover:border-red-500/30 transition-colors">
                 <input
                   type="file"
                   id="logo-upload"
@@ -665,11 +688,11 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
                 <label htmlFor="logo-upload" className="cursor-pointer">
                   <div className="space-y-2">
                     {uploadingImage ? (
-                      <Loader2 className="w-8 h-8 text-red-500 mx-auto animate-spin" />
+                      <Loader2 className="w-10 h-10 text-red-500 mx-auto animate-spin" />
                     ) : (
-                      <Upload className="w-8 h-8 text-muted-foreground mx-auto" />
+                      <Upload className="w-10 h-10 text-muted-foreground mx-auto" />
                     )}
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-base text-muted-foreground font-medium">
                       {uploadingImage ? 'Uploading...' : 'Click to upload logo (PNG/JPG, max 5MB)'}
                     </p>
                   </div>
@@ -677,20 +700,20 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
               </div>
               
               {tokenData.logoUrl && (
-                <div className="flex items-center space-x-3 p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
-                  <img src={tokenData.logoUrl} alt="Token logo" className="w-10 h-10 rounded-full object-cover" />
-                  <span className="text-green-600 text-sm font-medium">Logo uploaded successfully</span>
+                <div className="flex items-center space-x-3 p-4 bg-green-500/10 border border-green-500/30 rounded-xl">
+                  <img src={tokenData.logoUrl} alt="Token logo" className="w-12 h-12 rounded-full object-cover border-2 border-green-500/30" />
+                  <span className="text-green-600 font-semibold">Logo uploaded successfully</span>
                 </div>
               )}
 
               <div className="space-y-2">
-                <Label htmlFor="logoUrl">Or enter image URL manually</Label>
+                <Label htmlFor="logoUrl" className="text-base font-semibold text-foreground">Or enter image URL manually</Label>
                 <Input
                   id="logoUrl"
                   placeholder="https://example.com/logo.png"
                   value={tokenData.logoUrl}
                   onChange={(e) => updateTokenData('logoUrl', e.target.value)}
-                  className="input-enhanced"
+                  className="input-enhanced h-12"
                 />
               </div>
             </div>
@@ -698,33 +721,39 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
 
           {/* Social Links */}
           <div className="space-y-4">
-            <Label>Social Links (Optional)</Label>
+            <Label className="text-base font-semibold text-foreground">Social Links (Optional)</Label>
             <div className="grid gap-3">
               <div className="flex items-center space-x-3">
-                <Globe className="w-4 h-4 text-muted-foreground" />
+                <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                  <Globe className="w-5 h-5 text-blue-500" />
+                </div>
                 <Input
                   placeholder="https://yourwebsite.com"
                   value={tokenData.website}
                   onChange={(e) => updateTokenData('website', e.target.value)}
-                  className="input-enhanced"
+                  className="input-enhanced h-12"
                 />
               </div>
               <div className="flex items-center space-x-3">
-                <Github className="w-4 h-4 text-muted-foreground" />
+                <div className="w-10 h-10 rounded-lg bg-gray-500/10 flex items-center justify-center">
+                  <Github className="w-5 h-5 text-gray-600" />
+                </div>
                 <Input
                   placeholder="https://github.com/yourproject"
                   value={tokenData.github}
                   onChange={(e) => updateTokenData('github', e.target.value)}
-                  className="input-enhanced"
+                  className="input-enhanced h-12"
                 />
               </div>
               <div className="flex items-center space-x-3">
-                <Twitter className="w-4 h-4 text-muted-foreground" />
+                <div className="w-10 h-10 rounded-lg bg-blue-400/10 flex items-center justify-center">
+                  <Twitter className="w-5 h-5 text-blue-400" />
+                </div>
                 <Input
                   placeholder="https://twitter.com/yourproject"
                   value={tokenData.twitter}
                   onChange={(e) => updateTokenData('twitter', e.target.value)}
-                  className="input-enhanced"
+                  className="input-enhanced h-12"
                 />
               </div>
             </div>
@@ -732,38 +761,50 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
 
           {/* Token Features */}
           <div className="space-y-4">
-            <Label>Token Features</Label>
+            <Label className="text-base font-semibold text-foreground">Advanced Token Features</Label>
             <div className="space-y-4">
-              <div className="flex items-center justify-between p-4 border rounded-lg">
+              <div className="flex items-center justify-between p-6 border rounded-xl bg-gradient-to-r from-green-500/5 to-transparent hover:from-green-500/10 transition-colors">
                 <div className="space-y-1">
-                  <div className="font-medium text-foreground">Mintable</div>
-                  <div className="text-sm text-muted-foreground">Allow creating new tokens after deployment</div>
+                  <div className="font-semibold text-foreground text-lg flex items-center space-x-2">
+                    <Plus className="w-5 h-5 text-green-500" />
+                    <span>Mintable</span>
+                  </div>
+                  <div className="text-muted-foreground">Allow creating new tokens after deployment</div>
                 </div>
                 <Switch
                   checked={tokenData.mintable}
                   onCheckedChange={(checked) => updateTokenData('mintable', checked)}
+                  className="scale-125"
                 />
               </div>
               
-              <div className="flex items-center justify-between p-4 border rounded-lg">
+              <div className="flex items-center justify-between p-6 border rounded-xl bg-gradient-to-r from-red-500/5 to-transparent hover:from-red-500/10 transition-colors">
                 <div className="space-y-1">
-                  <div className="font-medium text-foreground">Burnable</div>
-                  <div className="text-sm text-muted-foreground">Allow permanently destroying tokens</div>
+                  <div className="font-semibold text-foreground text-lg flex items-center space-x-2">
+                    <Flame className="w-5 h-5 text-red-500" />
+                    <span>Burnable</span>
+                  </div>
+                  <div className="text-muted-foreground">Allow permanently destroying tokens</div>
                 </div>
                 <Switch
                   checked={tokenData.burnable}
                   onCheckedChange={(checked) => updateTokenData('burnable', checked)}
+                  className="scale-125"
                 />
               </div>
               
-              <div className="flex items-center justify-between p-4 border rounded-lg">
+              <div className="flex items-center justify-between p-6 border rounded-xl bg-gradient-to-r from-yellow-500/5 to-transparent hover:from-yellow-500/10 transition-colors">
                 <div className="space-y-1">
-                  <div className="font-medium text-foreground">Pausable</div>
-                  <div className="text-sm text-muted-foreground">Allow pausing token transfers in emergencies</div>
+                  <div className="font-semibold text-foreground text-lg flex items-center space-x-2">
+                    <Shield className="w-5 h-5 text-yellow-500" />
+                    <span>Pausable</span>
+                  </div>
+                  <div className="text-muted-foreground">Allow pausing token transfers in emergencies</div>
                 </div>
                 <Switch
                   checked={tokenData.pausable}
                   onCheckedChange={(checked) => updateTokenData('pausable', checked)}
+                  className="scale-125"
                 />
               </div>
             </div>
@@ -771,7 +812,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
 
           {/* Error Display */}
           {error && (
-            <Alert>
+            <Alert className="border-red-500/30 bg-red-500/10">
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription className="text-red-600">
                 {error}
@@ -783,35 +824,35 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
           <Button
             onClick={handleDeploy}
             disabled={!canDeploy || isDeploying || ((tokenData.network === 'algorand-testnet' || tokenData.network === 'algorand-mainnet') && algorandWalletStatus && !algorandWalletStatus.canCreateToken)}
-            className="w-full bg-red-500 hover:bg-red-600 text-white h-12 text-lg font-semibold"
+            className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white h-16 text-xl font-bold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isDeploying ? (
               <>
-                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                Creating Token...
+                <Loader2 className="w-6 h-6 mr-3 animate-spin" />
+                Creating Your Token...
               </>
             ) : (
               <>
-                <Rocket className="w-5 h-5 mr-2" />
+                <Rocket className="w-6 h-6 mr-3" />
                 🚀 Deploy to {selectedNetwork?.label}
               </>
             )}
           </Button>
 
           {selectedNetwork && (
-            <div className="text-center text-sm text-muted-foreground">
-              <div className="flex items-center justify-center space-x-4">
+            <div className="text-center">
+              <div className="flex items-center justify-center space-x-6 text-muted-foreground">
                 <div className="flex items-center space-x-1">
-                  <Clock className="w-3 h-3" />
-                  <span>~30 seconds</span>
+                  <Clock className="w-4 h-4" />
+                  <span className="font-medium">~30 seconds</span>
                 </div>
                 <div className="flex items-center space-x-1">
-                  <DollarSign className="w-3 h-3" />
-                  <span>{selectedNetwork.cost}</span>
+                  <DollarSign className="w-4 h-4" />
+                  <span className="font-medium">{selectedNetwork.cost}</span>
                 </div>
                 <div className="flex items-center space-x-1">
-                  <Shield className="w-3 h-3" />
-                  <span>Secure</span>
+                  <Shield className="w-4 h-4" />
+                  <span className="font-medium">Secure</span>
                 </div>
               </div>
             </div>
