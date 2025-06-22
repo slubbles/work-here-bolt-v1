@@ -48,8 +48,8 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [showSocialLinks, setShowSocialLinks] = useState(false);
-  const [algorandWalletStatus, setAlgorandWalletStatus] = useState<any>(null);
   const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [algorandWalletStatus, setAlgorandWalletStatus] = useState<any>(null);
   const [logoPreview, setLogoPreview] = useState<string>('');
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [uploadedImageUrl, setUploadedImageUrl] = useState('');
@@ -320,6 +320,15 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
     return networks[networkValue as keyof typeof networks] || networks['solana-devnet'];
   };
 
+  const handleLogoFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setLogoFile(file);
+      // Also update the logoUrl in tokenData for preview
+      setTokenData((prev: any) => ({ ...prev, logoUrl: URL.createObjectURL(file) }));
+    }
+  };
+
   const validateForm = () => {
     // Clear any previous errors
     setError('');
@@ -388,6 +397,29 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
     setIsCreating(true);
     setProgress(0);
     setIsAlgorandToken(tokenData.network === 'algorand-testnet');
+    
+    // Upload logo file to Supabase if one was selected
+    let uploadedLogoUrl = tokenData.logoUrl;
+    if (logoFile && tokenData.network === 'algorand-testnet') {
+      try {
+        setCreationStep('Uploading logo...');
+        setProgress(10);
+        
+        const uploadResult = await supabaseHelpers.uploadFileToStorage(logoFile, 'token-assets');
+        if (uploadResult.success) {
+          uploadedLogoUrl = uploadResult.url!;
+          setTokenData((prev: any) => ({ ...prev, logoUrl: uploadedLogoUrl }));
+        } else {
+          setError(`Logo upload failed: ${uploadResult.error}`);
+          setIsCreating(false);
+          return;
+        }
+      } catch (err) {
+        setError('Logo upload failed');
+        setIsCreating(false);
+        return;
+      }
+    }
     
     const networkInfo = getNetworkInfo(tokenData.network);
     
@@ -492,21 +524,18 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
         result = await createAlgorandToken(
           algorandAddress!,
           {
-            name: tokenData.name,
-            symbol: tokenData.symbol,
-            description: tokenData.description,
+            ...tokenData,
+            logoUrl: uploadedLogoUrl, // Use uploaded URL
+            totalSupply: tokenData.totalSupply, // Keep as string for BigInt support
             decimals: parseInt(tokenData.decimals),
-            totalSupply: tokenData.totalSupply,
-            logoUrl: finalLogoUrl,
-            website: tokenData.website,
-            github: tokenData.github,
-            twitter: tokenData.twitter,
-            mintable: tokenData.mintable,
-            burnable: tokenData.burnable,
-            pausable: tokenData.pausable,
           },
           algorandSignTransaction,
-          uploadMetadataToStorage
+          // Pass metadata upload function for ARC-3 compliance
+          async (metadata) => {
+            const jsonBlob = new Blob([JSON.stringify(metadata, null, 2)], { type: 'application/json' });
+            const metadataFile = new File([jsonBlob], `${tokenData.symbol}-metadata.json`, { type: 'application/json' });
+            return await supabaseHelpers.uploadFileToStorage(metadataFile, 'token-metadata');
+          }
         );
       } else {
         throw new Error('Unsupported network');
@@ -550,6 +579,29 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
       setIsCreating(false);
       setProgress(0);
       setCreationStep('');
+    }
+  };
+
+  const handleOptInToAsset = async () => {
+    if (!algorandAddress || !contractAddress) return;
+    
+    setIsOptingIn(true);
+    setError('');
+    
+    try {
+      const assetId = parseInt(contractAddress);
+      const result = await optInToAsset(algorandAddress, assetId, algorandSignTransaction);
+      
+      if (result.success) {
+        setSuccess('Successfully opted in to your new token!');
+      } else {
+        setError(result.error || 'Opt-in failed');
+      }
+    } catch (error) {
+      console.error('Opt-in error:', error);
+      setError('Failed to opt in to token');
+    } finally {
+      setIsOptingIn(false);
     }
   };
 
@@ -1069,6 +1121,41 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
                     </div>
                   </div>
                   <div className="space-y-4">
+                    <Label htmlFor="logoUrl" className="text-foreground font-medium">
+                      Logo {tokenData.network === 'algorand-testnet' ? '(Upload File or URL)' : '(URL)'}
+                    </Label>
+                    {tokenData.network === 'algorand-testnet' ? (
+                      <div className="space-y-3">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleLogoFileChange}
+                          className="w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100 input-enhanced"
+                        />
+                        <div className="text-center text-muted-foreground text-sm">or</div>
+                        <Input
+                          id="logoUrl"
+                          placeholder="https://example.com/logo.png"
+                          value={logoFile ? '' : tokenData.logoUrl}
+                          onChange={(e) => {
+                            setLogoFile(null);
+                            handleInputChange('logoUrl', e.target.value);
+                          }}
+                          className="input-enhanced rounded-xl"
+                          disabled={!!logoFile}
+                        />
+                      </div>
+                    ) : (
+                      <Input
+                        id="logoUrl"
+                        placeholder="https://example.com/logo.png"
+                        value={tokenData.logoUrl}
+                        onChange={(e) => handleInputChange('logoUrl', e.target.value)}
+                        className="input-enhanced rounded-xl"
+                      />
+                    )}
+                  </div>
+                  <div className="space-y-4">
                     <Label htmlFor="website" className="text-foreground font-medium">Website</Label>
                     <Input
                       id="website"
@@ -1283,6 +1370,28 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
               </div>
             )}
             
+            {/* Algorand Opt-in Button */}
+            {tokenData.network === 'algorand-testnet' && contractAddress && (
+              <div className="text-center pt-4 border-t border-border">
+                <p className="text-sm text-muted-foreground mb-4">
+                  To receive your newly created token, you need to opt-in to the asset:
+                </p>
+                <Button 
+                  onClick={handleOptInToAsset}
+                  disabled={isOptingIn}
+                  className="bg-[#76f935] hover:bg-[#5dd128] text-white font-semibold"
+                >
+                  {isOptingIn ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Opting In...
+                    </>
+                  ) : (
+                    'Opt-in to Your Token'
+                  )}
+                </Button>
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-4">
               <Button 
                 variant="outline"
