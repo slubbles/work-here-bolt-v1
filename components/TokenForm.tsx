@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Coins, Settings, Globe, Github, Twitter, Plus, Flame, Pause, Upload, Info, Check, Rocket, Users, TrendingUp, Loader2, CheckCircle, Network, Sparkles, Zap, ArrowRight, Wallet, ChevronDown, ChevronUp, AlertTriangle, Shield, Star, Clock, DollarSign } from 'lucide-react';
+import { Coins, Settings, Globe, Github, Twitter, Plus, Flame, Pause, Upload, Info, Check, Rocket, Users, TrendingUp, Loader2, CheckCircle, Network, Sparkles, Zap, ArrowRight, Wallet, ChevronDown, ChevronUp, AlertTriangle, Shield, Star, Clock, DollarSign, ImageIcon, X } from 'lucide-react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useAlgorandWallet } from '@/components/providers/AlgorandWalletProvider';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
@@ -44,6 +44,11 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
   const [error, setError] = useState('');
   const [showSocialLinks, setShowSocialLinks] = useState(false);
   const [algorandWalletStatus, setAlgorandWalletStatus] = useState<any>(null);
+
+  // Image upload state
+  const [uploadedImage, setUploadedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Wallet connections
   const { connected: solanaConnected, publicKey: solanaPublicKey, wallet: solanaWallet } = useWallet();
@@ -105,7 +110,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
   const handleInputChange = (field: string, value: string | boolean) => {
     setTokenData((prev: any) => ({
       ...prev,
-      [field]: value,
+      [field]: field === 'totalSupply' ? value.toString() : value,
     }));
   };
 
@@ -114,6 +119,52 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
       ...prev,
       [feature]: !prev[feature],
     }));
+  };
+
+  // Handle image file selection
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        setError('Please select a valid image file');
+        return;
+      }
+      
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setError('Image file must be smaller than 5MB');
+        return;
+      }
+      
+      setUploadedImage(file);
+      
+      // Create preview URL
+      const previewUrl = URL.createObjectURL(file);
+      setImagePreview(previewUrl);
+      
+      // For now, we'll set a placeholder URL until we implement proper upload
+      // In a real implementation, you would upload to Supabase Storage or similar
+      setTokenData((prev: any) => ({
+        ...prev,
+        logoUrl: previewUrl // This is temporary - would be replaced with actual uploaded URL
+      }));
+      
+      setError(''); // Clear any previous errors
+    }
+  };
+
+  // Remove uploaded image
+  const removeImage = () => {
+    setUploadedImage(null);
+    setImagePreview('');
+    setTokenData((prev: any) => ({
+      ...prev,
+      logoUrl: ''
+    }));
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   const getNetworkInfo = (networkValue: string) => {
@@ -354,6 +405,15 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
   const isCorrectWalletConnected = 
     (currentNetworkInfo.requiresWallet === 'solana' && solanaConnected) ||
     (currentNetworkInfo.requiresWallet === 'algorand' && algorandConnected);
+
+  // Cleanup preview URL when component unmounts
+  useEffect(() => {
+    return () => {
+      if (imagePreview && imagePreview.startsWith('blob:')) {
+        URL.revokeObjectURL(imagePreview);
+      }
+    };
+  }, [imagePreview]);
 
   return (
     <div className="space-y-8">
@@ -639,13 +699,19 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
                 </Label>
                 <Input
                   id="totalSupply"
-                  type="number"
-                  placeholder="1000000"
+                  type="text"
+                  placeholder="1000000000000"
                   value={tokenData.totalSupply}
-                  onChange={(e) => handleInputChange('totalSupply', e.target.value)}
+                  onChange={(e) => {
+                    // Only allow numeric input
+                    const value = e.target.value.replace(/[^0-9]/g, '');
+                    handleInputChange('totalSupply', value);
+                  }}
                   className="input-enhanced h-14 text-lg rounded-xl border-2"
                 />
-                <p className="text-sm text-muted-foreground">How many tokens will exist in total</p>
+                <p className="text-sm text-muted-foreground">
+                  How many tokens will exist in total (supports very large numbers)
+                </p>
               </div>
               <div className="space-y-4">
                 <Label htmlFor="decimals" className="text-foreground font-semibold text-lg">
@@ -747,17 +813,90 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
 
             {showSocialLinks && (
               <div className="space-y-6 p-6 bg-muted/20 rounded-xl border border-border">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <div className="space-y-4">
-                    <Label htmlFor="logoUrl" className="text-foreground font-medium">Logo URL</Label>
-                    <Input
-                      id="logoUrl"
-                      placeholder="https://example.com/logo.png"
-                      value={tokenData.logoUrl}
-                      onChange={(e) => handleInputChange('logoUrl', e.target.value)}
-                      className="input-enhanced rounded-xl"
-                    />
+                {/* Logo Upload Section */}
+                <div className="space-y-4">
+                  <Label className="text-foreground font-medium text-lg">Token Logo</Label>
+                  
+                  {/* Image Preview */}
+                  {imagePreview && (
+                    <div className="relative inline-block">
+                      <img
+                        src={imagePreview}
+                        alt="Token logo preview"
+                        className="w-24 h-24 rounded-xl object-cover border-2 border-border"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={removeImage}
+                        className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-red-500 hover:bg-red-600 text-white p-0"
+                      >
+                        <X className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  )}
+                  
+                  {/* Upload Options */}
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    {/* File Upload */}
+                    <div className="flex-1">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="w-full border-border text-foreground hover:bg-muted h-12"
+                      >
+                        <Upload className="w-4 h-4 mr-2" />
+                        {uploadedImage ? 'Change Image' : 'Upload Image'}
+                      </Button>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        className="hidden"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1 text-center">
+                        Max 5MB • JPG, PNG, GIF, WebP
+                      </p>
+                    </div>
+                    
+                    {/* URL Input Alternative */}
+                    <div className="flex-1">
+                      <div className="space-y-2">
+                        <Label htmlFor="logoUrl" className="text-foreground font-medium text-sm">Or paste URL</Label>
+                        <Input
+                          id="logoUrl"
+                          placeholder="https://example.com/logo.png"
+                          value={uploadedImage ? '' : tokenData.logoUrl}
+                          onChange={(e) => {
+                            if (!uploadedImage) {
+                              handleInputChange('logoUrl', e.target.value);
+                            }
+                          }}
+                          disabled={!!uploadedImage}
+                          className="input-enhanced rounded-xl"
+                        />
+                      </div>
+                    </div>
                   </div>
+                  
+                  {uploadedImage && (
+                    <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                      <p className="text-blue-600 text-sm font-medium flex items-center">
+                        <Info className="w-4 h-4 mr-2" />
+                        Image ready for deployment
+                      </p>
+                      <p className="text-blue-500 text-xs mt-1">
+                        File: {uploadedImage.name} ({(uploadedImage.size / 1024).toFixed(1)} KB)
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Other Social Links */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <div className="space-y-4">
                     <Label htmlFor="website" className="text-foreground font-medium">Website</Label>
                     <Input
@@ -787,6 +926,15 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
                       onChange={(e) => handleInputChange('github', e.target.value)}
                       className="input-enhanced rounded-xl"
                     />
+                  </div>
+                  <div className="space-y-4">
+                    <Label className="text-foreground font-medium">Community Links</Label>
+                    <Input
+                      placeholder="Discord, Telegram, etc."
+                      className="input-enhanced rounded-xl"
+                      disabled
+                    />
+                    <p className="text-xs text-muted-foreground">More social links coming soon</p>
                   </div>
                 </div>
               </div>

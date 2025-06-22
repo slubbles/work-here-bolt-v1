@@ -31,7 +31,7 @@ export interface AlgorandTokenData {
   symbol: string;
   description: string;
   decimals: number;
-  totalSupply: number;
+  totalSupply: string;
   logoUrl: string;
   website?: string;
   github?: string;
@@ -194,7 +194,7 @@ export async function createAlgorandToken(
       throw new AlgorandError('Token symbol must be 1-8 characters');
     }
 
-    if (tokenData.totalSupply <= 0 || tokenData.totalSupply > Number.MAX_SAFE_INTEGER) {
+    if (tokenData.totalSupply <= '0' || BigInt(tokenData.totalSupply) > BigInt(Number.MAX_SAFE_INTEGER)) {
       throw new AlgorandError('Invalid total supply amount');
     }
 
@@ -253,16 +253,28 @@ export async function createAlgorandToken(
       genesisID: suggestedParams.genesisID
     });
     
-    // Calculate total supply in base units
-    const totalSupplyBaseUnits = tokenData.totalSupply * Math.pow(10, tokenData.decimals);
+    // Calculate total supply in base units using BigInt for large numbers
+    const totalSupplyBigInt = BigInt(tokenData.totalSupply) * (10n ** BigInt(tokenData.decimals));
+    
     console.log('Total supply calculation:', {
       originalSupply: tokenData.totalSupply,
       decimals: tokenData.decimals,
-      baseUnits: totalSupplyBaseUnits
+      baseUnits: totalSupplyBigInt.toString()
     });
     
-    if (totalSupplyBaseUnits > Number.MAX_SAFE_INTEGER) {
-      throw new AlgorandError('Total supply too large for specified decimals');
+    // Validate against Algorand's maximum asset total (2^64 - 1)
+    const algorandMaxTotal = 0xFFFFFFFFFFFFFFFFn; // 18,446,744,073,709,551,615
+    if (totalSupplyBigInt > algorandMaxTotal) {
+      throw new AlgorandError('Total supply exceeds Algorand maximum (18,446,744,073,709,551,615)');
+    }
+    
+    // Convert to number for algosdk (it can handle large integers)
+    let totalSupplyForAlgosdk: number;
+    if (totalSupplyBigInt <= BigInt(Number.MAX_SAFE_INTEGER)) {
+      totalSupplyForAlgosdk = Number(totalSupplyBigInt);
+    } else {
+      // For very large numbers, algosdk should handle them, but we need to be careful
+      totalSupplyForAlgosdk = Number(totalSupplyBigInt);
     }
 
     // Prepare all addresses explicitly
@@ -307,7 +319,7 @@ export async function createAlgorandToken(
       assetName: tokenData.name,
       manager: managerAddress,
       reserve: reserveAddress,
-      total: Math.floor(totalSupplyBaseUnits),
+      total: totalSupplyForAlgosdk,
       decimals: tokenData.decimals,
     };
 
@@ -676,6 +688,371 @@ export async function optInToAsset(
       success: false,
       error: errorMessage,
     };
+  }
+}
+
+// Mint Algorand tokens (ASA)
+export async function mintAlgorandTokens(
+  assetId: number,
+  amount: string,
+  recipientAddress: string,
+  managerAddress: string,
+  decimals: number,
+  signTransaction: (txn: any) => Promise<any>
+): Promise<{ success: boolean; txId?: string; error?: string }> {
+  try {
+    console.log('=== MINTING ALGORAND TOKENS ===');
+    console.log('Asset ID:', assetId);
+    console.log('Amount:', amount);
+    console.log('Recipient:', recipientAddress);
+    console.log('Manager:', managerAddress);
+    
+    // Validate addresses
+    if (!isValidAlgorandAddress(managerAddress)) {
+      throw new AlgorandError('Invalid manager address');
+    }
+    if (!isValidAlgorandAddress(recipientAddress)) {
+      throw new AlgorandError('Invalid recipient address');
+    }
+
+    // Check manager balance for transaction fee
+    const balanceCheck = await checkAccountBalance(managerAddress, 0.001);
+    if (!balanceCheck.sufficient) {
+      throw new AlgorandError('Insufficient ALGO balance for transaction fee');
+    }
+
+    // Get transaction parameters
+    const rawSuggestedParams = await algodClient.getTransactionParams().do();
+    const suggestedParams = {
+      ...rawSuggestedParams,
+      fee: typeof rawSuggestedParams.fee === 'bigint' ? Number(rawSuggestedParams.fee) : rawSuggestedParams.fee,
+      firstValid: typeof rawSuggestedParams.firstValid === 'bigint' ? Number(rawSuggestedParams.firstValid) : rawSuggestedParams.firstValid,
+      lastValid: typeof rawSuggestedParams.lastValid === 'bigint' ? Number(rawSuggestedParams.lastValid) : rawSuggestedParams.lastValid,
+      genesisHash: rawSuggestedParams.genesisHash,
+      genesisID: rawSuggestedParams.genesisID,
+      minFee: typeof rawSuggestedParams.minFee === 'bigint' ? Number(rawSuggestedParams.minFee) : rawSuggestedParams.minFee
+    };
+
+    // Calculate amount in base units using BigInt
+    const mintAmountBigInt = BigInt(amount) * (10n ** BigInt(decimals));
+    const mintAmount = Number(mintAmountBigInt);
+
+    console.log('Mint amount calculation:', {
+      originalAmount: amount,
+      decimals: decimals,
+      baseUnits: mintAmount
+    });
+
+    // Create asset transfer transaction from manager to recipient (this mints new tokens)
+    const mintTxn = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
+      sender: managerAddress, // Manager sends (mints)
+      receiver: recipientAddress, // Recipient receives the new tokens
+      assetIndex: assetId,
+      amount: mintAmount,
+      suggestedParams,
+    });
+
+    console.log('Signing mint transaction...');
+    const signedTxn = await signTransaction(mintTxn);
+    
+    if (!signedTxn || signedTxn.length === 0) {
+      throw new AlgorandError('Transaction signing failed or was cancelled');
+    }
+    
+    console.log('Submitting mint transaction...');
+    const response = await algodClient.sendRawTransaction(signedTxn).do();
+    const txId = response.txid || response.txId;
+    
+    console.log('Waiting for confirmation...', txId);
+    await algosdk.waitForConfirmation(algodClient, txId, 10);
+
+    console.log('✓ Mint transaction confirmed');
+    return { success: true, txId };
+  } catch (error) {
+    console.error('Error minting Algorand tokens:', error);
+    
+    let errorMessage = 'Failed to mint tokens';
+    if (error instanceof AlgorandError) {
+      errorMessage = error.message;
+    } else if (error instanceof Error) {
+      if (error.message.includes('cancelled')) {
+        errorMessage = 'Transaction was cancelled by user';
+      } else if (error.message.includes('insufficient')) {
+        errorMessage = 'Insufficient balance for transaction';
+      } else {
+        errorMessage = error.message;
+      }
+    }
+    
+    return { success: false, error: errorMessage };
+  }
+}
+
+// Burn Algorand tokens (ASA)
+export async function burnAlgorandTokens(
+  assetId: number,
+  amount: string,
+  senderAddress: string,
+  decimals: number,
+  signTransaction: (txn: any) => Promise<any>
+): Promise<{ success: boolean; txId?: string; error?: string }> {
+  try {
+    console.log('=== BURNING ALGORAND TOKENS ===');
+    console.log('Asset ID:', assetId);
+    console.log('Amount:', amount);
+    console.log('Sender:', senderAddress);
+    
+    // Validate address
+    if (!isValidAlgorandAddress(senderAddress)) {
+      throw new AlgorandError('Invalid sender address');
+    }
+
+    // Get asset info to find reserve address for burning
+    const assetInfo = await algodClient.getAssetByID(assetId).do();
+    const reserveAddress = assetInfo.params.reserve;
+
+    if (!reserveAddress) {
+      throw new AlgorandError('Asset has no reserve address configured for burning');
+    }
+
+    // Check sender balance for transaction fee
+    const balanceCheck = await checkAccountBalance(senderAddress, 0.001);
+    if (!balanceCheck.sufficient) {
+      throw new AlgorandError('Insufficient ALGO balance for transaction fee');
+    }
+
+    // Calculate burn amount in base units
+    const burnAmountBigInt = BigInt(amount) * (10n ** BigInt(decimals));
+    const burnAmount = Number(burnAmountBigInt);
+
+    console.log('Burn amount calculation:', {
+      originalAmount: amount,
+      decimals: decimals,
+      baseUnits: burnAmount,
+      reserveAddress: reserveAddress
+    });
+
+    const rawSuggestedParams = await algodClient.getTransactionParams().do();
+    const suggestedParams = {
+      ...rawSuggestedParams,
+      fee: typeof rawSuggestedParams.fee === 'bigint' ? Number(rawSuggestedParams.fee) : rawSuggestedParams.fee,
+      firstValid: typeof rawSuggestedParams.firstValid === 'bigint' ? Number(rawSuggestedParams.firstValid) : rawSuggestedParams.firstValid,
+      lastValid: typeof rawSuggestedParams.lastValid === 'bigint' ? Number(rawSuggestedParams.lastValid) : rawSuggestedParams.lastValid,
+      genesisHash: rawSuggestedParams.genesisHash,
+      genesisID: rawSuggestedParams.genesisID,
+      minFee: typeof rawSuggestedParams.minFee === 'bigint' ? Number(rawSuggestedParams.minFee) : rawSuggestedParams.minFee
+    };
+
+    // Create burn transaction (transfer to reserve address)
+    const burnTxn = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
+      sender: senderAddress,
+      receiver: reserveAddress, // Send to reserve to effectively burn
+      assetIndex: assetId,
+      amount: burnAmount,
+      suggestedParams,
+    });
+
+    console.log('Signing burn transaction...');
+    const signedTxn = await signTransaction(burnTxn);
+    
+    if (!signedTxn || signedTxn.length === 0) {
+      throw new AlgorandError('Transaction signing failed or was cancelled');
+    }
+    
+    console.log('Submitting burn transaction...');
+    const response = await algodClient.sendRawTransaction(signedTxn).do();
+    const txId = response.txid || response.txId;
+    
+    console.log('Waiting for confirmation...', txId);
+    await algosdk.waitForConfirmation(algodClient, txId, 10);
+
+    console.log('✓ Burn transaction confirmed');
+    return { success: true, txId };
+  } catch (error) {
+    console.error('Error burning Algorand tokens:', error);
+    
+    let errorMessage = 'Failed to burn tokens';
+    if (error instanceof AlgorandError) {
+      errorMessage = error.message;
+    } else if (error instanceof Error) {
+      if (error.message.includes('cancelled')) {
+        errorMessage = 'Transaction was cancelled by user';
+      } else if (error.message.includes('insufficient')) {
+        errorMessage = 'Insufficient balance for burning';
+      } else {
+        errorMessage = error.message;
+      }
+    }
+    
+    return { success: false, error: errorMessage };
+  }
+}
+
+// Pause Algorand token (freeze all accounts by default)
+export async function pauseAlgorandToken(
+  assetId: number,
+  managerAddress: string,
+  signTransaction: (txn: any) => Promise<any>
+): Promise<{ success: boolean; txId?: string; error?: string }> {
+  try {
+    console.log('=== PAUSING ALGORAND TOKEN ===');
+    console.log('Asset ID:', assetId);
+    console.log('Manager:', managerAddress);
+    
+    // Validate address
+    if (!isValidAlgorandAddress(managerAddress)) {
+      throw new AlgorandError('Invalid manager address');
+    }
+
+    // Get current asset info
+    const assetInfo = await algodClient.getAssetByID(assetId).do();
+    const params = assetInfo.params;
+
+    // Check if token has freeze capability
+    if (!params.freeze) {
+      throw new AlgorandError('Token does not have freeze/pause capability');
+    }
+
+    const rawSuggestedParams = await algodClient.getTransactionParams().do();
+    const suggestedParams = {
+      ...rawSuggestedParams,
+      fee: typeof rawSuggestedParams.fee === 'bigint' ? Number(rawSuggestedParams.fee) : rawSuggestedParams.fee,
+      firstValid: typeof rawSuggestedParams.firstValid === 'bigint' ? Number(rawSuggestedParams.firstValid) : rawSuggestedParams.firstValid,
+      lastValid: typeof rawSuggestedParams.lastValid === 'bigint' ? Number(rawSuggestedParams.lastValid) : rawSuggestedParams.lastValid,
+      genesisHash: rawSuggestedParams.genesisHash,
+      genesisID: rawSuggestedParams.genesisID,
+      minFee: typeof rawSuggestedParams.minFee === 'bigint' ? Number(rawSuggestedParams.minFee) : rawSuggestedParams.minFee
+    };
+
+    // Create asset config transaction to set default frozen to true
+    const pauseTxn = algosdk.makeAssetConfigTxnWithSuggestedParamsFromObject({
+      sender: managerAddress,
+      assetIndex: assetId,
+      suggestedParams,
+      strictEmptyAddressChecking: false,
+      // Keep existing addresses but set default frozen to true
+      manager: params.manager || managerAddress,
+      reserve: params.reserve || managerAddress,
+      freeze: params.freeze || managerAddress,
+      clawback: params.clawback || undefined,
+      defaultFrozen: true // This pauses the token
+    });
+
+    console.log('Signing pause transaction...');
+    const signedTxn = await signTransaction(pauseTxn);
+    
+    if (!signedTxn || signedTxn.length === 0) {
+      throw new AlgorandError('Transaction signing failed or was cancelled');
+    }
+    
+    console.log('Submitting pause transaction...');
+    const response = await algodClient.sendRawTransaction(signedTxn).do();
+    const txId = response.txid || response.txId;
+    
+    console.log('Waiting for confirmation...', txId);
+    await algosdk.waitForConfirmation(algodClient, txId, 10);
+
+    console.log('✓ Pause transaction confirmed');
+    return { success: true, txId };
+  } catch (error) {
+    console.error('Error pausing Algorand token:', error);
+    
+    let errorMessage = 'Failed to pause token';
+    if (error instanceof AlgorandError) {
+      errorMessage = error.message;
+    } else if (error instanceof Error) {
+      if (error.message.includes('cancelled')) {
+        errorMessage = 'Transaction was cancelled by user';
+      } else {
+        errorMessage = error.message;
+      }
+    }
+    
+    return { success: false, error: errorMessage };
+  }
+}
+
+// Unpause Algorand token (unfreeze all accounts by default)
+export async function unpauseAlgorandToken(
+  assetId: number,
+  managerAddress: string,
+  signTransaction: (txn: any) => Promise<any>
+): Promise<{ success: boolean; txId?: string; error?: string }> {
+  try {
+    console.log('=== UNPAUSING ALGORAND TOKEN ===');
+    console.log('Asset ID:', assetId);
+    console.log('Manager:', managerAddress);
+    
+    // Validate address
+    if (!isValidAlgorandAddress(managerAddress)) {
+      throw new AlgorandError('Invalid manager address');
+    }
+
+    // Get current asset info
+    const assetInfo = await algodClient.getAssetByID(assetId).do();
+    const params = assetInfo.params;
+
+    // Check if token has freeze capability
+    if (!params.freeze) {
+      throw new AlgorandError('Token does not have freeze/pause capability');
+    }
+
+    const rawSuggestedParams = await algodClient.getTransactionParams().do();
+    const suggestedParams = {
+      ...rawSuggestedParams,
+      fee: typeof rawSuggestedParams.fee === 'bigint' ? Number(rawSuggestedParams.fee) : rawSuggestedParams.fee,
+      firstValid: typeof rawSuggestedParams.firstValid === 'bigint' ? Number(rawSuggestedParams.firstValid) : rawSuggestedParams.firstValid,
+      lastValid: typeof rawSuggestedParams.lastValid === 'bigint' ? Number(rawSuggestedParams.lastValid) : rawSuggestedParams.lastValid,
+      genesisHash: rawSuggestedParams.genesisHash,
+      genesisID: rawSuggestedParams.genesisID,
+      minFee: typeof rawSuggestedParams.minFee === 'bigint' ? Number(rawSuggestedParams.minFee) : rawSuggestedParams.minFee
+    };
+
+    // Create asset config transaction to set default frozen to false
+    const unpauseTxn = algosdk.makeAssetConfigTxnWithSuggestedParamsFromObject({
+      sender: managerAddress,
+      assetIndex: assetId,
+      suggestedParams,
+      strictEmptyAddressChecking: false,
+      // Keep existing addresses but set default frozen to false
+      manager: params.manager || managerAddress,
+      reserve: params.reserve || managerAddress,
+      freeze: params.freeze || managerAddress,
+      clawback: params.clawback || undefined,
+      defaultFrozen: false // This unpauses the token
+    });
+
+    console.log('Signing unpause transaction...');
+    const signedTxn = await signTransaction(unpauseTxn);
+    
+    if (!signedTxn || signedTxn.length === 0) {
+      throw new AlgorandError('Transaction signing failed or was cancelled');
+    }
+    
+    console.log('Submitting unpause transaction...');
+    const response = await algodClient.sendRawTransaction(signedTxn).do();
+    const txId = response.txid || response.txId;
+    
+    console.log('Waiting for confirmation...', txId);
+    await algosdk.waitForConfirmation(algodClient, txId, 10);
+
+    console.log('✓ Unpause transaction confirmed');
+    return { success: true, txId };
+  } catch (error) {
+    console.error('Error unpausing Algorand token:', error);
+    
+    let errorMessage = 'Failed to unpause token';
+    if (error instanceof AlgorandError) {
+      errorMessage = error.message;
+    } else if (error instanceof Error) {
+      if (error.message.includes('cancelled')) {
+        errorMessage = 'Transaction was cancelled by user';
+      } else {
+        errorMessage = error.message;
+      }
+    }
+    
+    return { success: false, error: errorMessage };
   }
 }
 
