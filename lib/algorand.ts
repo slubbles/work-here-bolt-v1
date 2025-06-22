@@ -268,11 +268,28 @@ export async function createAlgorandToken(
     // Sign the transaction
     const signedTxn = await signTransaction(txn);
     
+    console.log(`📤 Submitting transaction to ${network}...`);
+    
     // Submit the transaction
-    const { txId } = await algodClient.sendRawTransaction(signedTxn).do();
+    const submitResult = await algodClient.sendRawTransaction(signedTxn).do();
+    const txId = submitResult.txId || submitResult.txid;
+    
+    if (!txId) {
+      console.error('❌ No transaction ID returned from network:', submitResult);
+      throw new Error('Transaction submission failed - no transaction ID returned');
+    }
+    
+    console.log(`✅ Transaction submitted to ${network} with ID: ${txId}`);
     
     // Wait for confirmation
-    const confirmedTxn = await algosdk.waitForConfirmation(algodClient, txId, 4);
+    console.log(`⏳ Waiting for confirmation on ${network} (max 10 rounds)...`);
+    const confirmedTxn = await algosdk.waitForConfirmation(algodClient, txId, 10);
+    
+    if (!confirmedTxn) {
+      throw new Error(`Transaction not confirmed on ${network} after 10 rounds`);
+    }
+    
+    console.log(`✅ Transaction confirmed on ${network} in round ${confirmedTxn['confirmed-round']}`);
     
     // Get the asset ID
     const assetId = confirmedTxn['asset-index'];
@@ -336,7 +353,8 @@ export async function optInToAsset(
     const { txId } = await algodClient.sendRawTransaction(signedTxn).do();
     
     // Wait for confirmation
-    await algosdk.waitForConfirmation(algodClient, txId, 4);
+    console.log(`⏳ Waiting for opt-in confirmation on ${network}...`);
+    await algosdk.waitForConfirmation(algodClient, txId, 10);
     
     console.log(`✓ Successfully opted in to asset ${assetId} on ${network}`);
     
