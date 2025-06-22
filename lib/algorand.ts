@@ -268,14 +268,17 @@ export async function createAlgorandToken(
       throw new AlgorandError('Total supply exceeds Algorand maximum (18,446,744,073,709,551,615)');
     }
     
-    // Convert to number for algosdk (it can handle large integers)
-    let totalSupplyForAlgosdk: number;
-    if (totalSupplyBigInt <= BigInt(Number.MAX_SAFE_INTEGER)) {
-      totalSupplyForAlgosdk = Number(totalSupplyBigInt);
-    } else {
-      // For very large numbers, algosdk should handle them, but we need to be careful
-      totalSupplyForAlgosdk = Number(totalSupplyBigInt);
-    }
+    // CRITICAL FIX: Pass BigInt directly to algosdk for large values, Number for safe integers
+    // algosdk v3+ accepts both number and bigint for the 'total' field
+    const totalSupplyForAlgosdk = totalSupplyBigInt > BigInt(Number.MAX_SAFE_INTEGER) 
+      ? totalSupplyBigInt 
+      : Number(totalSupplyBigInt);
+    
+    console.log('Final total supply for algosdk:', {
+      value: totalSupplyForAlgosdk,
+      type: typeof totalSupplyForAlgosdk,
+      isSafeInteger: typeof totalSupplyForAlgosdk === 'number' ? Number.isSafeInteger(totalSupplyForAlgosdk) : 'N/A (BigInt)'
+    });
 
     // Prepare all addresses explicitly
     const fromAddress = walletAddress;
