@@ -273,11 +273,11 @@ export default function VerifyPage() {
             risks,
             isPaused: false, // Would need to check freeze status
             mintAddress: assetId.toString(),
-            metadata: {
-              logoUri: assetData.metadata?.logoUri || assetData.url || undefined,
-              website: assetData.metadata?.website || undefined,
-              github: assetData.metadata?.github || undefined,
-              twitter: assetData.metadata?.twitter || undefined
+            metadata: assetData.metadata || {
+              logoUri: undefined,
+              website: undefined,
+              github: undefined,
+              twitter: undefined
             },
             marketData
           });
@@ -577,7 +577,9 @@ export default function VerifyPage() {
               <h3 className="text-xl font-bold text-foreground mb-6">Contract Details</h3>
               <div className="space-y-4">
                 <div className="flex justify-between items-center p-4 bg-muted/30 rounded-lg">
-                  <span className="text-muted-foreground font-medium">Token Address:</span>
+                  <span className="text-muted-foreground font-medium">
+                    {detectedNetwork === 'algorand' ? 'Asset ID:' : 'Token Address:'}
+                  </span>
                   <div className="flex items-center space-x-2">
                     <span className="text-foreground font-mono text-sm">{formatAddress(tokenAddress)}</span>
                     <Button 
@@ -591,7 +593,9 @@ export default function VerifyPage() {
                   </div>
                 </div>
                 <div className="flex justify-between items-center p-4 bg-muted/30 rounded-lg">
-                  <span className="text-muted-foreground font-medium">Mint Address:</span>
+                  <span className="text-muted-foreground font-medium">
+                    {detectedNetwork === 'algorand' ? 'Asset ID:' : 'Mint Address:'}
+                  </span>
                   <div className="flex items-center space-x-2">
                     <span className="text-foreground font-mono text-sm">{formatAddress(verificationResult.mintAddress)}</span>
                     <Button 
@@ -605,7 +609,9 @@ export default function VerifyPage() {
                   </div>
                 </div>
                 <div className="flex justify-between items-center p-4 bg-muted/30 rounded-lg">
-                  <span className="text-muted-foreground font-medium">Owner:</span>
+                  <span className="text-muted-foreground font-medium">
+                    {detectedNetwork === 'algorand' ? 'Creator:' : 'Owner:'}
+                  </span>
                   <div className="flex items-center space-x-2">
                     <span className="text-foreground font-mono text-sm">{formatAddress(verificationResult.owner)}</span>
                     <Button 
@@ -629,8 +635,7 @@ export default function VerifyPage() {
                   variant="outline" 
                   className="border-border text-muted-foreground hover:bg-muted"
                   onClick={() => {
-                    const isAlgorandAssetId = /^\d+$/.test(tokenAddress.trim());
-                    if (isAlgorandAssetId) {
+                    if (detectedNetwork === 'algorand') {
                       window.open(`${ALGORAND_NETWORK_INFO.explorer}/asset/${tokenAddress}`, '_blank');
                     } else {
                       window.open(`https://explorer.solana.com/address/${tokenAddress}?cluster=devnet`, '_blank');
@@ -646,7 +651,7 @@ export default function VerifyPage() {
                   onClick={() => copyToClipboard(tokenAddress)}
                 >
                   <Copy className="w-4 h-4 mr-2" />
-                  Copy Address
+                  Copy {detectedNetwork === 'algorand' ? 'Asset ID' : 'Address'}
                 </Button>
                 <Button 
                   variant="outline" 

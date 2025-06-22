@@ -592,6 +592,7 @@ export async function createAlgorandToken(
 // Get asset information with enhanced details
 export async function getAlgorandAssetInfo(assetId: number) {
   try {
+    console.log('Fetching asset info for ID:', assetId);
     const assetInfo = await algodClient.getAssetByID(assetId).do();
     
     // Fetch and parse ARC-3 metadata if URL is provided
@@ -605,22 +606,42 @@ export async function getAlgorandAssetInfo(assetId: number) {
     if (assetInfo.params.url) {
       try {
         console.log('Fetching ARC-3 metadata from:', assetInfo.params.url);
-        const metadataResponse = await fetch(assetInfo.params.url);
+        // Add timeout and proper error handling for metadata fetch
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+        
+        const metadataResponse = await fetch(assetInfo.params.url, {
+          signal: controller.signal,
+          headers: {
+            'Accept': 'application/json',
+          }
+        });
+        
+        clearTimeout(timeoutId);
+        
         if (metadataResponse.ok) {
           const arc3Metadata = await metadataResponse.json();
           console.log('Retrieved ARC-3 metadata:', arc3Metadata);
           
-          // Extract image URL
+          // Extract image URL with multiple fallback options
           if (arc3Metadata.image) {
             metadata.logoUri = arc3Metadata.image;
+          } else if (arc3Metadata.image_url) {
+            metadata.logoUri = arc3Metadata.image_url;
+          } else if (arc3Metadata.logo) {
+            metadata.logoUri = arc3Metadata.logo;
+          } else if (arc3Metadata.icon) {
+            metadata.logoUri = arc3Metadata.icon;
           }
           
-          // Extract website from external_url
+          // Extract website from external_url with fallbacks
           if (arc3Metadata.external_url) {
             metadata.website = arc3Metadata.external_url;
+          } else if (arc3Metadata.website) {
+            metadata.website = arc3Metadata.website;
           }
           
-          // Extract social links from properties
+          // Extract social links from properties with enhanced parsing
           if (arc3Metadata.properties) {
             if (arc3Metadata.properties.website) {
               metadata.website = arc3Metadata.properties.website;
@@ -631,29 +652,68 @@ export async function getAlgorandAssetInfo(assetId: number) {
             if (arc3Metadata.properties.twitter) {
               metadata.twitter = arc3Metadata.properties.twitter;
             }
+            // Additional fallback patterns
+            if (arc3Metadata.properties.social) {
+              const social = arc3Metadata.properties.social;
+              if (social.github) metadata.github = social.github;
+              if (social.twitter) metadata.twitter = social.twitter;
+              if (social.website) metadata.website = metadata.website || social.website;
+            }
+          }
+          
+          // Extract from top-level properties as additional fallbacks
+          if (!metadata.website && arc3Metadata.website) {
+            metadata.website = arc3Metadata.website;
+          }
+          if (!metadata.github && arc3Metadata.github) {
+            metadata.github = arc3Metadata.github;
+          }
+          if (!metadata.twitter && arc3Metadata.twitter) {
+            metadata.twitter = arc3Metadata.twitter;
+          }
+          
+          console.log('Extracted metadata:', metadata);
+        } else {
+          console.warn('Failed to fetch ARC-3 metadata, HTTP status:', metadataResponse.status);
           }
         }
-      } catch (error) {
-        console.warn('Failed to fetch ARC-3 metadata:', error);
+      } catch (error: any) {
+        if (error.name === 'AbortError') {
+          console.warn('ARC-3 metadata fetch timed out for asset:', assetId);
+        } else {
+          console.warn('Failed to fetch ARC-3 metadata:', error.message || error);
+        }
         // Continue without metadata if fetch fails
       }
+    } else {
+      console.log('No metadata URL found for asset:', assetId);
     }
+    
+    console.log('Final asset info for', assetId, ':', {
+      name: assetInfo.params.name,
+      unitName: assetInfo.params.unitName,
+      total: assetInfo.params.total,
+      decimals: assetInfo.params.decimals,
+      creator: assetInfo.params.creator,
+      manager: assetInfo.params.manager,
+      metadataExtracted: Object.keys(metadata).filter(key => metadata[key as keyof typeof metadata])
+    });
     
     return {
       success: true,
       data: {
         ...assetInfo,
         explorerUrl: `${ALGORAND_NETWORK_INFO.explorer}/asset/${assetId}`,
-        totalSupply: assetInfo.params.total,
-        decimals: assetInfo.params.decimals,
-        unitName: assetInfo.params.unitName,
-        assetName: assetInfo.params.name,
-        creator: assetInfo.params.creator,
-        manager: assetInfo.params.manager,
-        reserve: assetInfo.params.reserve,
-        freeze: assetInfo.params.freeze,
-        clawback: assetInfo.params.clawback,
-        url: assetInfo.params.url,
+        totalSupply: assetInfo.params.total || 0,
+        decimals: assetInfo.params.decimals || 0,
+        unitName: assetInfo.params.unitName || '',
+        assetName: assetInfo.params.name || 'Unknown Asset',
+        creator: assetInfo.params.creator || '',
+        manager: assetInfo.params.manager || '',
+        reserve: assetInfo.params.reserve || '',
+        freeze: assetInfo.params.freeze || '',
+        clawback: assetInfo.params.clawback || '',
+        url: assetInfo.params.url || '',
         metadata: metadata,
       }
     };
