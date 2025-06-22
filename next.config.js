@@ -4,9 +4,6 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  typescript: {
-    ignoreBuildErrors: true,
-  },
   // Explicitly define page extensions for App Router only
   pageExtensions: ['ts', 'tsx', 'js', 'jsx'],
   // Webpack configuration to handle module resolution
