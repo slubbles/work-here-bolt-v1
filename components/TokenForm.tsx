@@ -488,7 +488,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
                 className={`p-6 rounded-xl border transition-all relative overflow-hidden ${
                   network.comingSoon 
                     ? 'border-border/50 bg-muted/30 cursor-not-allowed opacity-60' 
-                  tokenData.network === network.value
+                  : tokenData.network === network.value
                     ? 'border-red-500/50 bg-red-500/5 ring-2 ring-red-500/20'
                     : network.available
                     ? 'border-border hover:border-red-500/30 hover:bg-red-500/5 cursor-pointer'
