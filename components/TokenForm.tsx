@@ -50,7 +50,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
 
   // Wallet connections
   const { connected: solanaConnected, publicKey: solanaPublicKey, wallet: solanaWallet } = useWallet();
-  const { connected: algorandConnected, address: algorandAddress, signTransaction: algorandSignTransaction, selectedNetwork: algorandSelectedNetwork, setSelectedNetwork: setAlgorandSelectedNetwork } = useAlgorandWallet();
+  const { connected: algorandConnected, address: algorandAddress, signTransaction: algorandSignTransaction } = useAlgorandWallet();
 
   useEffect(() => {
     setMounted(true);
@@ -62,15 +62,6 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
       checkAlgorandWalletStatus();
     }
   }, [algorandConnected, algorandAddress, tokenData.network]);
-
-  // Update Algorand network when token network changes
-  useEffect(() => {
-    if (tokenData.network === 'algorand-testnet' || tokenData.network === 'algorand-mainnet') {
-      if (algorandSelectedNetwork !== tokenData.network) {
-        setAlgorandSelectedNetwork(tokenData.network);
-      }
-    }
-  }, [tokenData.network, algorandSelectedNetwork, setAlgorandSelectedNetwork]);
 
   const checkAlgorandWalletStatus = async () => {
     if (!algorandAddress) return;

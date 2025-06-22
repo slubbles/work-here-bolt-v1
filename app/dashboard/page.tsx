@@ -28,7 +28,6 @@ import Link from 'next/link';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { PeraWalletConnect } from '@perawallet/connect';
 import { getAlgorandAccountInfo, getAlgorandAssetInfo, ALGORAND_NETWORK_INFO } from '@/lib/algorand';
-import { useAlgorandWallet } from '@/hooks/useAlgorandWallet';
 
 // Enhanced Token interface to support both Solana and Algorand
 interface Token {
@@ -66,18 +65,11 @@ export default function DashboardPage() {
   // Solana wallet integration
   const { connected: solanaConnected, publicKey } = useWallet();
 
-  // Algorand wallet integration
-  const {
-    connected: algorandConnected,
-    address: algorandAddress,
-    connect: connectAlgorand,
-    disconnect: disconnectAlgorand,
-    selectedNetwork: algorandSelectedNetwork,
-    setSelectedNetwork: setAlgorandSelectedNetwork
-  } = useAlgorandWallet();
-
   // Initialize Pera Wallet for Algorand
   const [peraWallet] = useState(() => new PeraWalletConnect());
+  const [algorandConnected, setAlgorandConnected] = useState(false);
+  const [algorandAddress, setAlgorandAddress] = useState<string | null>(null);
+  const [algorandSelectedNetwork, setAlgorandSelectedNetwork] = useState('algorand-testnet');
 
   useEffect(() => {
     // Check for existing Algorand wallet connection
@@ -91,18 +83,38 @@ export default function DashboardPage() {
   useEffect(() => {
     if (selectedNetwork === 'solana' && solanaConnected) {
       loadSolanaTokens();
-    } else if (selectedNetwork === 'algorand' && algorandAddress) {
+    } else if (selectedNetwork === 'algorand' && algorandConnected && algorandAddress) {
       loadAlgorandTokens();
     }
-  }, [selectedNetwork, solanaConnected, algorandAddress, algorandSelectedNetwork]);
+  }, [selectedNetwork, solanaConnected, algorandConnected, algorandAddress, algorandSelectedNetwork]);
+
+  useEffect(() => {
+    // Check for existing Algorand wallet connection
+    peraWallet.reconnectSession().then((accounts) => {
+      if (accounts.length > 0) {
+        setAlgorandConnected(true);
+        setAlgorandAddress(accounts[0]);
+      }
+    }).catch(() => {
+      // No existing session
+    });
+  }, [peraWallet]);
+
+  useEffect(() => {
+    // Listen for disconnect events
+    peraWallet.connector?.on('disconnect', () => {
+      setAlgorandConnected(false);
+      setAlgorandAddress(null);
+      setUserTokens([]);
+    });
+  }, [peraWallet]);
 
   // Update Algorand network when dashboard network changes
   useEffect(() => {
     if (selectedNetwork === 'algorand' && algorandSelectedNetwork !== 'algorand-testnet') {
-      // Default to testnet when switching to Algorand view
       setAlgorandSelectedNetwork('algorand-testnet');
     }
-  }, [selectedNetwork, algorandSelectedNetwork, setAlgorandSelectedNetwork]);
+  }, [selectedNetwork, algorandSelectedNetwork]);
 
   const loadSolanaTokens = () => {
     // Mock Solana tokens for demo
@@ -217,15 +229,22 @@ export default function DashboardPage() {
 
   const connectAlgorandWallet = async () => {
     try {
-      await connectAlgorand();
+      const accounts = await peraWallet.connect();
+      if (accounts.length > 0) {
+        setAlgorandConnected(true);
+        setAlgorandAddress(accounts[0]);
+      }
     } catch (error) {
       console.error('Failed to connect Algorand wallet:', error);
     }
   };
 
-  const disconnectAlgorandWallet = async () => {
+  const disconnectAlgorandWallet = () => {
     try {
-      await disconnectAlgorand();
+      peraWallet.disconnect();
+      setAlgorandConnected(false);
+      setAlgorandAddress(null);
+      setUserTokens([]);
     } catch (error) {
       console.error('Failed to disconnect Algorand wallet:', error);
     }
@@ -275,7 +294,7 @@ export default function DashboardPage() {
 
   // Check if any wallet is connected
   const isWalletConnected = (selectedNetwork === 'solana' && solanaConnected) || 
-                           (selectedNetwork === 'algorand' && algorandAddress);
+                           (selectedNetwork === 'algorand' && algorandConnected);
 
   // Redirect to wallet connection if not connected
   if (!isWalletConnected) {
@@ -373,7 +392,8 @@ export default function DashboardPage() {
               {algorandAddress && (
                 <div className="flex items-center gap-2">
                   <p className="text-sm text-muted-foreground">
-                    Algorand ({algorandSelectedNetwork === 'algorand-mainnet' ? 'MainNet' : 'TestNet'}): {algorandAddress.slice(0, 4)}...{algorandAddress.slice(-4)}
+                    Algorand ({algorandSelectedNetwork === 'algorand-mainnet' ? 'MainNet' : 'TestNet'}): 
+                    {algorandAddress.slice(0, 4)}...{algorandAddress.slice(-4)}
                   </p>
                   <Button
                     variant="outline"

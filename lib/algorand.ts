@@ -379,6 +379,3 @@ export async function getAlgorandPlatformStats(network: string = 'algorand-testn
     };
   }
 }
-
-// Export network info for backward compatibility
-export { ALGORAND_NETWORK_INFO };
