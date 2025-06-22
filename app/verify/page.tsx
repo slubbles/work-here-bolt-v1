@@ -240,7 +240,15 @@ export default function VerifyPage() {
         // Verify Algorand asset
         const { getAlgorandAssetInfo } = await import('@/lib/algorand');
         const assetId = parseInt(tokenAddress.trim());
-        const result = await getAlgorandAssetInfo(assetId);
+        
+        // Try both networks for Algorand assets
+        let result = await getAlgorandAssetInfo(assetId, 'algorand-mainnet');
+        let networkUsed = 'algorand-mainnet';
+        
+        if (!result.success) {
+          result = await getAlgorandAssetInfo(assetId, 'algorand-testnet');
+          networkUsed = 'algorand-testnet';
+        }
         
         if (result.success) {
           const assetData = result.data;
@@ -272,7 +280,7 @@ export default function VerifyPage() {
             securityScore,
             risks,
             isPaused: false, // Would need to check freeze status
-            mintAddress: assetId.toString(),
+            mintAddress: `${assetId} (${networkUsed === 'algorand-mainnet' ? 'MainNet' : 'TestNet'})`,
             metadata: assetData.metadata || {
               logoUri: undefined,
               website: undefined,
@@ -401,8 +409,13 @@ export default function VerifyPage() {
                     'bg-red-500/20 text-red-400 border-red-500/30'
                   }`}>
                     <Star className="w-4 h-4 mr-2" />
-                    Security Score: {verificationResult.securityScore}/100
-                  </Badge>
+                      if (token.network?.startsWith('algorand')) {
+                        // Determine which network to use
+                        const network = detectedNetwork === 'algorand' ? 'algorand-mainnet' : 'algorand-testnet';
+                        import('@/lib/algorand').then(({ getAlgorandNetwork }) => {
+                          const networkConfig = getAlgorandNetwork(network);
+                          window.open(`${networkConfig.explorer}/asset/${token.address}`, '_blank');
+                        });
                   <Button
                     variant="outline"
                     size="sm"

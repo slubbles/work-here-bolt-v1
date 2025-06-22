@@ -6,8 +6,21 @@ const nextConfig = {
   },
   // Explicitly define page extensions for App Router only
   pageExtensions: ['ts', 'tsx', 'js', 'jsx'],
+  // Experimental features for better Algorand integration
+  experimental: {
+    esmExternals: true,
+  },
   // Webpack configuration to handle module resolution
   webpack: (config, { buildId, dev, isServer, defaultLoaders, webpack }) => {
+    // Ensure algosdk and related packages are properly handled
+    config.externals = config.externals || [];
+    if (!isServer) {
+      config.externals.push({
+        'algosdk': 'algosdk',
+        '@perawallet/connect': '@perawallet/connect'
+      });
+    }
+    
     // Add polyfills for Node.js modules
     config.resolve.fallback = {
       ...config.resolve.fallback,
@@ -24,6 +37,9 @@ const nextConfig = {
       assert: false,
       os: false,
       path: false,
+      // Additional fallbacks for Algorand SDK
+      url: require.resolve('url'),
+      querystring: require.resolve('querystring-es3'),
     };
 
     // Make Buffer globally available
@@ -33,6 +49,10 @@ const nextConfig = {
         process: 'process/browser',
       })
     );
+    
+    // Optimize for Algorand SDK
+    config.optimization = config.optimization || {};
+    config.optimization.sideEffects = false;
 
     return config;
   },

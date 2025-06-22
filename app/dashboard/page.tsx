@@ -28,6 +28,7 @@ import Link from 'next/link';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { PeraWalletConnect } from '@perawallet/connect';
 import { getAlgorandAccountInfo, getAlgorandAssetInfo, ALGORAND_NETWORK_INFO } from '@/lib/algorand';
+import { useAlgorandWallet } from '@/hooks/useAlgorandWallet';
 
 // Enhanced Token interface to support both Solana and Algorand
 interface Token {
@@ -40,7 +41,7 @@ interface Token {
   holders: number;
   totalSupply: string;
   address: string;
-  network: 'solana' | 'algorand';
+  network: 'solana' | 'algorand' | 'algorand-testnet' | 'algorand-mainnet';
   decimals?: number;
   creatorAddress?: string; // For Algorand ASAs
   managerAddress?: string; // For Algorand ASAs
@@ -50,6 +51,7 @@ interface Token {
     github?: string;
     twitter?: string;
   };
+  explorerUrl?: string;
 }
 
 export default function DashboardPage() {
@@ -63,6 +65,16 @@ export default function DashboardPage() {
   
   // Solana wallet integration
   const { connected: solanaConnected, publicKey } = useWallet();
+
+  // Algorand wallet integration
+  const {
+    connected: algorandConnected,
+    address: algorandAddress,
+    connect: connectAlgorand,
+    disconnect: disconnectAlgorand,
+    selectedNetwork: algorandSelectedNetwork,
+    setSelectedNetwork: setAlgorandSelectedNetwork
+  } = useAlgorandWallet();
 
   // Initialize Pera Wallet for Algorand
   const [peraWallet] = useState(() => new PeraWalletConnect());
@@ -79,10 +91,18 @@ export default function DashboardPage() {
   useEffect(() => {
     if (selectedNetwork === 'solana' && solanaConnected) {
       loadSolanaTokens();
-    } else if (selectedNetwork === 'algorand' && algorandWallet) {
+    } else if (selectedNetwork === 'algorand' && algorandAddress) {
       loadAlgorandTokens();
     }
-  }, [selectedNetwork, solanaConnected, algorandWallet]);
+  }, [selectedNetwork, solanaConnected, algorandAddress, algorandSelectedNetwork]);
+
+  // Update Algorand network when dashboard network changes
+  useEffect(() => {
+    if (selectedNetwork === 'algorand' && algorandSelectedNetwork !== 'algorand-testnet') {
+      // Default to testnet when switching to Algorand view
+      setAlgorandSelectedNetwork('algorand-testnet');
+    }
+  }, [selectedNetwork, algorandSelectedNetwork, setAlgorandSelectedNetwork]);
 
   const loadSolanaTokens = () => {
     // Mock Solana tokens for demo
@@ -116,14 +136,14 @@ export default function DashboardPage() {
   };
 
   const loadAlgorandTokens = async () => {
-    if (!algorandWallet) return;
+    if (!algorandAddress) return;
     
     setIsLoadingTokens(true);
     try {
-      console.log('Loading Algorand tokens for wallet:', algorandWallet);
+      console.log(`Loading Algorand tokens for wallet: ${algorandAddress} on ${algorandSelectedNetwork}`);
       
       // Get account information
-      const accountInfo = await getAlgorandAccountInfo(algorandWallet);
+      const accountInfo = await getAlgorandAccountInfo(algorandAddress, algorandSelectedNetwork);
       if (!accountInfo.success) {
         console.error('Failed to get account info:', accountInfo.error);
         return;
@@ -140,12 +160,16 @@ export default function DashboardPage() {
         processedAssets.add(assetId);
 
         try {
-          const assetInfoResult = await getAlgorandAssetInfo(assetId);
+          const assetInfoResult = await getAlgorandAssetInfo(assetId, algorandSelectedNetwork);
           if (assetInfoResult.success) {
             const assetInfo = assetInfoResult.data;
             const amount = asset.amount || 0;
             const decimals = assetInfo.decimals || 0;
             const balance = decimals > 0 ? (amount / Math.pow(10, decimals)) : amount;
+            
+            // Get network configuration for explorer URL
+            const { getAlgorandNetwork } = await import('@/lib/algorand');
+            const networkConfig = getAlgorandNetwork(algorandSelectedNetwork);
 
             algorandTokens.push({
               id: `algo-${assetId}`,
@@ -159,7 +183,7 @@ export default function DashboardPage() {
                 (Number(assetInfo.totalSupply) / Math.pow(10, decimals)).toLocaleString() : 
                 'Unknown',
               address: assetId.toString(),
-              network: 'algorand',
+              network: algorandSelectedNetwork,
               decimals: decimals,
               creatorAddress: assetInfo.creator,
               managerAddress: assetInfo.manager,
@@ -168,7 +192,8 @@ export default function DashboardPage() {
                 website: assetInfo.metadata?.website,
                 github: assetInfo.metadata?.github,
                 twitter: assetInfo.metadata?.twitter
-              }
+              },
+              explorerUrl: `${networkConfig.explorer}/asset/${assetId}`
             });
           }
         } catch (error) {
@@ -184,7 +209,7 @@ export default function DashboardPage() {
       console.log('Loaded Algorand tokens:', algorandTokens);
       setUserTokens(algorandTokens);
     } catch (error) {
-      console.error('Error loading Algorand tokens:', error);
+      console.error(`Error loading Algorand tokens on ${algorandSelectedNetwork}:`, error);
     } finally {
       setIsLoadingTokens(false);
     }
@@ -192,17 +217,18 @@ export default function DashboardPage() {
 
   const connectAlgorandWallet = async () => {
     try {
-      const accounts = await peraWallet.connect();
-      setAlgorandWallet(accounts[0]);
+      await connectAlgorand();
     } catch (error) {
       console.error('Failed to connect Algorand wallet:', error);
     }
   };
 
-  const disconnectAlgorandWallet = () => {
-    peraWallet.disconnect();
-    setAlgorandWallet(null);
-    setUserTokens([]);
+  const disconnectAlgorandWallet = async () => {
+    try {
+      await disconnectAlgorand();
+    } catch (error) {
+      console.error('Failed to disconnect Algorand wallet:', error);
+    }
   };
 
   const handleTransfer = () => {
@@ -249,7 +275,7 @@ export default function DashboardPage() {
 
   // Check if any wallet is connected
   const isWalletConnected = (selectedNetwork === 'solana' && solanaConnected) || 
-                           (selectedNetwork === 'algorand' && algorandWallet);
+                           (selectedNetwork === 'algorand' && algorandAddress);
 
   // Redirect to wallet connection if not connected
   if (!isWalletConnected) {
@@ -283,8 +309,33 @@ export default function DashboardPage() {
                   Algorand
                 </Button>
               </div>
-
+              
+              {/* Algorand Network Selector */}
               {selectedNetwork === 'algorand' && (
+                <div className="mb-6">
+                  <Label className="text-sm font-medium mb-2 block">Algorand Network</Label>
+                  <div className="flex gap-2">
+                    <Button
+                      variant={algorandSelectedNetwork === 'algorand-testnet' ? 'default' : 'outline'}
+                      onClick={() => setAlgorandSelectedNetwork('algorand-testnet')}
+                      size="sm"
+                      className="flex-1"
+                    >
+                      TestNet
+                    </Button>
+                    <Button
+                      variant={algorandSelectedNetwork === 'algorand-mainnet' ? 'default' : 'outline'}
+                      onClick={() => setAlgorandSelectedNetwork('algorand-mainnet')}
+                      size="sm"
+                      className="flex-1"
+                    >
+                      MainNet
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {selectedNetwork === 'algorand' && !algorandConnected && (
                 <Button
                   onClick={connectAlgorandWallet}
                   className="bg-[#76f935] hover:bg-[#6ae82d] text-black w-full mb-4"
@@ -319,10 +370,10 @@ export default function DashboardPage() {
                   Solana: {publicKey.toBase58().slice(0, 4)}...{publicKey.toBase58().slice(-4)}
                 </p>
               )}
-              {algorandWallet && (
+              {algorandAddress && (
                 <div className="flex items-center gap-2">
                   <p className="text-sm text-muted-foreground">
-                    Algorand: {algorandWallet.slice(0, 4)}...{algorandWallet.slice(-4)}
+                    Algorand ({algorandSelectedNetwork === 'algorand-mainnet' ? 'MainNet' : 'TestNet'}): {algorandAddress.slice(0, 4)}...{algorandAddress.slice(-4)}
                   </p>
                   <Button
                     variant="outline"
@@ -353,6 +404,27 @@ export default function DashboardPage() {
                 Algorand
               </Button>
             </div>
+            {/* Algorand Network Toggle for Desktop */}
+            {selectedNetwork === 'algorand' && (
+              <div className="flex gap-1 bg-muted rounded-lg p-1">
+                <Button
+                  variant={algorandSelectedNetwork === 'algorand-testnet' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setAlgorandSelectedNetwork('algorand-testnet')}
+                  className="text-xs"
+                >
+                  TestNet
+                </Button>
+                <Button
+                  variant={algorandSelectedNetwork === 'algorand-mainnet' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setAlgorandSelectedNetwork('algorand-mainnet')}
+                  className="text-xs"
+                >
+                  MainNet
+                </Button>
+              </div>
+            )}
             <Link href="/create">
               <Button className="bg-red-500 hover:bg-red-600 text-white">
                 <Plus className="w-4 h-4 mr-2" />
@@ -402,7 +474,12 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-muted-foreground text-sm">Network</p>
-                <p className="text-2xl font-bold text-foreground capitalize">{selectedNetwork}</p>
+                <p className="text-2xl font-bold text-foreground capitalize">
+                  {selectedNetwork === 'algorand' 
+                    ? `Algorand ${algorandSelectedNetwork === 'algorand-mainnet' ? 'MainNet' : 'TestNet'}`
+                    : selectedNetwork
+                  }
+                </p>
               </div>
               <TrendingUp className="w-8 h-8 text-red-500" />
             </div>
@@ -530,8 +607,15 @@ export default function DashboardPage() {
                             className="border-border text-muted-foreground"
                             onClick={() => {
                               const token = userTokens[selectedToken];
-                              if (token.network === 'algorand') {
-                                window.open(`${ALGORAND_NETWORK_INFO.explorer}/asset/${token.address}`, '_blank');
+                              if (token.network.startsWith('algorand')) {
+                                if (token.explorerUrl) {
+                                  window.open(token.explorerUrl, '_blank');
+                                } else {
+                                  // Fallback to constructing URL
+                                  const { getAlgorandNetwork } = require('@/lib/algorand');
+                                  const networkConfig = getAlgorandNetwork(token.network);
+                                  window.open(`${networkConfig.explorer}/asset/${token.address}`, '_blank');
+                                }
                               } else {
                                 window.open(`https://explorer.solana.com/address/${token.address}?cluster=devnet`, '_blank');
                               }
@@ -562,7 +646,7 @@ export default function DashboardPage() {
                       </div>
 
                       {/* Additional info for Algorand tokens */}
-                      {userTokens[selectedToken].network === 'algorand' && (
+                      {userTokens[selectedToken].network.startsWith('algorand') && (
                         <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
                           {userTokens[selectedToken].creatorAddress && (
                             <div className="bg-muted/50 rounded-lg p-4">
@@ -582,6 +666,12 @@ export default function DashboardPage() {
                               </p>
                             </div>
                           )}
+                          <div className="bg-muted/50 rounded-lg p-4">
+                            <p className="text-muted-foreground text-sm">Network</p>
+                            <p className="text-foreground font-semibold text-sm">
+                              {userTokens[selectedToken].network === 'algorand-mainnet' ? 'Algorand MainNet' : 'Algorand TestNet'}
+                            </p>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -691,7 +781,7 @@ export default function DashboardPage() {
                           className="bg-red-500 hover:bg-red-600 text-white w-full"
                         >
                           <Send className="w-4 h-4 mr-2" />
-                          Transfer {userTokens[selectedToken].symbol}
+                          Transfer {userTokens[selectedToken]?.symbol || 'tokens'}
                         </Button>
                       </div>
                     </div>
