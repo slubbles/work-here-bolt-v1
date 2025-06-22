@@ -187,7 +187,8 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
           setDeploymentResult({
             ...result,
             network: 'algorand-testnet',
-            explorerUrl: result.details?.explorerUrl
+            explorerUrl: result.details?.explorerUrl,
+            message: 'Token created and you have been automatically opted-in!'
           });
         } else {
           setError(result.error || 'Failed to create Algorand token');

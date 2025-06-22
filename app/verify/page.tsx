@@ -274,10 +274,10 @@ export default function VerifyPage() {
             isPaused: false, // Would need to check freeze status
             mintAddress: assetId.toString(),
             metadata: {
-              logoUri: assetData.url || undefined,
-              website: undefined,
-              github: undefined,
-              twitter: undefined
+              logoUri: assetData.metadata?.logoUri || assetData.url || undefined,
+              website: assetData.metadata?.website || undefined,
+              github: assetData.metadata?.github || undefined,
+              twitter: assetData.metadata?.twitter || undefined
             },
             marketData
           });

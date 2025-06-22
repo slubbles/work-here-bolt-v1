@@ -594,6 +594,51 @@ export async function getAlgorandAssetInfo(assetId: number) {
   try {
     const assetInfo = await algodClient.getAssetByID(assetId).do();
     
+    // Fetch and parse ARC-3 metadata if URL is provided
+    let metadata = {
+      logoUri: undefined as string | undefined,
+      website: undefined as string | undefined,
+      github: undefined as string | undefined,
+      twitter: undefined as string | undefined,
+    };
+    
+    if (assetInfo.params.url) {
+      try {
+        console.log('Fetching ARC-3 metadata from:', assetInfo.params.url);
+        const metadataResponse = await fetch(assetInfo.params.url);
+        if (metadataResponse.ok) {
+          const arc3Metadata = await metadataResponse.json();
+          console.log('Retrieved ARC-3 metadata:', arc3Metadata);
+          
+          // Extract image URL
+          if (arc3Metadata.image) {
+            metadata.logoUri = arc3Metadata.image;
+          }
+          
+          // Extract website from external_url
+          if (arc3Metadata.external_url) {
+            metadata.website = arc3Metadata.external_url;
+          }
+          
+          // Extract social links from properties
+          if (arc3Metadata.properties) {
+            if (arc3Metadata.properties.website) {
+              metadata.website = arc3Metadata.properties.website;
+            }
+            if (arc3Metadata.properties.github) {
+              metadata.github = arc3Metadata.properties.github;
+            }
+            if (arc3Metadata.properties.twitter) {
+              metadata.twitter = arc3Metadata.properties.twitter;
+            }
+          }
+        }
+      } catch (error) {
+        console.warn('Failed to fetch ARC-3 metadata:', error);
+        // Continue without metadata if fetch fails
+      }
+    }
+    
     return {
       success: true,
       data: {
@@ -609,6 +654,7 @@ export async function getAlgorandAssetInfo(assetId: number) {
         freeze: assetInfo.params.freeze,
         clawback: assetInfo.params.clawback,
         url: assetInfo.params.url,
+        metadata: metadata,
       }
     };
   } catch (error) {

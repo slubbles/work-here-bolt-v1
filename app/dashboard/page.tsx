@@ -235,8 +235,82 @@ export default function DashboardPage() {
       }
       
       const tokens: Token[] = [];
+      const processedAssets = new Set<number>();
       
-      for (const asset of accountInfo.assets) {
+      // First, process assets the user has in their account (with balance)
+      if (accountInfo.assets) {
+        for (const asset of accountInfo.assets) {
+          const assetId = asset['asset-id'];
+          const amount = asset.amount;
+          
+          processedAssets.add(assetId);
+          
+          try {
+            const assetInfoResult = await getAlgorandAssetInfo(assetId);
+            
+            if (assetInfoResult.success) {
+              const assetData = assetInfoResult.data;
+              const decimals = assetData.decimals || 0;
+              const balance = amount / Math.pow(10, decimals);
+              
+              tokens.push({
+                id: assetId.toString(),
+                name: assetData.assetName || 'Unknown Asset',
+                symbol: assetData.unitName || 'UNK',
+                balance: balance.toLocaleString(),
+                value: '$0.00',
+                change: '+0.0%',
+                holders: 1,
+                totalSupply: assetData.totalSupply ? (assetData.totalSupply / Math.pow(10, decimals)).toLocaleString() : 'Unknown',
+                address: assetId.toString(),
+                assetId: assetId,
+                network: 'algorand',
+                decimals: decimals,
+                logoUrl: assetData.metadata?.logoUri,
+                website: assetData.metadata?.website,
+                github: assetData.metadata?.github,
+                twitter: assetData.metadata?.twitter,
+                features: {
+                  mintable: !!assetData.manager,
+                  burnable: !!assetData.manager,
+                  pausable: !!assetData.freeze
+                }
+              });
+            }
+          } catch (error) {
+            console.log('Error getting asset info for:', assetId);
+          }
+        }
+      }
+      
+      // TODO: Also fetch tokens where user is creator/manager but has 0 balance
+      // This would require indexer queries or keeping track of created tokens
+      // For now, we'll rely on tokens with balance
+      
+      return tokens;
+    } catch (error) {
+      console.error('Error loading Algorand tokens:', error);
+      return [];
+    }
+  };
+
+  // Alternative function to get created tokens (for future implementation)
+  const loadCreatedAlgorandTokens = async (): Promise<Token[]> => {
+    if (!algorandAddress) return [];
+    
+    try {
+      // In a real implementation, you would:
+      // 1. Query an indexer for assets created by this address
+      // 2. Query assets where this address is the manager
+      // 3. Check localStorage/database for user's created tokens
+      
+      // For now, return empty array as this requires additional infrastructure
+      return [];
+    } catch (error) {
+      console.error('Error loading created Algorand tokens:', error);
+      return [];
+    }
+  };
         const assetId = asset['asset-id'];
         const amount = asset.amount;
         
