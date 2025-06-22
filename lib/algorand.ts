@@ -745,13 +745,7 @@ export async function transferAlgorandAsset(
     }
     
     if (!isValidAlgorandAddress(toAddress)) {
-      throw new AlgorandError('Invalid r
-    }
-  }
-}
-    }
-  }
-}ecipient address');
+      throw new AlgorandError('Invalid recipient address');
     }
 
     // Check sender balance
