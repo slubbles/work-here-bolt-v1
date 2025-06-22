@@ -16,6 +16,7 @@ import { useAlgorandWallet } from '@/components/providers/AlgorandWalletProvider
 import { createTokenOnChain } from '@/lib/solana';
 import { createAlgorandToken, optInToAsset, checkWalletConnection } from '@/lib/algorand';
 import { supabaseHelpers } from '@/lib/supabase';
+import { useTokenHistory } from '@/hooks/useSupabase';
 
 interface TokenFormProps {
   tokenData: {
@@ -43,6 +44,9 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [algorandWalletStatus, setAlgorandWalletStatus] = useState<any>(null);
+  
+  // Supabase token history integration
+  const { saveToken } = useTokenHistory();
 
   // Wallet connections
   const { connected: solanaConnected, publicKey: solanaPublicKey, wallet: solanaWallet } = useWallet();
@@ -124,6 +128,40 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
     return true;
   };
 
+  // Save token to Supabase after successful deployment
+  const saveTokenToSupabase = async (tokenDetails: any, network: string) => {
+    try {
+      const tokenData = {
+        token_name: tokenDetails.name || tokenData.name,
+        token_symbol: tokenDetails.symbol || tokenData.symbol,
+        network: network,
+        contract_address: tokenDetails.assetId || tokenDetails.tokenAddress || tokenDetails.mintAddress,
+        description: tokenData.description,
+        total_supply: parseFloat(tokenData.totalSupply) || undefined,
+        decimals: parseInt(tokenData.decimals) || undefined,
+        logo_url: tokenData.logoUrl || undefined,
+        website: tokenData.website || undefined,
+        github: tokenData.github || undefined,
+        twitter: tokenData.twitter || undefined,
+        mintable: tokenData.mintable,
+        burnable: tokenData.burnable,
+        pausable: tokenData.pausable,
+        transaction_hash: tokenDetails.signature || tokenDetails.transactionId
+      };
+
+      const result = await saveToken(tokenData);
+      if (result.success) {
+        console.log('✅ Token saved to Supabase successfully');
+      } else {
+        console.warn('⚠️ Failed to save token to Supabase:', result.error);
+        // Don't fail the entire process if Supabase save fails
+      }
+    } catch (error) {
+      console.warn('⚠️ Error saving token to Supabase:', error);
+      // Don't fail the entire process if Supabase save fails
+    }
+  };
+
   const handleDeploy = async () => {
     if (!validateForm()) return;
 
@@ -190,6 +228,14 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
             explorerUrl: result.details?.explorerUrl,
             message: 'Token created and you have been automatically opted-in!'
           });
+          
+          // Save to Supabase
+          await saveTokenToSupabase({
+            name: tokenData.name,
+            symbol: tokenData.symbol,
+            assetId: result.assetId,
+            transactionId: result.transactionId
+          }, 'algorand-testnet');
         } else {
           setError(result.error || 'Failed to create Algorand token');
         }
@@ -223,6 +269,15 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
             network: tokenData.network,
             explorerUrl: `https://explorer.solana.com/address/${result.tokenAddress}?cluster=devnet`
           });
+          
+          // Save to Supabase
+          await saveTokenToSupabase({
+            name: tokenData.name,
+            symbol: tokenData.symbol,
+            tokenAddress: result.tokenAddress,
+            mintAddress: result.mintAddress,
+            signature: result.signature
+          }, tokenData.network);
         } else {
           setError(result.error || 'Failed to create Solana token');
         }
@@ -288,6 +343,10 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
             <CardDescription className="text-lg">
               Your <strong>{tokenData.name} ({tokenData.symbol})</strong> token is now live on{' '}
               {deploymentResult.network === 'algorand-testnet' ? 'Algorand TestNet' : 'Solana Network'}!
+              <br />
+              <span className="text-sm text-muted-foreground mt-2 block">
+                ✅ Token details have been saved to your dashboard history.
+              </span>
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
