@@ -14,6 +14,8 @@ import { useAlgorandWallet } from '@/components/providers/AlgorandWalletProvider
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { createTokenOnChain } from '@/lib/solana';
 import { createAlgorandToken, ALGORAND_NETWORK_INFO, checkWalletConnection } from '@/lib/algorand';
+import { optInToAsset } from '@/lib/algorand';
+import { supabaseHelpers } from '@/lib/supabase';
 
 interface TokenFormProps {
   tokenData: {
@@ -44,6 +46,11 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
   const [error, setError] = useState('');
   const [showSocialLinks, setShowSocialLinks] = useState(false);
   const [algorandWalletStatus, setAlgorandWalletStatus] = useState<any>(null);
+
+  // Opt-in state for Algorand tokens
+  const [isOptingIn, setIsOptingIn] = useState(false);
+  const [optInSuccess, setOptInSuccess] = useState(false);
+  const [optInError, setOptInError] = useState('');
 
   // Image upload state
   const [uploadedImage, setUploadedImage] = useState<File | null>(null);
@@ -161,10 +168,6 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
         console.error('Upload error:', error);
         setError('Failed to upload image. Please try again.');
         // Set fallback URL for preview purposes
-        setTokenData((prev: any) => ({
-          ...prev,
-          logoUrl: previewUrl
-        }));
       }
     }
   };
@@ -219,6 +222,39 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
       }
     };
     return networks[networkValue as keyof typeof networks] || networks['solana-devnet'];
+  };
+
+  // Handle Algorand opt-in
+  const handleOptIn = async () => {
+    if (!algorandConnected || !algorandAddress || !algorandSignTransaction) {
+      setOptInError('Algorand wallet not connected');
+      return;
+    }
+
+    if (!contractAddress) {
+      setOptInError('No asset ID available');
+      return;
+    }
+
+    setIsOptingIn(true);
+    setOptInError('');
+
+    try {
+      const assetId = parseInt(contractAddress);
+      const result = await optInToAsset(algorandAddress, assetId, algorandSignTransaction);
+
+      if (result.success) {
+        setOptInSuccess(true);
+        setOptInError('');
+      } else {
+        setOptInError(result.error || 'Failed to opt-in to token');
+      }
+    } catch (error) {
+      console.error('Opt-in error:', error);
+      setOptInError('Failed to opt-in to token');
+    } finally {
+      setIsOptingIn(false);
+    }
   };
 
   const validateForm = () => {
@@ -1024,7 +1060,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
 
       {/* Success Modal */}
       <Dialog open={showSuccessModal} onOpenChange={setShowSuccessModal}>
-        <DialogContent className="glass-card border-green-500/50 max-w-lg mx-4">
+        <DialogContent className="glass-card border-green-500/50 max-w-xl mx-4">
           <DialogHeader className="text-center space-y-6">
             <div className="w-20 h-20 rounded-full bg-green-500/20 flex items-center justify-center mx-auto relative">
               <CheckCircle className="w-10 h-10 text-green-500" />
@@ -1048,11 +1084,65 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
                 </p>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            
+            {/* Algorand Opt-in Section */}
+            {tokenData.network === 'algorand-testnet' && (
+              <div className="space-y-4 pt-4 border-t border-border">
+                <div className="text-center">
+                  <h4 className="text-lg font-semibold text-foreground mb-2">Opt-in to Your Token</h4>
+                  <p className="text-muted-foreground text-sm mb-4">
+                    To receive and manage your Algorand token, you need to opt-in to it first.
+                  </p>
+                </div>
+                
+                {optInError && (
+                  <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
+                    <p className="text-red-500 text-sm font-medium">{optInError}</p>
+                  </div>
+                )}
+                
+                {optInSuccess && (
+                  <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
+                    <p className="text-green-500 text-sm font-medium flex items-center">
+                      <CheckCircle className="w-4 h-4 mr-2" />
+                      Successfully opted-in! You can now receive this token.
+                    </p>
+                  </div>
+                )}
+                
+                {!optInSuccess && (
+                  <Button
+                    onClick={handleOptIn}
+                    disabled={isOptingIn || !algorandConnected}
+                    className="w-full bg-[#76f935] hover:bg-[#5dd128] text-white h-12 font-semibold"
+                  >
+                    {isOptingIn ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Opting In...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                        Opt-in to Token
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
+            )}
+            
+            {/* Action Buttons */}
+            <div className="grid grid-cols-2 gap-4 pt-4">
               <Button 
                 variant="outline"
                 className="h-12 font-semibold"
-                onClick={() => setShowSuccessModal(false)}
+                onClick={() => {
+                  setShowSuccessModal(false);
+                  // Reset opt-in state for next token creation
+                  setOptInSuccess(false);
+                  setOptInError('');
+                }}
               >
                 Create Another
               </Button>
