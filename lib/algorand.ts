@@ -123,64 +123,56 @@ export async function getAlgorandAccountInfo(address: string) {
 
 // Check if account has sufficient balance for operations
 export async function checkAccountBalance(address: string, requiredAmount: number = 0.101) {
-  try {
-    const accountInfo = await getAlgorandAccountInfo(address);
-    
-    if (!accountInfo.success) {
-      return { sufficient: false, error: accountInfo.error };
-    }
-
-    // Calculate available balance more accurately
-    // Account needs to maintain minimum balance + additional for new asset
-    const currentMinBalance = accountInfo.minBalance;
-    const newAssetMinBalance = 0.1; // Additional 0.1 ALGO for new asset
-    const transactionFee = 0.001; // Transaction fee
-    
-    const totalRequired = currentMinBalance + newAssetMinBalance + transactionFee;
-    const availableBalance = accountInfo.balance - totalRequired;
-    
-    // Enhanced debugging logs
-    console.log('=== ALGORAND BALANCE CHECK DEBUG ===');
-    console.log('Address:', address);
-    console.log('Account Balance (ALGO):', accountInfo.balance);
-    console.log('Current Min Balance (ALGO):', currentMinBalance);
-    console.log('New Asset Min Balance (ALGO):', newAssetMinBalance);
-    console.log('Transaction Fee (ALGO):', transactionFee);
-    console.log('Total Required (ALGO):', totalRequired);
-    console.log('Available Balance (ALGO):', Math.max(0, availableBalance));
-    console.log('Sufficient Balance?:', accountInfo.balance >= totalRequired);
-    console.log('Balance types:', {
-      balanceType: typeof accountInfo.balance,
-      minBalanceType: typeof currentMinBalance,
-      totalRequiredType: typeof totalRequired
-    });
-    console.log('Balance Check Result:', {
-      sufficient: accountInfo.balance >= totalRequired,
-      balance: accountInfo.balance,
-      available: Math.max(0, availableBalance),
-      required: totalRequired
-    });
-    console.log('=== END BALANCE CHECK DEBUG ===');
-    
-    return {
-      sufficient: accountInfo.balance >= totalRequired,
-      balance: accountInfo.balance,
-      available: Math.max(0, availableBalance),
-      required: totalRequired,
-      breakdown: {
-        currentMinBalance,
-        newAssetMinBalance,
-        transactionFee,
-        totalRequired
-      }
-    };
-  } catch (error) {
-    console.error('Error checking account balance:', error);
-    return {
-      sufficient: false,
-      error: error instanceof Error ? error.message : 'Balance check failed'
-    };
+  const accountInfo = await getAlgorandAccountInfo(address);
+  
+  if (!accountInfo.success) {
+    return { sufficient: false, error: accountInfo.error };
   }
+
+  // Calculate available balance more accurately
+  // Account needs to maintain minimum balance + additional for new asset
+  const currentMinBalance = accountInfo.minBalance;
+  const newAssetMinBalance = 0.1; // Additional 0.1 ALGO for new asset
+  const transactionFee = 0.001; // Transaction fee
+  
+  const totalRequired = currentMinBalance + newAssetMinBalance + transactionFee;
+  const availableBalance = accountInfo.balance - totalRequired;
+  
+  // Enhanced debugging logs
+  console.log('=== ALGORAND BALANCE CHECK DEBUG ===');
+  console.log('Address:', address);
+  console.log('Account Balance (ALGO):', accountInfo.balance);
+  console.log('Current Min Balance (ALGO):', currentMinBalance);
+  console.log('New Asset Min Balance (ALGO):', newAssetMinBalance);
+  console.log('Transaction Fee (ALGO):', transactionFee);
+  console.log('Total Required (ALGO):', totalRequired);
+  console.log('Available Balance (ALGO):', Math.max(0, availableBalance));
+  console.log('Sufficient Balance?:', accountInfo.balance >= totalRequired);
+  console.log('Balance types:', {
+    balanceType: typeof accountInfo.balance,
+    minBalanceType: typeof currentMinBalance,
+    totalRequiredType: typeof totalRequired
+  });
+  console.log('Balance Check Result:', {
+    sufficient: accountInfo.balance >= totalRequired,
+    balance: accountInfo.balance,
+    available: Math.max(0, availableBalance),
+    required: totalRequired
+  });
+  console.log('=== END BALANCE CHECK DEBUG ===');
+  
+  return {
+    sufficient: accountInfo.balance >= totalRequired,
+    balance: accountInfo.balance,
+    available: Math.max(0, availableBalance),
+    required: totalRequired,
+    breakdown: {
+      currentMinBalance,
+      newAssetMinBalance,
+      transactionFee,
+      totalRequired
+    }
+  };
 }
 
 export function microAlgosToAlgos(microAlgos: number): number {
@@ -683,6 +675,7 @@ export async function getAlgorandAssetInfo(assetId: number) {
           console.log('Extracted metadata:', metadata);
         } else {
           console.warn('Failed to fetch ARC-3 metadata, HTTP status:', metadataResponse.status);
+          }
         }
       } catch (error: any) {
         if (error.name === 'AbortError') {
@@ -753,7 +746,13 @@ export async function transferAlgorandAsset(
     }
     
     if (!isValidAlgorandAddress(toAddress)) {
-      throw new AlgorandError('Invalid recipient address');
+      throw new AlgorandError('Invalid r
+    }
+  }
+}
+    }
+  }
+}ecipient address');
     }
 
     // Check sender balance
