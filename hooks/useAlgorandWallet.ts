@@ -21,6 +21,7 @@ interface AlgorandWalletContextType {
   signTransaction: (txn: any) => Promise<any>;
   peraWallet: PeraWalletConnect | null;
   isConnecting: boolean;
+  isPeraWalletReady: boolean;
   error: string | null;
   balance: number | null;
 }
@@ -41,6 +42,7 @@ export function useAlgorandWallet() {
       signTransaction: async () => { throw new Error('Not connected'); },
       peraWallet: null,
       isConnecting: false,
+      isPeraWalletReady: false,
       error: null,
       balance: null,
     };

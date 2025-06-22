@@ -25,6 +25,7 @@ interface AlgorandWalletContextType {
   signTransaction: (txn: any) => Promise<any>;
   peraWallet: PeraWalletConnect | null;
   isConnecting: boolean;
+  isPeraWalletReady: boolean;
   error: string | null;
   balance: number | null;
   networkConfig: any;
@@ -42,6 +43,7 @@ export function AlgorandWalletProvider({ children }: AlgorandWalletProviderProps
   const [selectedNetwork, setSelectedNetwork] = useState<string>('algorand-testnet');
   const [peraWallet, setPeraWallet] = useState<PeraWalletConnect | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [isPeraWalletReady, setIsPeraWalletReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [balance, setBalance] = useState<number | null>(null);
   const [networkConfig, setNetworkConfig] = useState(getAlgorandNetwork('algorand-testnet'));
@@ -56,6 +58,9 @@ export function AlgorandWalletProvider({ children }: AlgorandWalletProviderProps
   // Initialize/reinitialize Pera Wallet when network changes
   useEffect(() => {
     const initializeWallet = async () => {
+      setIsPeraWalletReady(false);
+      setError(null);
+      
       try {
         console.log(`🔧 Initializing Pera Wallet for ${selectedNetwork}`);
         
@@ -96,6 +101,11 @@ export function AlgorandWalletProvider({ children }: AlgorandWalletProviderProps
           setError(null);
         });
 
+        // Add a small delay to ensure wallet is fully initialized
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        console.log(`✅ Pera Wallet ready for ${selectedNetwork}`);
+        setIsPeraWalletReady(true);
         // Try to reconnect to existing session on the new network
         try {
           const accounts = await wallet.reconnectSession();
@@ -113,6 +123,7 @@ export function AlgorandWalletProvider({ children }: AlgorandWalletProviderProps
         console.error(`❌ Failed to initialize Pera Wallet for ${selectedNetwork}:`, error);
         setError(`Failed to initialize wallet for ${selectedNetwork}`);
         setPeraWallet(null);
+        setIsPeraWalletReady(false);
       }
     };
 
@@ -134,8 +145,11 @@ export function AlgorandWalletProvider({ children }: AlgorandWalletProviderProps
   };
 
   const connect = async () => {
-    if (!peraWallet) {
-      throw new Error(`Pera Wallet not initialized for ${selectedNetwork}`);
+    if (!peraWallet || !isPeraWalletReady) {
+      const errorMsg = !peraWallet 
+        ? `Pera Wallet not initialized for ${selectedNetwork}`
+        : `Pera Wallet not ready for ${selectedNetwork}. Please wait a moment and try again.`;
+      throw new Error(errorMsg);
     }
 
     setIsConnecting(true);
@@ -161,6 +175,8 @@ export function AlgorandWalletProvider({ children }: AlgorandWalletProviderProps
           errorMessage = 'Connection cancelled by user';
         } else if (error.message.includes('network')) {
           errorMessage = `Network error connecting to ${networkConfig.name}. Please check your connection.`;
+        } else if (error.message.includes('mismatch')) {
+          errorMessage = `Network mismatch error. Please ensure you're connecting to ${networkConfig.name}.`;
         } else {
           errorMessage = `${networkConfig.name}: ${error.message}`;
         }
@@ -187,6 +203,14 @@ export function AlgorandWalletProvider({ children }: AlgorandWalletProviderProps
     } catch (error) {
       console.error(`❌ Failed to disconnect from ${selectedNetwork}:`, error);
       // Don't throw here, just log the error
+    } finally {
+      // Reset wallet ready state when disconnecting
+      setIsPeraWalletReady(false);
+      // Reinitialize wallet for current network
+      setTimeout(() => {
+        const config = getAlgorandNetwork(selectedNetwork);
+        setNetworkConfig(config);
+      }, 100);
     }
   };
 
@@ -285,6 +309,8 @@ export function AlgorandWalletProvider({ children }: AlgorandWalletProviderProps
       throw new Error(`Unsupported network: ${newNetwork}`);
     }
 
+    // Set wallet as not ready during network switch
+    setIsPeraWalletReady(false);
     setSelectedNetwork(newNetwork);
     // The useEffect will handle the wallet reinitialization
   };
@@ -299,6 +325,7 @@ export function AlgorandWalletProvider({ children }: AlgorandWalletProviderProps
     signTransaction,
     peraWallet,
     isConnecting,
+    isPeraWalletReady,
     error,
     balance,
     networkConfig,

@@ -32,7 +32,9 @@ export default function Navbar() {
     disconnect: disconnectAlgorand,
     selectedNetwork: algorandSelectedNetwork,
     setSelectedNetwork: setAlgorandSelectedNetwork,
-    networkConfig: algorandNetworkConfig
+    networkConfig: algorandNetworkConfig,
+    isPeraWalletReady,
+    isConnecting: algorandIsConnecting
   } = useAlgorandWallet();
 
   useEffect(() => {
