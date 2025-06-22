@@ -22,7 +22,7 @@ export const ALGORAND_NETWORK_INFO = {
   cost: '~$0.001',
   recommended: false,
   color: 'bg-[#76f935]/20 text-[#76f935] border-[#76f935]/30',
-  explorer: 'https://testnet.algoexplorer.io'
+  explorer: 'https://testnet.explorer.perawallet.app'
 };
 
 // Token creation interface for Algorand
