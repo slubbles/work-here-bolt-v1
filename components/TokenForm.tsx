@@ -8,12 +8,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Coins, Settings, Globe, Github, Twitter, Plus, Flame, Pause, Upload, Info, Check, Rocket, Users, TrendingUp, Loader2, CheckCircle, Network, Sparkles, Zap, ArrowRight, Wallet, ChevronDown, ChevronUp, AlertTriangle, Shield, Star, Clock, DollarSign, Image } from 'lucide-react';
+import { Coins, Settings, Globe, Github, Twitter, Plus, Flame, Pause, Upload, Info, Check, Rocket, Users, TrendingUp, Loader2, CheckCircle, Network, Sparkles, Zap, ArrowRight, Wallet, ChevronDown, ChevronUp, AlertTriangle, Shield, Star, Clock, DollarSign, Image, FileImage, ExternalLink } from 'lucide-react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useAlgorandWallet } from '@/components/providers/AlgorandWalletProvider';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { createTokenOnChain } from '@/lib/solana';
-import { createAlgorandToken, ALGORAND_NETWORK_INFO, checkWalletConnection, optInToAsset } from '@/lib/algorand';
+import { createAlgorandToken, ALGORAND_NETWORK_INFO, checkWalletConnection, optInToAsset, ARC3Metadata } from '@/lib/algorand';
 import { supabaseHelpers } from '@/lib/supabase';
 
 interface TokenFormProps {
@@ -40,15 +40,19 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
   const [creationStep, setCreationStep] = useState('');
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [contractAddress, setContractAddress] = useState('');
+  const [assetId, setAssetId] = useState<number | null>(null);
+  const [isOptingIn, setIsOptingIn] = useState(false);
+  const [optInComplete, setOptInComplete] = useState(false);
   const [progress, setProgress] = useState(0);
   const [showAdvancedFeatures, setShowAdvancedFeatures] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [showSocialLinks, setShowSocialLinks] = useState(false);
   const [algorandWalletStatus, setAlgorandWalletStatus] = useState<any>(null);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string>('');
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [uploadedImageUrl, setUploadedImageUrl] = useState('');
-  const [isOptingIn, setIsOptingIn] = useState(false);
   const [optInSuccess, setOptInSuccess] = useState(false);
   const [createdAssetId, setCreatedAssetId] = useState<number | null>(null);
   const [isAlgorandToken, setIsAlgorandToken] = useState(false);
@@ -109,6 +113,46 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
       }
     }
   }, []);
+
+  // Handle logo file upload
+  const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      setError('Please select a valid image file');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setError('Image file must be smaller than 5MB');
+      return;
+    }
+
+    setLogoFile(file);
+    
+    // Create preview
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setLogoPreview(e.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+
+    setError(''); // Clear any previous errors
+  };
+
+  // Upload metadata JSON to Supabase Storage
+  const uploadMetadataToStorage = async (metadata: ARC3Metadata): Promise<{ success: boolean; url?: string; error?: string }> => {
+    try {
+      const metadataBlob = new Blob([JSON.stringify(metadata, null, 2)], { type: 'application/json' });
+      const metadataFile = new File([metadataBlob], `${tokenData.symbol}-metadata.json`, { type: 'application/json' });
+      return await supabaseHelpers.uploadFileToStorage(metadataFile, 'token-metadata');
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : 'Upload failed' };
+    }
+  };
 
   const handleInputChange = (field: string, value: string | boolean) => {
     setTokenData((prev: any) => ({
@@ -364,6 +408,23 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
         await new Promise(resolve => setTimeout(resolve, 800 + Math.random() * 1000));
       }
 
+      // Handle logo upload if file is selected
+      let finalLogoUrl = tokenData.logoUrl;
+      if (logoFile) {
+        setCreationStep('Uploading logo image...');
+        setProgress(60);
+        setIsUploadingImage(true);
+        
+        const uploadResult = await supabaseHelpers.uploadFileToStorage(logoFile, 'token-assets');
+        if (uploadResult.success) {
+          finalLogoUrl = uploadResult.url!;
+          handleInputChange('logoUrl', finalLogoUrl);
+        } else {
+          console.warn('Logo upload failed, continuing without logo:', uploadResult.error);
+        }
+        setIsUploadingImage(false);
+      }
+
       let result;
 
       // Route to appropriate blockchain
@@ -377,7 +438,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
           description: tokenData.description,
           decimals: parseInt(tokenData.decimals),
           totalSupply: parseFloat(tokenData.totalSupply),
-          logoUrl: tokenData.logoUrl,
+          logoUrl: finalLogoUrl,
           website: tokenData.website,
           github: tokenData.github,
           twitter: tokenData.twitter,
@@ -435,7 +496,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
             symbol: tokenData.symbol,
             description: tokenData.description,
             decimals: parseInt(tokenData.decimals),
-            totalSupply: tokenData.totalSupply, // Now using string for BigInt support
+            totalSupply: tokenData.totalSupply,
             logoUrl: finalLogoUrl,
             website: tokenData.website,
             github: tokenData.github,
@@ -444,7 +505,8 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
             burnable: tokenData.burnable,
             pausable: tokenData.pausable,
           },
-          algorandSignTransaction
+          algorandSignTransaction,
+          uploadMetadataToStorage
         );
       } else {
         throw new Error('Unsupported network');
@@ -459,6 +521,11 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
       await new Promise(resolve => setTimeout(resolve, 500));
 
       if (result?.success) {
+        // Store asset ID for Algorand tokens for opt-in
+        if (tokenData.network === 'algorand-testnet' && result.assetId) {
+          setAssetId(result.assetId);
+        }
+        
         const address = result.tokenAddress || result.assetId?.toString() || 'demo_' + Math.random().toString(36).substr(2, 9);
         setContractAddress(address);
         
@@ -483,6 +550,30 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
       setIsCreating(false);
       setProgress(0);
       setCreationStep('');
+    }
+  };
+
+  // Handle opt-in to Algorand ASA
+  const handleOptIn = async () => {
+    if (!assetId || !algorandAddress || !algorandSignTransaction) {
+      setError('Opt-in not available - missing required data');
+      return;
+    }
+
+    setIsOptingIn(true);
+    setError('');
+
+    try {
+      const result = await optInToAsset(algorandAddress, assetId, algorandSignTransaction);
+      if (result.success) {
+        setOptInComplete(true);
+      } else {
+        setError(result.error || 'Opt-in failed');
+      }
+    } catch (error) {
+      setError('Opt-in failed: ' + (error instanceof Error ? error.message : 'Unknown error'));
+    } finally {
+      setIsOptingIn(false);
     }
   };
 
@@ -939,6 +1030,45 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <div className="space-y-4">
+                    <Label htmlFor="logoUrl" className="text-foreground font-medium flex items-center">
+                      <FileImage className="w-4 h-4 mr-2" />
+                      Logo Image
+                    </Label>
+                    <div className="space-y-3">
+                      <div className="flex items-center space-x-3">
+                        <label className="flex items-center justify-center px-4 py-2 border border-border rounded-lg cursor-pointer hover:bg-muted transition-colors">
+                          <Upload className="w-4 h-4 mr-2" />
+                          <span className="text-sm">Upload Image</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleLogoUpload}
+                            className="hidden"
+                          />
+                        </label>
+                        <span className="text-xs text-muted-foreground">Max 5MB</span>
+                      </div>
+                      {logoPreview && (
+                        <div className="flex items-center space-x-3">
+                          <img src={logoPreview} alt="Logo preview" className="w-12 h-12 rounded-lg object-cover border border-border" />
+                          <div className="text-sm text-muted-foreground">
+                            {logoFile?.name} ({Math.round((logoFile?.size || 0) / 1024)}KB)
+                          </div>
+                        </div>
+                      )}
+                      <div className="text-xs text-muted-foreground">
+                        <span className="font-medium">Or enter a URL:</span>
+                      </div>
+                      <Input
+                        id="logoUrl"
+                        placeholder="https://example.com/logo.png"
+                        value={tokenData.logoUrl}
+                        onChange={(e) => handleInputChange('logoUrl', e.target.value)}
+                        className="input-enhanced rounded-xl"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-4">
                     <Label htmlFor="website" className="text-foreground font-medium">Website</Label>
                     <Input
                       id="website"
@@ -1065,6 +1195,49 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
                 </p>
               </div>
             </div>
+            
+            {/* Algorand Opt-in Section */}
+            {tokenData.network === 'algorand-testnet' && assetId && !optInComplete && (
+              <div className="glass-card p-6 bg-[#76f935]/5 border border-[#76f935]/30">
+                <div className="text-center space-y-4">
+                  <div className="w-12 h-12 rounded-full bg-[#76f935]/20 flex items-center justify-center mx-auto">
+                    <Shield className="w-6 h-6 text-[#76f935]" />
+                  </div>
+                  <div>
+                    <h4 className="text-foreground font-bold text-lg mb-2">Opt-in to Your Token</h4>
+                    <p className="text-muted-foreground text-sm mb-4">
+                      To see your token in Pera Wallet, you need to opt-in to receive it. This is a one-time setup required by Algorand.
+                    </p>
+                  </div>
+                  <Button
+                    onClick={handleOptIn}
+                    disabled={isOptingIn}
+                    className="bg-[#76f935] hover:bg-[#5dd128] text-white font-semibold"
+                  >
+                    {isOptingIn ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Opting In...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                        Opt-in to Token
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            )}
+            
+            {optInComplete && (
+              <div className="glass-card p-4 bg-green-500/10 border border-green-500/30">
+                <div className="flex items-center space-x-3">
+                  <CheckCircle className="w-5 h-5 text-green-500" />
+                  <p className="text-green-600 font-medium">✅ Successfully opted in! Your token should now appear in Pera Wallet.</p>
+                </div>
+              </div>
+            )}
 
             {/* Algorand Opt-in Section */}
             {isAlgorandToken && createdAssetId && (
@@ -1109,7 +1282,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
                 )}
               </div>
             )}
-
+            
             <div className="grid grid-cols-2 gap-4">
               <Button 
                 variant="outline"
@@ -1125,6 +1298,20 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
                 View Dashboard
               </Button>
             </div>
+            
+            {tokenData.network === 'algorand-testnet' && (
+              <div className="text-center pt-4 border-t border-border">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => window.open(`${ALGORAND_NETWORK_INFO.explorer}/asset/${assetId}`, '_blank')}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <ExternalLink className="w-4 h-4 mr-2" />
+                  View on AlgoExplorer
+                </Button>
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>
