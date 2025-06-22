@@ -329,7 +329,14 @@ export default function VerifyPage() {
                     variant="outline"
                     size="sm"
                     onClick={shareVerification}
-                    className="border-border text-muted-foreground hover:bg-muted"
+                    onClick={() => {
+                      const isAlgorandAssetId = /^\d+$/.test(tokenAddress.trim());
+                      if (isAlgorandAssetId) {
+                        window.open(`${ALGORAND_NETWORK_INFO.explorer}/asset/${tokenAddress}`, '_blank');
+                      } else {
+                        window.open(`https://explorer.solana.com/address/${tokenAddress}?cluster=devnet`, '_blank');
+                      }
+                    }}
                   >
                     <Share2 className="w-4 h-4 mr-2" />
                     Share

@@ -878,8 +878,15 @@ export default function DashboardPage() {
                         <Button 
                           variant="outline" 
                           size="sm" 
-                          className="border-border text-muted-foreground"
-                          onClick={() => window.open(`https://explorer.solana.com/address/${userTokens[selectedToken].mintAddress}?cluster=devnet`, '_blank')}
+                          className="border-border text-muted-foreground hover:bg-muted"
+                          onClick={() => {
+                            const token = userTokens[selectedToken];
+                            if (token.network === 'algorand' && token.assetId) {
+                              window.open(`${ALGORAND_NETWORK_INFO.explorer}/asset/${token.assetId}`, '_blank');
+                            } else if (token.network === 'solana' && token.mintAddress) {
+                              window.open(`https://explorer.solana.com/address/${token.mintAddress}?cluster=devnet`, '_blank');
+                            }
+                          }}
                         >
                           <ExternalLink className="w-4 h-4" />
                         </Button>
