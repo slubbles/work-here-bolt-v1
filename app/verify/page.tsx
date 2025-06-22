@@ -52,6 +52,7 @@ export default function VerifyPage() {
   const [error, setError] = useState('');
   const [verifiedTokens, setVerifiedTokens] = useState<VerifiedToken[]>([]);
   const [loadingVerifiedTokens, setLoadingVerifiedTokens] = useState(true);
+  const [detectedNetwork, setDetectedNetwork] = useState<'solana' | 'algorand' | null>(null);
 
   useEffect(() => {
     loadVerifiedTokens();
@@ -162,56 +163,133 @@ export default function VerifyPage() {
     };
   };
 
+  // Detect network type based on input
+  const detectNetworkType = (input: string): 'solana' | 'algorand' | null => {
+    const trimmedInput = input.trim();
+    
+    // Check if it's a number (Algorand Asset ID)
+    if (/^\d+$/.test(trimmedInput)) {
+      return 'algorand';
+    }
+    
+    // Check if it's a Solana address (base58, 32-44 characters)
+    if (/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(trimmedInput)) {
+      return 'solana';
+    }
+    
+    return null;
+  };
+
   const handleVerify = async () => {
     if (!tokenAddress.trim()) {
       setError('Please enter a token address');
       return;
     }
 
+    const networkType = detectNetworkType(tokenAddress.trim());
+    if (!networkType) {
+      setError('Invalid address format. Please enter a valid Solana address or Algorand Asset ID.');
+      return;
+    }
+
+    setDetectedNetwork(networkType);
     setError('');
     setIsLoading(true);
     setVerificationResult(null);
 
     try {
-      const result = await verifyToken(tokenAddress.trim());
-      
-      if (result.success && result.verified) {
-        const tokenData = result.data;
-        const securityScore = calculateSecurityScore(tokenData);
-        const risks = generateRisks(tokenData);
-        const marketData = generateMarketData();
+      if (networkType === 'solana') {
+        // Verify Solana token
+        const result = await verifyToken(tokenAddress.trim());
         
-        // Get creation timestamp (in real implementation, this would come from blockchain)
-        const createdAt = new Date(Date.now() - Math.random() * 365 * 24 * 60 * 60 * 1000).toLocaleDateString();
+        if (result.success && result.verified) {
+          const tokenData = result.data;
+          const securityScore = calculateSecurityScore(tokenData);
+          const risks = generateRisks(tokenData);
+          const marketData = generateMarketData();
+          
+          // Get creation timestamp (in real implementation, this would come from blockchain)
+          const createdAt = new Date(Date.now() - Math.random() * 365 * 24 * 60 * 60 * 1000).toLocaleDateString();
+          
+          // Convert the blockchain data to our UI format
+          const features = [];
+          if (tokenData.features.canMint) features.push('Mintable');
+          if (tokenData.features.canBurn) features.push('Burnable');
+          if (tokenData.features.canPause) features.push('Pausable');
+          
+          setVerificationResult({
+            isVerified: true,
+            tokenName: tokenData.name,
+            symbol: tokenData.symbol,
+            totalSupply: (tokenData.totalSupply / Math.pow(10, tokenData.decimals)).toLocaleString(),
+            decimals: tokenData.decimals,
+            owner: tokenData.authority.toString(),
+            createdAt,
+            features,
+            securityScore,
+            risks,
+            isPaused: tokenData.isPaused,
+            mintAddress: tokenData.mint.toString(),
+            metadata: tokenData.metadata,
+            marketData
+          });
+        } else {
+          setError(result.error || 'Solana token verification failed');
+        }
+      } else if (networkType === 'algorand') {
+        // Verify Algorand asset
+        const { getAlgorandAssetInfo } = await import('@/lib/algorand');
+        const assetId = parseInt(tokenAddress.trim());
+        const result = await getAlgorandAssetInfo(assetId);
         
-        // Convert the blockchain data to our UI format
-        const features = [];
-        if (tokenData.features.canMint) features.push('Mintable');
-        if (tokenData.features.canBurn) features.push('Burnable');
-        if (tokenData.features.canPause) features.push('Pausable');
-        
-        setVerificationResult({
-          isVerified: true,
-          tokenName: tokenData.name,
-          symbol: tokenData.symbol,
-          totalSupply: (tokenData.totalSupply / Math.pow(10, tokenData.decimals)).toLocaleString(),
-          decimals: tokenData.decimals,
-          owner: tokenData.authority.toString(),
-          createdAt,
-          features,
-          securityScore,
-          risks,
-          isPaused: tokenData.isPaused,
-          mintAddress: tokenData.mint.toString(),
-          metadata: tokenData.metadata,
-          marketData
-        });
+        if (result.success) {
+          const assetData = result.data;
+          const securityScore = 85; // Base score for Algorand assets
+          const risks: string[] = [];
+          const marketData = generateMarketData();
+          
+          // Generate risks based on asset configuration
+          if (!assetData.freeze) risks.push('No freeze capability');
+          if (!assetData.manager) risks.push('No manager assigned');
+          
+          const features = [];
+          if (assetData.manager) features.push('Manageable');
+          if (assetData.freeze) features.push('Freezable');
+          if (assetData.clawback) features.push('Clawback Enabled');
+          
+          const decimals = assetData.decimals || 0;
+          const totalSupply = assetData.totalSupply ? (assetData.totalSupply / Math.pow(10, decimals)).toLocaleString() : 'Unknown';
+          
+          setVerificationResult({
+            isVerified: true,
+            tokenName: assetData.assetName || 'Unknown Asset',
+            symbol: assetData.unitName || 'UNK',
+            totalSupply: totalSupply,
+            decimals: decimals,
+            owner: assetData.creator || 'Unknown',
+            createdAt: 'Unknown', // Algorand doesn't provide creation date easily
+            features,
+            securityScore,
+            risks,
+            isPaused: false, // Would need to check freeze status
+            mintAddress: assetId.toString(),
+            metadata: {
+              logoUri: assetData.url || undefined,
+              website: undefined,
+              github: undefined,
+              twitter: undefined
+            },
+            marketData
+          });
+        } else {
+          setError(result.error || 'Algorand asset verification failed');
+        }
       } else {
-        setError(result.error || 'Token verification failed');
+        setError('Unsupported network type');
       }
     } catch (error) {
       console.error('Verification error:', error);
-      setError('Failed to verify token. Please check the address and try again.');
+      setError(`Failed to verify ${networkType} token. Please check the address and try again.`);
     } finally {
       setIsLoading(false);
     }
@@ -268,7 +346,7 @@ export default function VerifyPage() {
         <div className="glass-card p-8 mb-8">
           <div className="flex space-x-4">
             <Input
-              placeholder="Enter token address (e.g., 7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU)"
+              placeholder="Enter Solana token address or Algorand Asset ID (e.g., 741669532)"
               value={tokenAddress}
               onChange={(e) => setTokenAddress(e.target.value)}
               className="input-enhanced flex-1"
@@ -329,14 +407,6 @@ export default function VerifyPage() {
                     variant="outline"
                     size="sm"
                     onClick={shareVerification}
-                    onClick={() => {
-                      const isAlgorandAssetId = /^\d+$/.test(tokenAddress.trim());
-                      if (isAlgorandAssetId) {
-                        window.open(`${ALGORAND_NETWORK_INFO.explorer}/asset/${tokenAddress}`, '_blank');
-                      } else {
-                        window.open(`https://explorer.solana.com/address/${tokenAddress}?cluster=devnet`, '_blank');
-                      }
-                    }}
                   >
                     <Share2 className="w-4 h-4 mr-2" />
                     Share
@@ -558,10 +628,17 @@ export default function VerifyPage() {
                 <Button 
                   variant="outline" 
                   className="border-border text-muted-foreground hover:bg-muted"
-                  onClick={() => window.open(`https://explorer.solana.com/address/${tokenAddress}?cluster=devnet`, '_blank')}
+                  onClick={() => {
+                    const isAlgorandAssetId = /^\d+$/.test(tokenAddress.trim());
+                    if (isAlgorandAssetId) {
+                      window.open(`${ALGORAND_NETWORK_INFO.explorer}/asset/${tokenAddress}`, '_blank');
+                    } else {
+                      window.open(`https://explorer.solana.com/address/${tokenAddress}?cluster=devnet`, '_blank');
+                    }
+                  }}
                 >
                   <ExternalLink className="w-4 h-4 mr-2" />
-                  View on Explorer
+                  View on {detectedNetwork === 'algorand' ? 'AlgoExplorer' : 'Solana Explorer'}
                 </Button>
                 <Button 
                   variant="outline" 
