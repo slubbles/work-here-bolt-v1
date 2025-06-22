@@ -41,6 +41,30 @@ export interface AlgorandTokenData {
   pausable: boolean;
 }
 
+// ARC-3 Metadata interface for Algorand
+export interface ARC3Metadata {
+  name: string;
+  description?: string;
+  image?: string;
+  image_integrity?: string;
+  image_mimetype?: string;
+  background_color?: string;
+  external_url?: string;
+  external_url_integrity?: string;
+  external_url_mimetype?: string;
+  animation_url?: string;
+  animation_url_integrity?: string;
+  animation_url_mimetype?: string;
+  properties?: Record<string, any>;
+  extra_metadata?: string;
+  localization?: {
+    uri: string;
+    default: string;
+    locales: string[];
+    integrity?: Record<string, string>;
+  };
+}
+
 // Enhanced error handling for Algorand operations
 export class AlgorandError extends Error {
   constructor(message: string, public code?: string) {
@@ -151,17 +175,79 @@ export async function checkAccountBalance(address: string, requiredAmount: numbe
   };
 }
 
+export function microAlgosToAlgos(microAlgos: number): number {
+  return microAlgos / 1000000;
+}
+
+export function algosToMicroAlgos(algos: number): number {
+  return Math.round(algos * 1000000);
+}
+
+// Create ARC-3 compliant metadata JSON and upload to Supabase Storage
+export async function createARC3Metadata(
+  tokenData: AlgorandTokenData,
+  uploadImageToStorage: (metadata: ARC3Metadata) => Promise<{ success: boolean; url?: string; error?: string }>
+): Promise<{ success: boolean; metadataUrl?: string; metadataHash?: string; error?: string }> {
+  try {
+    console.log('Creating ARC-3 metadata for token:', tokenData.name);
+    
+    // Construct ARC-3 compliant metadata
+    const metadata: ARC3Metadata = {
+      name: tokenData.name,
+      description: tokenData.description || `${tokenData.name} (${tokenData.symbol}) - Created with Snarbles`,
+      image: tokenData.logoUrl || undefined,
+      external_url: tokenData.website || undefined,
+      properties: {
+        symbol: tokenData.symbol,
+        decimals: tokenData.decimals,
+        total_supply: tokenData.totalSupply,
+        mintable: tokenData.mintable,
+        burnable: tokenData.burnable,
+        pausable: tokenData.pausable,
+        website: tokenData.website || null,
+        github: tokenData.github || null,
+        twitter: tokenData.twitter || null,
+        created_with: 'Snarbles Token Platform',
+        creation_date: new Date().toISOString()
+      }
+    };
+
+    console.log('ARC-3 metadata constructed:', metadata);
+
+    // Upload metadata JSON to Supabase Storage
+    const uploadResult = await uploadImageToStorage(metadata);
+    
+    if (!uploadResult.success) {
+      throw new AlgorandError(`Failed to upload metadata: ${uploadResult.error}`);
+    }
+
+    // Calculate SHA-256 hash of metadata for integrity
+    const metadataString = JSON.stringify(metadata);
+    const metadataHash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(metadataString));
+    const hashArray = Array.from(new Uint8Array(metadataHash));
+    const hashBase64 = btoa(String.fromCharCode.apply(null, hashArray));
+
+    console.log('✓ ARC-3 metadata uploaded successfully');
+    return { success: true, metadataUrl: uploadResult.url, metadataHash: hashBase64 };
+  } catch (error) {
+    console.error('Error creating ARC-3 metadata:', error);
+    return { success: false, error: error instanceof Error ? error.message : 'Metadata creation failed' };
+  }
+}
+
 // Create ASA (Algorand Standard Asset) token with comprehensive error handling
 export async function createAlgorandToken(
   walletAddress: string,
   tokenData: AlgorandTokenData,
-  signTransaction: (txn: any) => Promise<any>
+  signTransaction: (txn: any) => Promise<any>,
+  uploadMetadataToStorage?: (metadata: ARC3Metadata) => Promise<{ success: boolean; url?: string; error?: string }>
 ): Promise<{
   success: boolean;
   assetId?: number;
   txId?: string;
   error?: string;
   details?: any;
+  metadataUrl?: string;
 }> {
   try {
     console.log('=== ALGORAND TOKEN CREATION DEBUG START ===');
@@ -213,6 +299,19 @@ export async function createAlgorandToken(
     }
     
     console.log('✓ Balance check passed');
+
+    // Handle ARC-3 metadata if upload function is provided
+    let metadataUrl = tokenData.website;
+    let metadataHash;
+    
+    if (uploadMetadataToStorage && (tokenData.logoUrl || tokenData.description)) {
+      console.log('Creating ARC-3 metadata...');
+      const metadataResult = await createARC3Metadata(tokenData, uploadMetadataToStorage);
+      if (metadataResult.success) {
+        metadataUrl = metadataResult.metadataUrl;
+        metadataHash = metadataResult.metadataHash;
+      }
+    }
 
     // Convert BigInt values to regular numbers to avoid serialization issues
     const convertBigIntToNumber = (value: any): any => {
@@ -327,8 +426,8 @@ export async function createAlgorandToken(
     };
 
     // Only add optional fields if they have valid values
-    if (tokenData.website && tokenData.website.trim() !== '') {
-      assetCreateParams.assetURL = tokenData.website;
+    if (metadataUrl && metadataUrl.trim() !== '') {
+      assetCreateParams.assetURL = metadataUrl;
     }
 
     // CRITICAL: Only add freeze address if token is pausable
@@ -340,6 +439,11 @@ export async function createAlgorandToken(
     // Add note field only if description exists
     if (tokenData.description && tokenData.description.trim() !== '') {
       assetCreateParams.note = new TextEncoder().encode(tokenData.description);
+    }
+
+    // Add metadata hash if available (for ARC-3 compliance)
+    if (metadataHash) {
+      assetCreateParams.metadataHash = new TextEncoder().encode(metadataHash);
     }
     // Note: Do not set freeze to undefined - completely omit it instead
     
@@ -438,6 +542,7 @@ export async function createAlgorandToken(
       details: {
         explorerUrl: `${ALGORAND_NETWORK_INFO.explorer}/asset/${assetId}`,
         transactionUrl: `${ALGORAND_NETWORK_INFO.explorer}/tx/${txId}`,
+        metadataUrl: metadataUrl
       }
     };
   } catch (error) {
@@ -1063,14 +1168,6 @@ export async function unpauseAlgorandToken(
 export function formatAlgorandAddress(address: string): string {
   if (address.length <= 12) return address;
   return `${address.slice(0, 6)}...${address.slice(-6)}`;
-}
-
-export function microAlgosToAlgos(microAlgos: number): number {
-  return microAlgos / 1000000;
-}
-
-export function algosToMicroAlgos(algos: number): number {
-  return Math.round(algos * 1000000);
 }
 
 // Get platform statistics
