@@ -17,31 +17,5 @@
     ],
     "@babel/preset-typescript"
   ],
-  "plugins": [],
-  "env": {
-    "development": {
-      "presets": [
-        [
-          "@babel/preset-env",
-          {
-            "targets": {
-              "node": "18"
-            }
-          }
-        ]
-      ]
-    },
-    "production": {
-      "presets": [
-        [
-          "@babel/preset-env",
-          {
-            "targets": {
-              "browsers": ["> 1%", "last 2 versions"]
-            }
-          }
-        ]
-      ]
-    }
-  }
+  "plugins": []
 }
