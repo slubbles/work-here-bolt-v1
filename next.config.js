@@ -11,14 +11,6 @@ const nextConfig = {
   pageExtensions: ['ts', 'tsx', 'js', 'jsx'],
   // Webpack configuration to handle module resolution
   webpack: (config, { buildId, dev, isServer, defaultLoaders, webpack }) => {
-    // CRITICAL FIX: Ensure only one instance of algosdk is loaded
-    // This prevents the "TypeError: t.map is not a function" error in Pera Wallet
-    config.resolve.alias = {
-      ...config.resolve.alias,
-      // Force all algosdk imports to resolve to the same instance
-      'algosdk': require.resolve('algosdk'),
-    };
-
     // Add polyfills for Node.js modules
     config.resolve.fallback = {
       ...config.resolve.fallback,
@@ -44,22 +36,6 @@ const nextConfig = {
         process: 'process/browser',
       })
     );
-
-    // Handle .mjs files
-    config.module.rules.push({
-      test: /\.m?js$/,
-      resolve: {
-        fullySpecified: false,
-      },
-    });
-
-    // Additional optimization for algosdk compatibility
-    config.module.rules.push({
-      test: /node_modules\/algosdk\/.*\.js$/,
-      resolve: {
-        fullySpecified: false,
-      },
-    });
 
     return config;
   },
