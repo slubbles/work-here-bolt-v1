@@ -599,9 +599,15 @@ export default function Navbar() {
                   ) : (
                     <Button
                       onClick={handleAlgorandConnect}
-                      className="w-full bg-gradient-to-r from-[#76f935] to-[#5dd128] hover:from-[#5dd128] hover:to-[#4bb01f] text-white font-semibold rounded-xl h-12"
+                      disabled={!isPeraWalletReady || algorandIsConnecting}
+                      className="w-full bg-gradient-to-r from-[#76f935] to-[#5dd128] hover:from-[#5dd128] hover:to-[#4bb01f] text-white font-semibold rounded-xl h-12 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      Connect Pera Wallet
+                      {algorandIsConnecting 
+                        ? 'Connecting...' 
+                        : !isPeraWalletReady 
+                          ? 'Initializing...' 
+                          : 'Connect Pera Wallet'
+                      }
                     </Button>
                   )}
                 </div>

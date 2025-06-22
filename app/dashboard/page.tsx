@@ -357,9 +357,10 @@ export default function DashboardPage() {
               {selectedNetwork === 'algorand' && !algorandConnected && (
                 <Button
                   onClick={connectAlgorandWallet}
-                  className="bg-[#76f935] hover:bg-[#6ae82d] text-black w-full mb-4"
+                  disabled={!isAlgorandWalletReady}
+                  className="bg-[#76f935] hover:bg-[#6ae82d] text-black w-full mb-4 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Connect Pera Wallet
+                  {isAlgorandWalletReady ? 'Connect Pera Wallet' : 'Initializing...'}
                 </Button>
               )}
             </div>
