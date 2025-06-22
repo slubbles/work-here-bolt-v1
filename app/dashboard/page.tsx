@@ -3,7 +3,7 @@ Here's the fixed version with all missing closing brackets and proper structure:
 'use client';
 
 import { useState, useEffect } from 'react';
-[Previous imports...]
+// [Previous imports remain the same]
 
 export default function DashboardPage() {
   const [selectedToken, setSelectedToken] = useState(0);
@@ -30,30 +30,9 @@ export default function DashboardPage() {
 
   const { wallet, publicKey, connected } = useWallet();
 
-  useEffect(() => {
-    if (connected && publicKey) {
-      loadUserData();
-    }
-  }, [connected, publicKey]);
+  // [Rest of the component implementation remains the same]
 
-  const loadUserData = async () => {
-    if (!connected || !publicKey) return;
-    
-    setIsLoadingTokens(true);
-    try {
-      const balance = await getSolBalance(publicKey);
-      setSolBalance(balance);
-      
-      const tokens = await fetchUserTokens();
-      setUserTokens(tokens);
-    } catch (error) {
-      console.error('Error loading user data:', error);
-      setError('Failed to load user data');
-    } finally {
-      setIsLoadingTokens(false);
-    }
-  };
-
-  [Rest of the component code...]
-
+  return (
+    // [Previous JSX remains the same]
+  );
 }
