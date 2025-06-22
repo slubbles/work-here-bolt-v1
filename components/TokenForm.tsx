@@ -122,7 +122,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
   };
 
   // Handle image file selection
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       // Validate file type
@@ -143,14 +143,29 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
       const previewUrl = URL.createObjectURL(file);
       setImagePreview(previewUrl);
       
-      // For now, we'll set a placeholder URL until we implement proper upload
-      // In a real implementation, you would upload to Supabase Storage or similar
-      setTokenData((prev: any) => ({
-        ...prev,
-        logoUrl: previewUrl // This is temporary - would be replaced with actual uploaded URL
-      }));
-      
-      setError(''); // Clear any previous errors
+      // Upload to Supabase Storage
+      try {
+        const uploadResult = await supabaseHelpers.uploadFileToStorage(file, 'token-assets');
+        
+        if (uploadResult.success && uploadResult.url) {
+          setTokenData((prev: any) => ({
+            ...prev,
+            logoUrl: uploadResult.url
+          }));
+          setError(''); // Clear any previous errors
+        } else {
+          setError(uploadResult.error || 'Failed to upload image');
+          // Keep preview but don't set the logoUrl
+        }
+      } catch (error) {
+        console.error('Upload error:', error);
+        setError('Failed to upload image. Please try again.');
+        // Set fallback URL for preview purposes
+        setTokenData((prev: any) => ({
+          ...prev,
+          logoUrl: previewUrl
+        }));
+      }
     }
   };
 

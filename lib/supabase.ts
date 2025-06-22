@@ -53,6 +53,64 @@ export interface CreditTransaction {
 
 // Helper functions for database operations
 export const supabaseHelpers = {
+  // File Upload Operations
+  async uploadFileToStorage(file: File, bucket: string = 'token-assets', path?: string): Promise<{ success: boolean; url?: string; error?: string }> {
+    try {
+      // Generate unique filename if path not provided
+      const fileName = path || `${Date.now()}-${Math.random().toString(36).substring(2)}-${file.name}`;
+      
+      // Upload file to Supabase Storage
+      const { data, error } = await supabase.storage
+        .from(bucket)
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (error) {
+        console.error('Error uploading file:', error);
+        return { success: false, error: error.message };
+      }
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from(bucket)
+        .getPublicUrl(fileName);
+
+      return { 
+        success: true, 
+        url: urlData.publicUrl 
+      };
+    } catch (error) {
+      console.error('Error in uploadFileToStorage:', error);
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Upload failed' 
+      };
+    }
+  },
+
+  async deleteFileFromStorage(fileName: string, bucket: string = 'token-assets'): Promise<{ success: boolean; error?: string }> {
+    try {
+      const { error } = await supabase.storage
+        .from(bucket)
+        .remove([fileName]);
+
+      if (error) {
+        console.error('Error deleting file:', error);
+        return { success: false, error: error.message };
+      }
+
+      return { success: true };
+    } catch (error) {
+      console.error('Error in deleteFileFromStorage:', error);
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Delete failed' 
+      };
+    }
+  },
+
   // User Profile Operations
   async createUserProfile(userId: string, email?: string) {
     const { data, error } = await supabase

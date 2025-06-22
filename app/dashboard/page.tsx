@@ -399,12 +399,27 @@ export default function DashboardPage() {
     setIsLoading(true);
 
     try {
-      const result = await mintTokens(
-        wallet.adapter,
-        token.address,
-        parseFloat(mintAmount),
-        token.decimals
-      );
+      let result;
+      
+      if (token.network === 'algorand' && algorandConnected && algorandAddress && token.assetId) {
+        result = await mintAlgorandTokens(
+          token.assetId,
+          mintAmount,
+          algorandAddress, // recipient
+          algorandAddress, // manager (same as current user)
+          token.decimals,
+          algorandSignTransaction
+        );
+      } else if (token.network === 'solana') {
+        result = await mintTokens(
+          wallet.adapter,
+          token.address,
+          parseFloat(mintAmount),
+          token.decimals
+        );
+      } else {
+        throw new Error('Invalid token or wallet configuration');
+      }
 
       if (result.success) {
         setSuccess(`Successfully minted ${mintAmount} ${token.symbol}`);
@@ -449,12 +464,26 @@ export default function DashboardPage() {
     setIsLoading(true);
 
     try {
-      const result = await burnTokens(
-        wallet.adapter,
-        token.address,
-        parseFloat(burnAmount),
-        token.decimals
-      );
+      let result;
+      
+      if (token.network === 'algorand' && algorandConnected && algorandAddress && token.assetId) {
+        result = await burnAlgorandTokens(
+          token.assetId,
+          burnAmount,
+          algorandAddress,
+          token.decimals,
+          algorandSignTransaction
+        );
+      } else if (token.network === 'solana') {
+        result = await burnTokens(
+          wallet.adapter,
+          token.address,
+          parseFloat(burnAmount),
+          token.decimals
+        );
+      } else {
+        throw new Error('Invalid token or wallet configuration');
+      }
 
       if (result.success) {
         setSuccess(`Successfully burned ${burnAmount} ${token.symbol}`);
@@ -494,9 +523,19 @@ export default function DashboardPage() {
     setIsLoading(true);
 
     try {
-      const result = token.isPaused 
-        ? await unpauseToken(wallet.adapter, token.address)
-        : await pauseToken(wallet.adapter, token.address);
+      let result;
+      
+      if (token.network === 'algorand' && algorandConnected && algorandAddress && token.assetId) {
+        result = token.isPaused 
+          ? await unpauseAlgorandToken(token.assetId, algorandAddress, algorandSignTransaction)
+          : await pauseAlgorandToken(token.assetId, algorandAddress, algorandSignTransaction);
+      } else if (token.network === 'solana') {
+        result = token.isPaused 
+          ? await unpauseToken(wallet.adapter, token.address)
+          : await pauseToken(wallet.adapter, token.address);
+      } else {
+        throw new Error('Invalid token or wallet configuration');
+      }
 
       if (result.success) {
         const action = token.isPaused ? 'unpaused' : 'paused';
