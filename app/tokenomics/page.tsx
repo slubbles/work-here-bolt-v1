@@ -240,9 +240,9 @@ Visit: https://snarbles.xyz for more information
       const addText = (text: string, fontSize = 12, isBold = false) => {
         doc.setFontSize(fontSize);
         if (isBold) {
-          doc.setFont(undefined, 'bold');
+          doc.setFont('helvetica', 'bold');
         } else {
-          doc.setFont(undefined, 'normal');
+          doc.setFont('helvetica', 'normal');
         }
         
         const lines = doc.splitTextToSize(text, pageWidth - 2 * margin);
