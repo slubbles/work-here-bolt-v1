@@ -1,31 +1,54 @@
 import algosdk from 'algosdk';
 
+// Zero address for Algorand (used to disable features)
+export const ZERO_ADDRESS = 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
+
 // Algorand network configurations
 export const ALGORAND_NETWORKS = {
-  mainnet: {
-    name: 'Algorand Mainnet',
+  'algorand-mainnet': {
+    name: 'Algorand MainNet',
     algodUrl: 'https://mainnet-api.algonode.cloud',
     indexerUrl: 'https://mainnet-idx.algonode.cloud',
     token: '',
     port: '',
-    color: 'bg-green-500'
+    chainId: 416001,
+    explorer: 'https://algoexplorer.io',
+    isMainnet: true,
+    color: 'bg-[#00d4aa]'
   },
-  testnet: {
-    name: 'Algorand Testnet',
+  'algorand-testnet': {
+    name: 'Algorand TestNet',
     algodUrl: 'https://testnet-api.algonode.cloud',
     indexerUrl: 'https://testnet-idx.algonode.cloud',
     token: '',
     port: '',
-    color: 'bg-yellow-500'
+    chainId: 416002,
+    explorer: 'https://testnet.algoexplorer.io',
+    isMainnet: false,
+    color: 'bg-[#76f935]'
   }
 } as const;
 
-export type AlgorandNetwork = keyof typeof ALGORAND_NETWORKS;
+export type AlgorandNetworkKey = keyof typeof ALGORAND_NETWORKS;
+
+// Backward compatibility - export as ALGORAND_NETWORK_INFO
+export const ALGORAND_NETWORK_INFO = ALGORAND_NETWORKS;
+
+// Get network configuration
+export function getAlgorandNetwork(networkKey: string) {
+  return ALGORAND_NETWORKS[networkKey as AlgorandNetworkKey] || ALGORAND_NETWORKS['algorand-testnet'];
+}
 
 // Get Algorand client for a specific network
-export function getAlgorandClient(network: AlgorandNetwork) {
-  const config = ALGORAND_NETWORKS[network];
+export function getAlgorandClient(network: string) {
+  const config = getAlgorandNetwork(network);
   return new algosdk.Algodv2(config.token, config.algodUrl, config.port);
+}
+
+// Get Algorand Indexer client for a specific network
+export function getAlgorandIndexerClient(network: string) {
+  const config = getAlgorandNetwork(network);
+  return new algosdk.Indexer(config.token, config.indexerUrl, config.port);
 }
 
 // Wait for transaction confirmation with retry logic
@@ -57,40 +80,360 @@ export async function waitForConfirmationWithRetry(
   throw new Error(`Transaction not confirmed after ${maxRounds} rounds on ${network}`);
 }
 
+// Get account information from Algorand Indexer
+export async function getAlgorandAccountInfo(address: string, network: string) {
+  try {
+    console.log(`📡 Fetching Algorand account info for ${address} on ${network}`);
+    
+    const indexerClient = getAlgorandIndexerClient(network);
+    const accountInfo = await indexerClient.lookupAccountByID(address).do();
+    
+    if (!accountInfo.account) {
+      return {
+        success: false,
+        error: 'Account not found'
+      };
+    }
+
+    const account = accountInfo.account;
+    const balance = account.amount ? account.amount / 1000000 : 0; // Convert microAlgos to Algos
+    const assets = account.assets || [];
+    
+    console.log(`✅ Account info loaded: ${balance} ALGO, ${assets.length} assets`);
+    
+    return {
+      success: true,
+      balance,
+      assets,
+      account
+    };
+  } catch (error) {
+    console.error(`❌ Error fetching Algorand account info on ${network}:`, error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to fetch account info'
+    };
+  }
+}
+
+// Get asset information from Algorand Indexer
+export async function getAlgorandAssetInfo(assetId: number, network: string) {
+  try {
+    console.log(`📡 Fetching Algorand asset info for ${assetId} on ${network}`);
+    
+    const indexerClient = getAlgorandIndexerClient(network);
+    const assetInfo = await indexerClient.lookupAssetByID(assetId).do();
+    
+    if (!assetInfo.asset) {
+      return {
+        success: false,
+        error: 'Asset not found'
+      };
+    }
+
+    const asset = assetInfo.asset;
+    const params = asset.params;
+    
+    // Parse metadata if available
+    let metadata = {};
+    if (params.url) {
+      try {
+        // Try to fetch metadata from URL (ARC-3 standard)
+        const response = await fetch(params.url);
+        if (response.ok) {
+          metadata = await response.json();
+        }
+      } catch (err) {
+        console.warn('Could not fetch asset metadata:', err);
+      }
+    }
+    
+    const assetData = {
+      assetId,
+      assetName: params.name || 'Unknown Asset',
+      unitName: params.unit || 'UNK',
+      totalSupply: params.total || 0,
+      decimals: params.decimals || 0,
+      creator: params.creator,
+      manager: params.manager,
+      reserve: params.reserve,
+      freeze: params.freeze,
+      clawback: params.clawback,
+      defaultFrozen: params['default-frozen'] || false,
+      url: params.url,
+      metadataHash: params['metadata-hash'],
+      metadata
+    };
+    
+    console.log(`✅ Asset info loaded: ${assetData.assetName} (${assetData.unitName})`);
+    
+    return {
+      success: true,
+      data: assetData
+    };
+  } catch (error) {
+    console.error(`❌ Error fetching Algorand asset info on ${network}:`, error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to fetch asset info'
+    };
+  }
+}
+
 // Create Algorand Standard Asset (ASA)
-export async function createAlgorandToken(params: {
-  name: string;
-  symbol: string;
-  totalSupply: number;
-  decimals: number;
-  network: AlgorandNetwork;
-  creatorAddress: string;
-}) {
-  const { name, symbol, totalSupply, decimals, network, creatorAddress } = params;
-  
-  const algodClient = getAlgorandClient(network);
-  
-  // Get suggested transaction parameters
-  const suggestedParams = await algodClient.getTransactionParams().do();
-  
-  // Create asset creation transaction
-  const assetCreateTxn = algosdk.makeAssetCreateTxnWithSuggestedParamsFromObject({
-    from: creatorAddress,
-    suggestedParams,
-    defaultFrozen: false,
-    unitName: symbol,
-    assetName: name,
-    manager: creatorAddress,
-    reserve: creatorAddress,
-    freeze: creatorAddress,
-    clawback: creatorAddress,
-    total: totalSupply * Math.pow(10, decimals),
-    decimals: decimals,
-    assetURL: '',
-    assetMetadataHash: undefined,
-  });
-  
-  return assetCreateTxn;
+export async function createAlgorandToken(
+  creatorAddress: string,
+  tokenData: {
+    name: string;
+    symbol: string;
+    description: string;
+    decimals: number;
+    totalSupply: string;
+    logoUrl: string;
+    website?: string;
+    github?: string;
+    twitter?: string;
+    mintable: boolean;
+    burnable: boolean;
+    pausable: boolean;
+  },
+  signTransaction: (txn: any) => Promise<Uint8Array>,
+  uploadMetadataToStorage: (metadata: any, bucket?: string, fileName?: string) => Promise<{ success: boolean; url?: string; error?: string }>,
+  network: string
+) {
+  try {
+    console.log(`🚀 Creating Algorand token on ${network}`);
+    console.log('Token data:', tokenData);
+    
+    const algodClient = getAlgorandClient(network);
+    const networkConfig = getAlgorandNetwork(network);
+    
+    // Prepare ARC-3 compliant metadata
+    const arc3Metadata = {
+      name: tokenData.name,
+      description: tokenData.description,
+      image: tokenData.logoUrl,
+      image_integrity: '',
+      image_mimetype: 'image/png',
+      external_url: tokenData.website || '',
+      external_url_integrity: '',
+      external_url_mimetype: 'text/html',
+      animation_url: '',
+      animation_url_integrity: '',
+      animation_url_mimetype: '',
+      properties: {
+        symbol: tokenData.symbol,
+        decimals: tokenData.decimals,
+        total_supply: tokenData.totalSupply,
+        creator: creatorAddress,
+        mintable: tokenData.mintable,
+        burnable: tokenData.burnable,
+        pausable: tokenData.pausable,
+        website: tokenData.website || '',
+        github: tokenData.github || '',
+        twitter: tokenData.twitter || '',
+        network: network
+      }
+    };
+    
+    // Upload metadata to storage
+    console.log('📤 Uploading metadata to storage...');
+    const metadataUploadResult = await uploadMetadataToStorage(
+      arc3Metadata, 
+      'algorand-metadata', 
+      `${tokenData.symbol.toLowerCase()}-${Date.now()}.json`
+    );
+    
+    if (!metadataUploadResult.success) {
+      throw new Error(`Metadata upload failed: ${metadataUploadResult.error}`);
+    }
+    
+    const metadataUrl = metadataUploadResult.url!;
+    console.log('✅ Metadata uploaded:', metadataUrl);
+    
+    // Get suggested transaction parameters
+    const suggestedParams = await algodClient.getTransactionParams().do();
+    
+    // Calculate total supply with decimals
+    const totalSupplyWithDecimals = parseInt(tokenData.totalSupply) * Math.pow(10, tokenData.decimals);
+    
+    // Set manager addresses based on features
+    const managerAddress = tokenData.mintable ? creatorAddress : ZERO_ADDRESS;
+    const reserveAddress = creatorAddress; // Always set reserve to creator
+    const freezeAddress = tokenData.pausable ? creatorAddress : ZERO_ADDRESS;
+    const clawbackAddress = tokenData.burnable ? creatorAddress : ZERO_ADDRESS;
+    
+    console.log('🔧 Creating asset with parameters:');
+    console.log('- Manager (mintable):', managerAddress);
+    console.log('- Reserve:', reserveAddress);
+    console.log('- Freeze (pausable):', freezeAddress);
+    console.log('- Clawback (burnable):', clawbackAddress);
+    console.log('- Total supply:', totalSupplyWithDecimals);
+    
+    // Create asset creation transaction
+    const assetCreateTxn = algosdk.makeAssetCreateTxnWithSuggestedParamsFromObject({
+      from: creatorAddress,
+      suggestedParams,
+      defaultFrozen: false,
+      unitName: tokenData.symbol,
+      assetName: tokenData.name,
+      manager: managerAddress,
+      reserve: reserveAddress,
+      freeze: freezeAddress,
+      clawback: clawbackAddress,
+      total: totalSupplyWithDecimals,
+      decimals: tokenData.decimals,
+      assetURL: metadataUrl,
+      assetMetadataHash: undefined, // We could add hash validation here
+    });
+    
+    console.log('📝 Signing transaction...');
+    const signedTxn = await signTransaction(assetCreateTxn);
+    
+    console.log('📡 Sending transaction to network...');
+    const { txId } = await algodClient.sendRawTransaction(signedTxn).do();
+    
+    console.log('⏳ Waiting for confirmation...');
+    let confirmedTxn;
+    
+    try {
+      confirmedTxn = await waitForConfirmationWithRetry(algodClient, txId, 20, network);
+    } catch (confirmError) {
+      console.error(`❌ Transaction confirmation failed on ${network}:`, confirmError);
+      throw new Error(`Transaction submitted but not confirmed on ${network}. Please check the explorer for transaction status. TX ID: ${txId}`);
+    }
+    
+    // Extract asset ID from transaction confirmation
+    const assetId = confirmedTxn['asset-index'];
+    if (!assetId) {
+      throw new Error('Asset ID not found in confirmed transaction');
+    }
+    
+    console.log(`✅ Token created successfully on ${network}!`);
+    console.log('- Transaction ID:', txId);
+    console.log('- Asset ID:', assetId);
+    
+    const explorerUrl = `${networkConfig.explorer}/asset/${assetId}`;
+    
+    return {
+      success: true,
+      transactionId: txId,
+      assetId: assetId,
+      details: {
+        network: network,
+        explorerUrl: explorerUrl,
+        metadataUrl: metadataUrl,
+        createdAt: new Date().toISOString()
+      }
+    };
+    
+  } catch (error) {
+    console.error(`❌ Error creating Algorand token on ${network}:`, error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to create token'
+    };
+  }
+}
+
+// Opt-in to an Algorand asset
+export async function optInToAsset(
+  address: string,
+  assetId: number,
+  signTransaction: (txn: any) => Promise<Uint8Array>,
+  network: string
+) {
+  try {
+    console.log(`🔗 Opting in to asset ${assetId} on ${network}`);
+    
+    const algodClient = getAlgorandClient(network);
+    
+    // Get suggested transaction parameters
+    const suggestedParams = await algodClient.getTransactionParams().do();
+    
+    // Create opt-in transaction (asset transfer of 0 to self)
+    const optInTxn = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
+      from: address,
+      to: address,
+      assetIndex: assetId,
+      amount: 0,
+      suggestedParams
+    });
+    
+    console.log('📝 Signing opt-in transaction...');
+    const signedTxn = await signTransaction(optInTxn);
+    
+    console.log('📡 Sending opt-in transaction...');
+    const { txId } = await algodClient.sendRawTransaction(signedTxn).do();
+    
+    console.log('⏳ Waiting for opt-in confirmation...');
+    await waitForConfirmationWithRetry(algodClient, txId, 10, network);
+    
+    console.log(`✅ Successfully opted in to asset ${assetId}`);
+    
+    return {
+      success: true,
+      transactionId: txId
+    };
+    
+  } catch (error) {
+    console.error(`❌ Error opting in to asset on ${network}:`, error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to opt-in to asset'
+    };
+  }
+}
+
+// Check wallet connection and balance
+export async function checkWalletConnection(address: string, network: string) {
+  try {
+    const accountInfo = await getAlgorandAccountInfo(address, network);
+    
+    if (!accountInfo.success) {
+      return {
+        success: false,
+        error: accountInfo.error
+      };
+    }
+    
+    const balance = accountInfo.balance || 0;
+    const networkConfig = getAlgorandNetwork(network);
+    
+    // Minimum balance required for token creation (account minimum + transaction fees)
+    const minimumRequired = networkConfig.isMainnet ? 0.202 : 0.101; // MainNet requires more ALGO
+    const canCreateToken = balance >= minimumRequired;
+    
+    return {
+      success: true,
+      balance,
+      canCreateToken,
+      recommendedBalance: minimumRequired,
+      network: networkConfig.name
+    };
+    
+  } catch (error) {
+    console.error(`❌ Error checking wallet connection on ${network}:`, error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to check wallet connection'
+    };
+  }
+}
+
+// Get platform stats (mock data for now)
+export async function getAlgorandPlatformStats() {
+  // In a real implementation, this would query the Algorand blockchain
+  // or a backend service for actual platform statistics
+  return {
+    success: true,
+    data: {
+      totalTokens: 1247,
+      totalUsers: 423,
+      totalValueLocked: 15000,
+      successRate: 98.5
+    }
+  };
 }
 
 // Format Algorand address for display
