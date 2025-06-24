@@ -700,10 +700,10 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
                   onChange={(e) => updateTokenData('totalSupply', e.target.value)}
                   className="form-input"
                   min="1"
-                  max="1000000000"
+                  max="18446744073709551615"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Maximum recommended: 1 billion (considering decimals)
+                  Maximum: 18.4 quintillion (Algorand protocol limit)
                 </p>
               </div>
               <div className="space-y-2">

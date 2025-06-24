@@ -12,7 +12,7 @@ export const ALGORAND_NETWORKS = {
     token: '',
     port: '',
     chainId: 416001,
-    explorer: 'https://algoexplorer.io',
+    explorer: 'https://explorer.perawallet.app',
     isMainnet: true,
     color: 'bg-[#00d4aa]'
   },
@@ -357,17 +357,31 @@ export async function createAlgorandToken(
       console.log('🔍 Attempting to retrieve asset ID from account assets...');
       
       try {
-        // Get account info to find the newly created asset
-        const accountInfo = await algodClient.accountInformation(creatorAddress).do();
-        const assets = accountInfo.createdAssets || [];
+        // First try the indexer for more recent data
+        const indexerClient = getAlgorandIndexerClient(network);
         
-        if (assets.length > 0) {
-          // Get the asset with the highest ID (most recently created)
-          const latestAsset = assets.reduce((prev: any, current: any) => 
-            (current.index > prev.index) ? current : prev
-          );
-          assetId = latestAsset.index;
-          console.log('✅ Found asset ID from account assets:', assetId);
+        // Look up the transaction to get asset ID
+        try {
+          const txnInfo = await indexerClient.lookupTransactionByID(txId).do();
+          if (txnInfo.transaction && txnInfo.transaction['created-asset-index']) {
+            assetId = txnInfo.transaction['created-asset-index'];
+            console.log('✅ Found asset ID from indexer transaction lookup:', assetId);
+          }
+        } catch (indexerError) {
+          console.log('Indexer lookup failed, trying account info...');
+          
+          // Fallback to account info
+          const accountInfo = await algodClient.accountInformation(creatorAddress).do();
+          const assets = accountInfo.createdAssets || [];
+          
+          if (assets.length > 0) {
+            // Get the asset with the highest ID (most recently created)
+            const latestAsset = assets.reduce((prev: any, current: any) => 
+              (current.index > prev.index) ? current : prev
+            );
+            assetId = latestAsset.index;
+            console.log('✅ Found asset ID from account assets:', assetId);
+          }
         }
       } catch (accountError) {
         console.warn('Could not retrieve account info for asset ID lookup:', accountError);
