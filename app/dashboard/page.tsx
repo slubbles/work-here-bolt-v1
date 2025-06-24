@@ -8,7 +8,7 @@ Here's the fixed version with all missing closing brackets and proper formatting
                     variant={algorandSelectedNetwork === 'algorand-mainnet' ? 'default' : 'ghost'}
                     size="sm"
                     onClick={() => setAlgorandSelectedNetwork('algorand-mainnet')}
-                    className="text-xs"
+                    className="text-xs px-3 py-2"
                   >
                     <span>Mainnet</span>
                   </Button>
@@ -16,7 +16,7 @@ Here's the fixed version with all missing closing brackets and proper formatting
                     variant={algorandSelectedNetwork === 'algorand-testnet' ? 'default' : 'ghost'}
                     size="sm"
                     onClick={() => setAlgorandSelectedNetwork('algorand-testnet')}
-                    className="text-xs"
+                    className="text-xs px-3 py-2"
                   >
                     <span>Testnet</span>
                   </Button>
