@@ -86,6 +86,13 @@ export default function VerifyPage() {
         }
 
         const assetData = assetInfoResult.data;
+        
+        if (!assetData) {
+          setError(`Asset data not found for ${assetId} on ${selectedNetwork}`);
+          setIsLoading(false);
+          return;
+        }
+        
         const networkConfig = getAlgorandNetwork(selectedNetwork);
         
         const result: VerificationResult = {
