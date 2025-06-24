@@ -140,7 +140,7 @@ export default function DashboardPage() {
       const processedAssets = new Set<number>();
 
       // Process assets held in the wallet (including zero balance)
-      for (const asset of accountInfo.assets) {
+      for (const asset of accountInfo.assets || []) {
         const assetId = asset['asset-id'];
         
         if (processedAssets.has(assetId)) continue;
