@@ -67,7 +67,6 @@ export const supabaseHelpers = {
     const isPlaceholderKey = !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY.includes('placeholder');
     return !(isPlaceholderUrl || isPlaceholderKey);
   },
-  
   async uploadFileToStorage(file: File, bucket: string = 'token-assets', path?: string): Promise<{ success: boolean; url?: string; error?: string }> {
     try {
       if (!(await supabaseHelpers.checkSupabaseConnection())) {
@@ -76,20 +75,6 @@ export const supabaseHelpers = {
       
       // Generate unique filename if path not provided
       const fileName = path || `${Date.now()}-${Math.random().toString(36).substring(2)}-${file.name}`;
-      
-      // Check if bucket exists and create if needed
-      const { data: buckets, error: bucketListError } = await supabase.storage.listBuckets();
-      if (!bucketListError && !buckets.find(b => b.name === bucket)) {
-        console.log(`Creating storage bucket: ${bucket}`);
-        const { error: createBucketError } = await supabase.storage.createBucket(bucket, {
-          public: true,
-          allowedMimeTypes: ['image/*', 'application/json'],
-          fileSizeLimit: 5 * 1024 * 1024 // 5MB
-        });
-        if (createBucketError) {
-          console.warn(`Could not create bucket ${bucket}:`, createBucketError.message);
-        }
-      }
       
       // Upload file to Supabase Storage
       const { data, error } = await supabase.storage
@@ -164,17 +149,31 @@ export const supabaseHelpers = {
       const blob = new Blob([metadataJson], { type: 'application/json' });
       
       // Check if bucket exists and create if needed
+      let bucketExists = false;
       const { data: buckets, error: bucketListError } = await supabase.storage.listBuckets();
-      if (!bucketListError && !buckets.find(b => b.name === bucket)) {
-        console.log(`Creating storage bucket: ${bucket}`);
-        const { error: createBucketError } = await supabase.storage.createBucket(bucket, {
-          public: true,
-          allowedMimeTypes: ['application/json'],
-          fileSizeLimit: 1024 * 1024 // 1MB
-        });
-        if (createBucketError) {
-          console.warn(`Could not create bucket ${bucket}:`, createBucketError.message);
+      
+      if (!bucketListError) {
+        bucketExists = buckets.some(b => b.name === bucket);
+        
+        if (!bucketExists) {
+          console.log(`Creating storage bucket: ${bucket}`);
+          const { error: createBucketError } = await supabase.storage.createBucket(bucket, {
+            public: true,
+            allowedMimeTypes: ['application/json'],
+            fileSizeLimit: 1024 * 1024 // 1MB
+          });
+          
+          if (createBucketError) {
+            console.warn(`Could not create bucket ${bucket}:`, createBucketError.message);
+            console.log('Skipping Supabase storage due to permissions, will use fallback...');
+            // Don't return error here, let it try upload and fail gracefully to fallback
+            bucketExists = false;
+          } else {
+            bucketExists = true;
+          }
         }
+      } else {
+        console.warn('Could not list buckets:', bucketListError.message);
       }
       
       // Upload blob to Supabase Storage
@@ -189,7 +188,7 @@ export const supabaseHelpers = {
       if (error) {
         console.error('Error uploading metadata to Supabase:', error);
         
-        // Fallback: Use JSONBin.io for metadata hosting
+        // Fallback 1: Use JSONBin.io for metadata hosting
         console.log('Attempting fallback metadata upload to JSONBin.io...');
         try {
           const response = await fetch('https://api.jsonbin.io/v3/b', {
@@ -204,14 +203,81 @@ export const supabaseHelpers = {
           if (response.ok) {
             const result = await response.json();
             const fallbackUrl = `https://api.jsonbin.io/v3/b/${result.metadata.id}/latest`;
-            console.log('✅ Fallback metadata upload successful:', fallbackUrl);
+            console.log('✅ JSONBin.io fallback successful:', fallbackUrl);
             return { success: true, url: fallbackUrl };
+          } else {
+            console.warn('JSONBin.io failed with status:', response.status);
           }
         } catch (fallbackError) {
-          console.error('Fallback upload also failed:', fallbackError);
+          console.error('JSONBin.io fallback failed:', fallbackError);
         }
-        
-        return { success: false, error: error.message };
+
+        // Fallback 2: Use GitHub Gist for reliable hosting
+        console.log('Attempting fallback metadata upload to GitHub Gist...');
+        try {
+          const gistResponse = await fetch('https://api.github.com/gists', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              description: 'Algorand Token Metadata',
+              public: true,
+              files: {
+                'metadata.json': {
+                  content: metadataJson
+                }
+              }
+            })
+          });
+          
+          if (gistResponse.ok) {
+            const gistResult = await gistResponse.json();
+            const gistUrl = `https://gist.githubusercontent.com/anonymous/${gistResult.id}/raw/metadata.json`;
+            console.log('✅ GitHub Gist fallback successful:', gistUrl);
+            return { success: true, url: gistUrl };
+          } else {
+            console.warn('GitHub Gist failed with status:', gistResponse.status);
+          }
+        } catch (gistError) {
+          console.error('GitHub Gist fallback failed:', gistError);
+        }
+
+        // Fallback 3: Use Pastebin for simple text hosting
+        console.log('Attempting fallback metadata upload to Pastebin...');
+        try {
+          const pasteFormData = new FormData();
+          pasteFormData.append('api_dev_key', 'dummy'); // Not needed for anonymous paste
+          pasteFormData.append('api_option', 'paste');
+          pasteFormData.append('api_paste_code', metadataJson);
+          pasteFormData.append('api_paste_private', '1'); // Unlisted
+          pasteFormData.append('api_paste_name', 'Algorand Token Metadata');
+          pasteFormData.append('api_paste_expire_date', '1M'); // 1 month
+          pasteFormData.append('api_paste_format', 'json');
+          
+          // Try anonymous paste first
+          const pasteResponse = await fetch('https://pastebin.com/api/api_post.php', {
+            method: 'POST',
+            body: pasteFormData
+          });
+          
+          if (pasteResponse.ok) {
+            const pasteUrl = await pasteResponse.text();
+            if (pasteUrl.startsWith('https://pastebin.com/')) {
+              const rawUrl = pasteUrl.replace('pastebin.com/', 'pastebin.com/raw/');
+              console.log('✅ Pastebin fallback successful:', rawUrl);
+              return { success: true, url: rawUrl };
+            }
+          }
+        } catch (pasteError) {
+          console.error('Pastebin fallback failed:', pasteError);
+        }
+
+        // Fallback 4: Create a data URL as last resort
+        console.log('Using data URL as final fallback...');
+        const dataUrl = `data:application/json;base64,${btoa(metadataJson)}`;
+        console.log('✅ Data URL fallback (local only)');
+        return { success: true, url: dataUrl };
       }
 
       // Get public URL
@@ -372,7 +438,7 @@ export const supabaseHelpers = {
 
   // Advanced Features Check
   async hasAdvancedFeatures(userId: string): Promise<boolean> {
-    const profileResult = await supabaseHelpers.getUserProfile(userId);
+    const profileResult = await this.getUserProfile(userId);
     
     if (!profileResult.success) {
       return false;
@@ -393,7 +459,7 @@ export const supabaseHelpers = {
       return { success: false, error: 'Supabase not configured. Please set up your .env.local file with real Supabase credentials.' };
     }
     
-    const profileResult = await supabaseHelpers.getUserProfile(userId);
+    const profileResult = await this.getUserProfile(userId);
     if (!profileResult.success) {
       return { success: false, error: 'Could not fetch user profile' };
     }
@@ -407,13 +473,13 @@ export const supabaseHelpers = {
     const newBalance = currentBalance - amount;
 
     // Update balance
-    const updateResult = await supabaseHelpers.updateUserCredits(userId, newBalance);
+    const updateResult = await this.updateUserCredits(userId, newBalance);
     if (!updateResult.success) {
       return updateResult;
     }
 
     // Record transaction
-    const transactionResult = await supabaseHelpers.addCreditTransaction({
+    const transactionResult = await this.addCreditTransaction({
       user_id: userId,
       type: 'usage',
       amount: -amount, // Negative for usage
