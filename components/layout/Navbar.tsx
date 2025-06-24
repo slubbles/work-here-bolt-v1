@@ -227,7 +227,7 @@ export default function Navbar() {
                         <div className="text-[#76f935] text-sm font-medium">
                           {formatAddress(algorandAddress)}
                           <span className="ml-1 text-xs opacity-75">
-                            ({algorandNetworkConfig?.isMainnet ? 'MainNet' : 'TestNet'})
+                            ({algorandNetworkConfig?.isMainnet ? 'Mainnet' : 'Testnet'})
                           </span>
                         </div>
                       </div>
@@ -331,7 +331,7 @@ export default function Navbar() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-foreground font-medium text-sm">
-                              Algorand {algorandNetworkConfig?.isMainnet ? 'MainNet' : 'TestNet'}
+                              Algorand {algorandNetworkConfig?.isMainnet ? 'Mainnet' : 'Testnet'}
                             </p>
                             <p className="text-muted-foreground text-xs">
                               {algorandNetworkConfig?.name || 'Algorand Network'}
@@ -373,7 +373,7 @@ export default function Navbar() {
                               onClick={() => setAlgorandSelectedNetwork('algorand-testnet')}
                               className="flex-1 text-xs px-3 py-2"
                             >
-                              TestNet
+                              Testnet
                             </Button>
                             <Button
                               variant={algorandSelectedNetwork === 'algorand-mainnet' ? 'default' : 'ghost'}
@@ -381,7 +381,7 @@ export default function Navbar() {
                               onClick={() => setAlgorandSelectedNetwork('algorand-mainnet')}
                               className="flex-1 text-xs px-3 py-2"
                             >
-                              MainNet
+                              Mainnet
                             </Button>
                           </div>
                           <Button
@@ -402,7 +402,7 @@ export default function Navbar() {
                               onClick={() => setAlgorandSelectedNetwork('algorand-testnet')}
                               className="flex-1 text-xs font-medium px-3 py-2"
                             >
-                              TestNet
+                              Testnet
                             </Button>
                             <Button
                               variant={algorandSelectedNetwork === 'algorand-mainnet' ? 'default' : 'ghost'}
@@ -410,7 +410,7 @@ export default function Navbar() {
                               onClick={() => setAlgorandSelectedNetwork('algorand-mainnet')}
                               className="flex-1 text-xs font-medium px-3 py-2"
                             >
-                              MainNet
+                              Mainnet
                             </Button>
                           </div>
                           <Button
@@ -433,7 +433,7 @@ export default function Navbar() {
                                 <div className="w-5 h-5 rounded bg-white/20 flex items-center justify-center">
                                   <span className="text-white font-bold text-xs">A</span>
                                 </div>
-                                <span>Connect to {algorandNetworkConfig?.isMainnet ? 'MainNet' : 'TestNet'}</span>
+                                <span>Connect to {algorandNetworkConfig?.isMainnet ? 'Mainnet' : 'Testnet'}</span>
                               </div>
                             )}
                           </Button>
@@ -585,7 +585,7 @@ export default function Navbar() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <span className="text-foreground font-medium">
-                          Algorand {algorandNetworkConfig?.isMainnet ? 'MainNet' : 'TestNet'}
+                          Algorand {algorandNetworkConfig?.isMainnet ? 'Mainnet' : 'Testnet'}
                         </span>
                         {algorandConnected && algorandAddress && (
                           <div className="flex items-center space-x-2 mt-1">
@@ -630,7 +630,7 @@ export default function Navbar() {
                               <div className="w-4 h-4 rounded bg-[#76f935]/20 flex items-center justify-center">
                                 <span className="text-[#76f935] font-bold text-xs">T</span>
                               </div>
-                              <span>TestNet</span>
+                              <span>Testnet</span>
                             </div>
                           </Button>
                           <Button
@@ -643,7 +643,7 @@ export default function Navbar() {
                               <div className="w-4 h-4 rounded bg-[#00d4aa]/20 flex items-center justify-center">
                                 <span className="text-[#00d4aa] font-bold text-xs">M</span>
                               </div>
-                              <span>MainNet</span>
+                              <span>Mainnet</span>
                             </div>
                           </Button>
                         </div>
@@ -651,9 +651,9 @@ export default function Navbar() {
                       <Button
                         variant="outline"
                         onClick={handleAlgorandDisconnect}
-                        className="w-full border-border text-muted-foreground hover:bg-muted h-12 rounded-xl font-semibold"
+                        className="w-full border-border text-muted-foreground hover:bg-muted h-12 rounded-xl font-semibold px-4"
                       >
-                        Disconnect from {algorandNetworkConfig?.isMainnet ? 'MainNet' : 'TestNet'}
+                        Disconnect from {algorandNetworkConfig?.isMainnet ? 'Mainnet' : 'Testnet'}
                       </Button>
                     </div>
                   ) : (
@@ -668,7 +668,7 @@ export default function Navbar() {
                             onClick={() => setAlgorandSelectedNetwork('algorand-testnet')}
                             className="flex-1 text-xs font-medium"
                           >
-                            TestNet
+                            Testnet
                           </Button>
                           <Button
                             variant={algorandSelectedNetwork === 'algorand-mainnet' ? 'default' : 'ghost'}
@@ -676,7 +676,7 @@ export default function Navbar() {
                             onClick={() => setAlgorandSelectedNetwork('algorand-mainnet')}
                             className="flex-1 text-xs font-medium"
                           >
-                            MainNet
+                            Mainnet
                           </Button>
                         </div>
                       </div>
@@ -701,7 +701,7 @@ export default function Navbar() {
                               <span className="text-white font-bold">A</span>
                             </div>
                             <span className="text-lg">
-                              Connect to {algorandNetworkConfig?.isMainnet ? 'MainNet' : 'TestNet'}
+                              Connect to {algorandNetworkConfig?.isMainnet ? 'Mainnet' : 'Testnet'}
                             </span>
                           </div>
                         )}

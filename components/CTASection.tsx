@@ -91,39 +91,6 @@ export default function CTASection() {
           </div>
         </div>
 
-        {/* Main CTA */}
-        <div className="cta-section rounded-2xl p-12 text-center mt-16">
-          <h3 className="text-3xl font-bold text-[#fefde0] mb-4">
-            Ready to Join the Token Revolution?
-          </h3>
-          <p className="text-xl text-red-100 mb-8 max-w-2xl mx-auto">
-            Your idea has potential. Your community is waiting. The only question is: will you take the first step today?
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/create">
-              <Button 
-                size="lg" 
-                className="bg-[#fefde0] text-red-600 hover:bg-gray-100 px-8 py-4 text-lg font-semibold"
-              >
-                Create Your Token Now
-                <ArrowRight className="w-5 h-5 ml-2" />
-              </Button>
-            </Link>
-            <Link href="/tokenomics">
-              <Button 
-                variant="outline" 
-                size="lg" 
-                className="border-red-500/50 text-red-500 hover:bg-red-500/10 px-8 py-4 text-lg font-semibold"
-              >
-                <Play className="w-5 h-5 mr-2" />
-                Try Tokenomics Simulator
-              </Button>
-            </Link>
-          </div>
-          <p className="text-sm text-red-200 mt-6 opacity-80">
-            No credit card required • Launch in 30 seconds • Join 10,000+ creators
-          </p>
-        </div>
       </div>
     </section>
   );
