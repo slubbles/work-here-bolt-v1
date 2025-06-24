@@ -26,6 +26,14 @@ const nextConfig = {
     optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
     optimizeCss: true,
     scrollRestoration: true,
+    turbo: {
+      rules: {
+        '*.svg': {
+          loaders: ['@svgr/webpack'],
+          as: '*.js',
+        },
+      },
+    },
   },
   // Webpack configuration to handle module resolution
   webpack: (config, { buildId, dev, isServer, defaultLoaders, webpack }) => {
@@ -67,6 +75,17 @@ const nextConfig = {
     // Optimize for Algorand SDK
     config.optimization = config.optimization || {};
     config.optimization.sideEffects = false;
+    
+    // Add bundle analyzer in development
+    if (process.env.ANALYZE === 'true') {
+      const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
+      config.plugins.push(
+        new BundleAnalyzerPlugin({
+          analyzerMode: 'static',
+          openAnalyzer: false,
+        })
+      );
+    }
 
     return config;
   },

@@ -371,7 +371,7 @@ export default function Navbar() {
                               variant={algorandSelectedNetwork === 'algorand-testnet' ? 'default' : 'ghost'}
                               size="sm"
                               onClick={() => setAlgorandSelectedNetwork('algorand-testnet')}
-                              className="flex-1 text-xs"
+                              className="flex-1 text-xs px-3 py-2"
                             >
                               TestNet
                             </Button>
@@ -379,7 +379,7 @@ export default function Navbar() {
                               variant={algorandSelectedNetwork === 'algorand-mainnet' ? 'default' : 'ghost'}
                               size="sm"
                               onClick={() => setAlgorandSelectedNetwork('algorand-mainnet')}
-                              className="flex-1 text-xs"
+                              className="flex-1 text-xs px-3 py-2"
                             >
                               MainNet
                             </Button>
@@ -387,7 +387,7 @@ export default function Navbar() {
                           <Button
                             variant="outline"
                             onClick={handleAlgorandDisconnect}
-                            className="w-full border-border text-muted-foreground hover:bg-muted rounded-lg h-9 text-sm font-medium"
+                            className="w-full border-border text-muted-foreground hover:bg-muted rounded-lg h-9 text-sm font-medium px-4"
                           >
                             Disconnect
                           </Button>
@@ -400,7 +400,7 @@ export default function Navbar() {
                               variant={algorandSelectedNetwork === 'algorand-testnet' ? 'default' : 'ghost'}
                               size="sm"
                               onClick={() => setAlgorandSelectedNetwork('algorand-testnet')}
-                              className="flex-1 text-xs font-medium"
+                              className="flex-1 text-xs font-medium px-3 py-2"
                             >
                               TestNet
                             </Button>
@@ -408,7 +408,7 @@ export default function Navbar() {
                               variant={algorandSelectedNetwork === 'algorand-mainnet' ? 'default' : 'ghost'}
                               size="sm"
                               onClick={() => setAlgorandSelectedNetwork('algorand-mainnet')}
-                              className="flex-1 text-xs font-medium"
+                              className="flex-1 text-xs font-medium px-3 py-2"
                             >
                               MainNet
                             </Button>
@@ -416,7 +416,7 @@ export default function Navbar() {
                           <Button
                             onClick={handleAlgorandConnect}
                             disabled={!isPeraWalletReady || algorandIsConnecting}
-                            className="w-full bg-gradient-to-r from-[#76f935] to-[#5dd128] hover:from-[#5dd128] hover:to-[#4bb01f] text-white font-medium rounded-lg h-9 text-sm shadow-md hover:shadow-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="w-full bg-gradient-to-r from-[#76f935] to-[#5dd128] hover:from-[#5dd128] hover:to-[#4bb01f] text-white font-medium rounded-lg h-9 text-sm shadow-md hover:shadow-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed px-4"
                           >
                             {algorandIsConnecting ? (
                               <div className="flex items-center space-x-2">
@@ -623,7 +623,7 @@ export default function Navbar() {
                           <Button
                             variant={algorandSelectedNetwork === 'algorand-testnet' ? 'default' : 'outline'}
                             onClick={() => setAlgorandSelectedNetwork('algorand-testnet')}
-                            className="flex-1 h-12 font-semibold"
+                            className="flex-1 h-12 font-semibold px-4"
                             size="sm"
                           >
                             <div className="flex items-center space-x-2">
@@ -636,7 +636,7 @@ export default function Navbar() {
                           <Button
                             variant={algorandSelectedNetwork === 'algorand-mainnet' ? 'default' : 'outline'}
                             onClick={() => setAlgorandSelectedNetwork('algorand-mainnet')}
-                            className="flex-1 h-12 font-semibold"
+                            className="flex-1 h-12 font-semibold px-4"
                             size="sm"
                           >
                             <div className="flex items-center space-x-2">
@@ -683,7 +683,7 @@ export default function Navbar() {
                       <Button
                         onClick={handleAlgorandConnect}
                         disabled={!isPeraWalletReady || algorandIsConnecting}
-                        className="w-full bg-gradient-to-r from-[#76f935] to-[#5dd128] hover:from-[#5dd128] hover:to-[#4bb01f] text-white font-semibold rounded-xl h-14 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-full bg-gradient-to-r from-[#76f935] to-[#5dd128] hover:from-[#5dd128] hover:to-[#4bb01f] text-white font-semibold rounded-xl h-14 disabled:opacity-50 disabled:cursor-not-allowed px-6"
                       >
                         {algorandIsConnecting ? (
                           <div className="flex items-center space-x-3">

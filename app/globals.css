@@ -309,6 +309,7 @@
   .button-enhanced {
     @apply transition-all duration-200 font-medium relative overflow-hidden;
     letter-spacing: -0.01em;
+    padding: 0.5rem 1rem;
   }
   
   .button-enhanced::before {
@@ -349,6 +350,7 @@
 
   .network-card {
     @apply p-6 rounded-xl border transition-all relative overflow-hidden cursor-pointer;
+    min-height: 80px;
   }
 
   .network-card.active {
@@ -527,6 +529,7 @@
   .enhanced-tab-trigger {
     @apply text-foreground rounded-lg font-semibold transition-all duration-200 h-12 text-base relative;
     box-shadow: none;
+    padding: 0.75rem 1rem;
   }
 
   .enhanced-tab-trigger[data-state="active"] {
