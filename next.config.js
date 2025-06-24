@@ -1,12 +1,18 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: 'standalone',
   swcMinify: true,
   poweredByHeader: false,
   reactStrictMode: true,
+  compress: true,
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production',
   },
   optimizeFonts: true,
+  // Environment variables validation
+  env: {
+    CUSTOM_BUILD_ID: process.env.VERCEL_GIT_COMMIT_SHA || process.env.GITHUB_SHA || 'local',
+  },
   images: {
     domains: ['api.dicebear.com', 'images.unsplash.com'],
     formats: ['image/webp', 'image/avif'],
@@ -23,9 +29,10 @@ const nextConfig = {
   // Experimental features for better Algorand integration
   experimental: {
     esmExternals: true,
-    optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
+    optimizePackageImports: ['lucide-react', '@radix-ui/react-icons', 'recharts'],
     optimizeCss: true,
     scrollRestoration: true,
+    serverComponentsExternalPackages: ['algosdk'],
     turbo: {
       rules: {
         '*.svg': {
@@ -34,6 +41,49 @@ const nextConfig = {
         },
       },
     },
+  },
+  // Headers for security and performance
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'X-Frame-Options',
+            value: 'DENY',
+          },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+          {
+            key: 'Referrer-Policy',
+            value: 'strict-origin-when-cross-origin',
+          },
+          {
+            key: 'Permissions-Policy',
+            value: 'camera=(), microphone=(), geolocation=(), payment=()',
+          },
+        ],
+      },
+      {
+        source: '/api/(.*)',
+        headers: [
+          {
+            key: 'Access-Control-Allow-Origin',
+            value: process.env.NODE_ENV === 'production' ? 'https://snarbles.xyz' : '*',
+          },
+          {
+            key: 'Access-Control-Allow-Methods',
+            value: 'GET, POST, PUT, DELETE, OPTIONS',
+          },
+          {
+            key: 'Access-Control-Allow-Headers',
+            value: 'Content-Type, Authorization',
+          },
+        ],
+      },
+    ];
   },
   // Webpack configuration to handle module resolution
   webpack: (config, { buildId, dev, isServer, defaultLoaders, webpack }) => {
