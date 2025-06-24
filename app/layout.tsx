@@ -81,7 +81,6 @@ export default function RootLayout({
         <link 
           href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" 
           rel="stylesheet" 
-          priority
         />
         <link rel="icon" href="/pSsNHPck_400x400.jpg" />
         <link rel="apple-touch-icon" href="/pSsNHPck_400x400.jpg" />
