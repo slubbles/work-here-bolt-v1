@@ -4,13 +4,19 @@ import Footer from '@/components/layout/Footer';
 import { Toaster } from '@/components/ui/toaster';
 import dynamic from 'next/dynamic';
 
-// Dynamically import components that use browser APIs
-const Navbar = dynamic(() => import('@/components/layout/Navbar'), {
+// Dynamically import components that use browser APIs with better error handling
+const Navbar = dynamic(() => import('@/components/layout/Navbar').catch(err => {
+  console.error('Failed to load Navbar:', err);
+  return () => <div className="h-16 bg-background border-b">Navigation Loading Error</div>;
+}), {
   ssr: false,
   loading: () => <div className="h-16 bg-background border-b" />
 });
 
-const WalletContextProvider = dynamic(() => import('@/components/providers/WalletProvider'), {
+const WalletContextProvider = dynamic(() => import('@/components/providers/WalletProvider').catch(err => {
+  console.error('Failed to load WalletProvider:', err);
+  return ({ children }: { children: React.ReactNode }) => <>{children}</>;
+}), {
   ssr: false,
   loading: () => <div />
 });
