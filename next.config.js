@@ -1,12 +1,18 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   swcMinify: true,
+  poweredByHeader: false,
+  reactStrictMode: true,
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production',
   },
+  optimizeFonts: true,
   images: {
     domains: ['api.dicebear.com', 'images.unsplash.com'],
     formats: ['image/webp', 'image/avif'],
+    minimumCacheTTL: 60,
+    dangerouslyAllowSVG: true,
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
   transpilePackages: ['algosdk', '@perawallet/connect'],
   eslint: {
@@ -18,6 +24,8 @@ const nextConfig = {
   experimental: {
     esmExternals: true,
     optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
+    optimizeCss: true,
+    scrollRestoration: true,
   },
   // Webpack configuration to handle module resolution
   webpack: (config, { buildId, dev, isServer, defaultLoaders, webpack }) => {

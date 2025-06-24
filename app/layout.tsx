@@ -10,7 +10,7 @@ const Navbar = dynamic(() => import('@/components/layout/Navbar').catch(err => {
   return () => <div className="h-16 bg-background border-b">Navigation Loading Error</div>;
 }), {
   ssr: false,
-  loading: () => <div className="h-16 bg-background border-b" />
+  loading: () => <div className="h-16 bg-background border-b animate-pulse" />
 });
 
 const WalletContextProvider = dynamic(() => import('@/components/providers/WalletProvider').catch(err => {
@@ -18,7 +18,7 @@ const WalletContextProvider = dynamic(() => import('@/components/providers/Walle
   return ({ children }: { children: React.ReactNode }) => <>{children}</>;
 }), {
   ssr: false,
-  loading: () => <div />
+  loading: () => null
 });
 
 export const metadata: Metadata = {
