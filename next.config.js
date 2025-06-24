@@ -22,7 +22,6 @@ const nextConfig = {
   pageExtensions: ['ts', 'tsx', 'js', 'jsx'],
   // Experimental features for better Algorand integration
   experimental: {
-    esmExternals: false,
     optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
     optimizeCss: true,
     scrollRestoration: true,
