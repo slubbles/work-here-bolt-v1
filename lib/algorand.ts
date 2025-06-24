@@ -59,13 +59,13 @@ export async function waitForConfirmationWithRetry(
   network: string
 ): Promise<any> {
   const status = await algodClient.status().do();
-  let lastRound = status['last-round'];
+  let lastRound = status.lastRound;
   
-  while (lastRound < status['last-round'] + maxRounds) {
+  while (lastRound < Number(status.lastRound) + maxRounds) {
     try {
       const pendingInfo = await algodClient.pendingTransactionInformation(txId).do();
       
-      if (pendingInfo['confirmed-round'] !== null && pendingInfo['confirmed-round'] > 0) {
+      if (pendingInfo.confirmedRound && pendingInfo.confirmedRound > 0) {
         return pendingInfo;
       }
       
@@ -96,7 +96,7 @@ export async function getAlgorandAccountInfo(address: string, network: string) {
     }
 
     const account = accountInfo.account;
-    const balance = account.amount ? account.amount / 1000000 : 0; // Convert microAlgos to Algos
+    const balance = account.amount ? Number(account.amount) / 1000000 : 0; // Convert microAlgos to Algos
     const assets = account.assets || [];
     
     console.log(`✅ Account info loaded: ${balance} ALGO, ${assets.length} assets`);
@@ -151,7 +151,7 @@ export async function getAlgorandAssetInfo(assetId: number, network: string) {
     const assetData = {
       assetId,
       assetName: params.name || 'Unknown Asset',
-      unitName: params.unit || 'UNK',
+      unitName: params.unitName || 'UNK',
       totalSupply: params.total || 0,
       decimals: params.decimals || 0,
       creator: params.creator,
@@ -159,9 +159,9 @@ export async function getAlgorandAssetInfo(assetId: number, network: string) {
       reserve: params.reserve,
       freeze: params.freeze,
       clawback: params.clawback,
-      defaultFrozen: params['default-frozen'] || false,
+      defaultFrozen: params.defaultFrozen || false,
       url: params.url,
-      metadataHash: params['metadata-hash'],
+      metadataHash: params.metadataHash,
       metadata
     };
     
@@ -272,7 +272,7 @@ export async function createAlgorandToken(
     
     // Create asset creation transaction
     const assetCreateTxn = algosdk.makeAssetCreateTxnWithSuggestedParamsFromObject({
-      from: creatorAddress,
+      sender: creatorAddress,
       suggestedParams,
       defaultFrozen: false,
       unitName: tokenData.symbol,
@@ -291,7 +291,8 @@ export async function createAlgorandToken(
     const signedTxn = await signTransaction(assetCreateTxn);
     
     console.log('📡 Sending transaction to network...');
-    const { txId } = await algodClient.sendRawTransaction(signedTxn).do();
+    const response = await algodClient.sendRawTransaction(signedTxn).do();
+    const txId = response.txid;
     
     console.log('⏳ Waiting for confirmation...');
     let confirmedTxn;
@@ -353,8 +354,8 @@ export async function optInToAsset(
     
     // Create opt-in transaction (asset transfer of 0 to self)
     const optInTxn = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
-      from: address,
-      to: address,
+      sender: address,
+      receiver: address,
       assetIndex: assetId,
       amount: 0,
       suggestedParams
@@ -364,7 +365,8 @@ export async function optInToAsset(
     const signedTxn = await signTransaction(optInTxn);
     
     console.log('📡 Sending opt-in transaction...');
-    const { txId } = await algodClient.sendRawTransaction(signedTxn).do();
+    const response = await algodClient.sendRawTransaction(signedTxn).do();
+    const txId = response.txid;
     
     console.log('⏳ Waiting for opt-in confirmation...');
     await waitForConfirmationWithRetry(algodClient, txId, 10, network);
