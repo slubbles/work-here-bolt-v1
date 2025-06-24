@@ -136,6 +136,17 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
       setError('Total supply must be greater than 0');
       return false;
     }
+    
+    // Validate total supply doesn't overflow JavaScript's safe integer limit
+    const totalSupplyNum = parseFloat(tokenData.totalSupply);
+    const decimalsNum = parseInt(tokenData.decimals);
+    const totalWithDecimals = totalSupplyNum * Math.pow(10, decimalsNum);
+    
+    if (!Number.isSafeInteger(totalWithDecimals)) {
+      setError(`Total supply ${totalSupplyNum} with ${decimalsNum} decimals exceeds safe limits. Please reduce the total supply or decimals.`);
+      return false;
+    }
+    
     return true;
   };
 
@@ -688,7 +699,12 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
                   value={tokenData.totalSupply}
                   onChange={(e) => updateTokenData('totalSupply', e.target.value)}
                   className="form-input"
+                  min="1"
+                  max="1000000000"
                 />
+                <p className="text-xs text-muted-foreground">
+                  Maximum recommended: 1 billion (considering decimals)
+                </p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="decimals" className="form-label">Decimals</Label>

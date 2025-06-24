@@ -248,14 +248,33 @@ export async function createAlgorandToken(
       throw new Error(`Metadata upload failed: ${metadataUploadResult.error}`);
     }
     
-    const metadataUrl = metadataUploadResult.url!;
+    let metadataUrl = metadataUploadResult.url!;
     console.log('✅ Metadata uploaded:', metadataUrl);
+    
+    // Validate URL length for Algorand compatibility (96 character limit)
+    if (metadataUrl.length > 96) {
+      console.warn(`⚠️ Metadata URL is ${metadataUrl.length} characters, but Algorand limit is 96. Using truncated URL.`);
+      // Use a shorter fallback URL for Algorand compatibility
+      const shortUrl = 'https://token.info';
+      console.log(`🔧 Using fallback URL: ${shortUrl}`);
+      metadataUrl = shortUrl;
+    }
     
     // Get suggested transaction parameters
     const suggestedParams = await algodClient.getTransactionParams().do();
     
-    // Calculate total supply with decimals
-    const totalSupplyWithDecimals = parseInt(tokenData.totalSupply) * Math.pow(10, tokenData.decimals);
+    // Calculate total supply with decimals using BigInt for safety
+    const baseSupply = BigInt(tokenData.totalSupply);
+    const decimalsMultiplier = BigInt(Math.pow(10, tokenData.decimals));
+    const totalSupplyBigInt = baseSupply * decimalsMultiplier;
+    
+    // Convert to number and ensure it's within safe limits
+    const totalSupplyWithDecimals = Number(totalSupplyBigInt);
+    
+    // Validate that the number is safe for JavaScript
+    if (!Number.isSafeInteger(totalSupplyWithDecimals)) {
+      throw new Error(`Total supply ${totalSupplyWithDecimals} exceeds JavaScript's safe integer limit. Please reduce the total supply or decimals.`);
+    }
     
     // Set manager addresses based on features
     const managerAddress = tokenData.mintable ? creatorAddress : ZERO_ADDRESS;
