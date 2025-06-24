@@ -26,8 +26,8 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useWallet } from '@solana/wallet-adapter-react';
-import { PeraWalletConnect } from '@perawallet/connect';
-import { getAlgorandAccountInfo, getAlgorandAssetInfo, ALGORAND_NETWORK_INFO } from '@/lib/algorand';
+import { getAlgorandAccountInfo, getAlgorandAssetInfo } from '@/lib/algorand';
+import { useAlgorandWallet } from '@/components/providers/AlgorandWalletProvider';
 
 // Enhanced Token interface to support both Solana and Algorand
 interface Token {
@@ -60,25 +60,21 @@ export default function DashboardPage() {
   const [userTokens, setUserTokens] = useState<Token[]>([]);
   const [isLoadingTokens, setIsLoadingTokens] = useState(false);
   const [selectedNetwork, setSelectedNetwork] = useState<'solana' | 'algorand'>('solana');
-  const [algorandWallet, setAlgorandWallet] = useState<string | null>(null);
   
   // Solana wallet integration
   const { connected: solanaConnected, publicKey } = useWallet();
 
-  // Initialize Pera Wallet for Algorand
-  const [peraWallet] = useState(() => new PeraWalletConnect());
-  const [algorandConnected, setAlgorandConnected] = useState(false);
-  const [algorandAddress, setAlgorandAddress] = useState<string | null>(null);
-  const [algorandSelectedNetwork, setAlgorandSelectedNetwork] = useState('algorand-testnet');
-
-  useEffect(() => {
-    // Check for existing Algorand wallet connection
-    peraWallet.reconnectSession().then((accounts) => {
-      if (accounts.length > 0) {
-        setAlgorandWallet(accounts[0]);
-      }
-    });
-  }, [peraWallet]);
+  // Algorand wallet integration
+  const {
+    connected: algorandConnected,
+    address: algorandAddress,
+    selectedNetwork: algorandSelectedNetwork,
+    setSelectedNetwork: setAlgorandSelectedNetwork,
+    connect: connectAlgorandWallet,
+    disconnect: disconnectAlgorandWallet,
+    isPeraWalletReady,
+    error: algorandError
+  } = useAlgorandWallet();
 
   useEffect(() => {
     if (selectedNetwork === 'solana' && solanaConnected) {
@@ -88,33 +84,12 @@ export default function DashboardPage() {
     }
   }, [selectedNetwork, solanaConnected, algorandConnected, algorandAddress, algorandSelectedNetwork]);
 
-  useEffect(() => {
-    // Check for existing Algorand wallet connection
-    peraWallet.reconnectSession().then((accounts) => {
-      if (accounts.length > 0) {
-        setAlgorandConnected(true);
-        setAlgorandAddress(accounts[0]);
-      }
-    }).catch(() => {
-      // No existing session
-    });
-  }, [peraWallet]);
-
-  useEffect(() => {
-    // Listen for disconnect events
-    peraWallet.connector?.on('disconnect', () => {
-      setAlgorandConnected(false);
-      setAlgorandAddress(null);
-      setUserTokens([]);
-    });
-  }, [peraWallet]);
-
   // Update Algorand network when dashboard network changes
   useEffect(() => {
-    if (selectedNetwork === 'algorand' && algorandSelectedNetwork !== 'algorand-testnet') {
+    if (selectedNetwork === 'algorand') {
       setAlgorandSelectedNetwork('algorand-testnet');
     }
-  }, [selectedNetwork, algorandSelectedNetwork]);
+  }, [selectedNetwork, setAlgorandSelectedNetwork]);
 
   const loadSolanaTokens = () => {
     // Mock Solana tokens for demo
@@ -227,29 +202,6 @@ export default function DashboardPage() {
     }
   };
 
-  const connectAlgorandWallet = async () => {
-    try {
-      const accounts = await peraWallet.connect();
-      if (accounts.length > 0) {
-        setAlgorandConnected(true);
-        setAlgorandAddress(accounts[0]);
-      }
-    } catch (error) {
-      console.error('Failed to connect Algorand wallet:', error);
-    }
-  };
-
-  const disconnectAlgorandWallet = () => {
-    try {
-      peraWallet.disconnect();
-      setAlgorandConnected(false);
-      setAlgorandAddress(null);
-      setUserTokens([]);
-    } catch (error) {
-      console.error('Failed to disconnect Algorand wallet:', error);
-    }
-  };
-
   const handleTransfer = () => {
     if (!transferAmount || !transferAddress) {
       alert('Please fill in both amount and recipient address');
@@ -282,8 +234,8 @@ export default function DashboardPage() {
       amount: userTokens.length > 0 ? `1,000 ${userTokens[0].symbol}` : '1,000 tokens', 
       to: solanaConnected && publicKey ? 
         `${publicKey.toBase58().slice(0, 4)}...${publicKey.toBase58().slice(-4)}` : 
-        algorandWallet ? 
-        `${algorandWallet.slice(0, 4)}...${algorandWallet.slice(-4)}` :
+        algorandAddress ? 
+        `${algorandAddress.slice(0, 4)}...${algorandAddress.slice(-4)}` :
         'Demo_abc...123', 
       time: '2 hours ago', 
       status: 'Completed' 
@@ -357,10 +309,10 @@ export default function DashboardPage() {
               {selectedNetwork === 'algorand' && !algorandConnected && (
                 <Button
                   onClick={connectAlgorandWallet}
-                  disabled={!isAlgorandWalletReady}
+                  disabled={!isPeraWalletReady}
                   className="bg-[#76f935] hover:bg-[#6ae82d] text-black w-full mb-4 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isAlgorandWalletReady ? 'Connect Pera Wallet' : 'Initializing...'}
+                  {isPeraWalletReady ? 'Connect Pera Wallet' : 'Initializing...'}
                 </Button>
               )}
             </div>
