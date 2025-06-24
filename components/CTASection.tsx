@@ -109,14 +109,16 @@ export default function CTASection() {
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
             </Link>
-            <Button 
-              variant="outline" 
-              size="lg" 
-              className="border-red-500/50 text-red-500 hover:bg-red-500/10 px-8 py-4 text-lg font-semibold"
-            >
-              <Play className="w-5 h-5 mr-2" />
-              Watch 30-Second Demo
-            </Button>
+            <Link href="/tokenomics">
+              <Button 
+                variant="outline" 
+                size="lg" 
+                className="border-red-500/50 text-red-500 hover:bg-red-500/10 px-8 py-4 text-lg font-semibold"
+              >
+                <Play className="w-5 h-5 mr-2" />
+                Try Tokenomics Simulator
+              </Button>
+            </Link>
           </div>
           <p className="text-sm text-red-200 mt-6 opacity-80">
             No credit card required • Launch in 30 seconds • Join 10,000+ creators

@@ -91,7 +91,12 @@ export default function HeroSection() {
               <Link href="/create">
                 <Button 
                   size="lg" 
-                  className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-8 py-4 text-lg font-semibold w-full sm:w-auto shadow-xl hover:shadow-2xl group rounded-xl button-enhanced transform hover:scale-105 transition-all duration-300"
+                  className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-8 py-4 text-lg font-semibold w-full sm:w-auto shadow-xl hover:shadow-2xl group rounded-xl button-enhanced transform hover:scale-105 transition-all duration-300 relative z-10"
+                  style={{
+                    background: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
+                    boxShadow: '0 10px 30px rgba(239, 68, 68, 0.4), 0 0 0 1px rgba(239, 68, 68, 0.1)',
+                    border: '1px solid rgba(239, 68, 68, 0.3)'
+                  }}
                 >
                   <Rocket className="w-5 h-5 mr-2 group-hover:animate-bounce" />
                   Create Your Token Now
@@ -101,7 +106,13 @@ export default function HeroSection() {
               <Button 
                 variant="outline" 
                 size="lg" 
-                className="border-2 border-border text-foreground hover:bg-muted px-8 py-4 text-lg font-semibold backdrop-blur-sm rounded-xl w-full sm:w-auto transform hover:scale-105 transition-all duration-300"
+                className="border-2 border-border text-foreground hover:bg-muted px-8 py-4 text-lg font-semibold backdrop-blur-sm rounded-xl w-full sm:w-auto transform hover:scale-105 transition-all duration-300 relative z-10"
+                style={{
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  backdropFilter: 'blur(20px)',
+                  border: '2px solid rgba(239, 68, 68, 0.3)',
+                  boxShadow: '0 8px 24px rgba(0, 0, 0, 0.1)'
+                }}
               >
                 <Play className="w-5 h-5 mr-2" />
                 Watch Demo

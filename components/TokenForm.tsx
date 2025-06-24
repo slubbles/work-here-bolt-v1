@@ -339,24 +339,14 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
 
   const networkOptions = [
     {
-      value: 'solana-devnet',
-      label: 'Solana Devnet',
-      description: 'Testing Environment - Free',
-      cost: 'Free',
-      recommended: true,
-      color: 'bg-green-500/20 text-green-400 border-green-500/30',
-      available: solanaConnected,
-      comingSoon: false
-    },
-    {
-      value: 'solana-mainnet',
-      label: 'Solana Mainnet',
+      value: 'algorand-mainnet',
+      label: 'Algorand MainNet',
       description: 'Production Network',
-      cost: '~$2-5',
+      cost: '~$0.002',
       recommended: false,
-      color: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-      available: false,
-      comingSoon: true
+      color: 'bg-[#00d4aa]/20 text-[#00d4aa] border-[#00d4aa]/30',
+      available: algorandConnected && isPeraWalletReady,
+      comingSoon: false
     },
     {
       value: 'algorand-testnet',
@@ -369,14 +359,24 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
       comingSoon: false
     },
     {
-      value: 'algorand-mainnet',
-      label: 'Algorand MainNet',
-      description: 'Production Network',
-      cost: '~$0.002',
+      value: 'solana-devnet',
+      label: 'Solana Devnet',
+      description: 'Testing Environment - Free',
+      cost: 'Free',
       recommended: false,
-      color: 'bg-[#00d4aa]/20 text-[#00d4aa] border-[#00d4aa]/30',
-      available: algorandConnected && isPeraWalletReady,
+      color: 'bg-green-500/20 text-green-400 border-green-500/30',
+      available: solanaConnected,
       comingSoon: false
+    },
+    {
+      value: 'soon-network',
+      label: 'SOON Network',
+      description: 'Next-gen Blockchain',
+      cost: 'TBA',
+      recommended: false,
+      color: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
+      available: false,
+      comingSoon: true
     }
   ];
 
@@ -657,10 +657,10 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
       <Card className="token-form-card border-2 border-red-500/10">
         <CardHeader>
           <CardTitle className="text-2xl flex items-center space-x-2">
-            <span>🎨 Token Details</span>
+            <span>Token Details</span>
           </CardTitle>
           <CardDescription>
-            Configure your token's basic information and properties ✨
+            Configure your token's basic information and properties
           </CardDescription>
         </CardHeader>
         <CardContent className="form-section">
@@ -868,7 +868,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
                   </div>
                 </div>
                 <p className="text-sm text-blue-600 font-medium animate-pulse">
-                  🚀 Please don't close this window while your token is being created...
+                  Please don't close this window while your token is being created...
                 </p>
               </div>
             )}

@@ -2,6 +2,7 @@
 
 import { Coins, Settings, BarChart3, Shield, Wallet, Users, Headphones, Code, Zap, Globe, Lock, Rocket } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 
 export default function FeaturesSection() {
   const [hoveredFeature, setHoveredFeature] = useState<number | null>(null);
@@ -166,12 +167,16 @@ export default function FeaturesSection() {
               Join thousands of creators who've already discovered the power of Snarbles.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <button className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300 hover:scale-105">
-                Start Creating Now
-              </button>
-              <button className="border border-border text-foreground hover:bg-muted px-6 py-3 rounded-xl font-semibold transition-all duration-300">
-                View Demo
-              </button>
+              <Link href="/create">
+                <button className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300 hover:scale-105">
+                  Start Creating Now
+                </button>
+              </Link>
+              <Link href="/dashboard">
+                <button className="border border-border text-foreground hover:bg-muted px-6 py-3 rounded-xl font-semibold transition-all duration-300">
+                  View Dashboard
+                </button>
+              </Link>
             </div>
           </div>
         </div>
