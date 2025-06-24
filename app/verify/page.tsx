@@ -45,7 +45,8 @@ export default function VerifyPage() {
 
   const networks = [
     { value: 'algorand-mainnet', label: 'Algorand MainNet', available: true },
-    { value: 'algorand-testnet', label: 'Algorand TestNet', available: true },
+    { value: 'algorand-mainnet', label: 'Algorand Mainnet', available: true },
+    { value: 'algorand-testnet', label: 'Algorand Testnet', available: true },
     { value: 'solana-devnet', label: 'Solana Network', available: false, comingSoon: true }
   ];
 

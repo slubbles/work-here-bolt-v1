@@ -340,7 +340,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
   const networkOptions = [
     {
       value: 'algorand-mainnet',
-      label: 'Algorand MainNet',
+      label: 'Algorand Mainnet',
       description: 'Production Network',
       cost: '~$0.002',
       recommended: false,
@@ -350,7 +350,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
     },
     {
       value: 'algorand-testnet',
-      label: 'Algorand TestNet',
+      label: 'Algorand Testnet',
       description: 'Ultra Low Cost Testing',
       cost: '~$0.001',
       recommended: false,
@@ -372,7 +372,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
       value: 'soon-network',
       label: 'SOON Network',
       description: 'Next-gen Blockchain',
-      cost: 'TBA',
+      cost: 'Coming Soon',
       recommended: false,
       color: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
       available: false,

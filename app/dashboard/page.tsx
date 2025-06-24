@@ -345,7 +345,7 @@ export default function DashboardPage() {
               {algorandAddress && (
                 <div className="flex items-center gap-2">
                   <p className="text-sm text-muted-foreground">
-                    Algorand ({algorandSelectedNetwork === 'algorand-mainnet' ? 'MainNet' : 'TestNet'}): 
+                    Algorand ({algorandSelectedNetwork === 'algorand-mainnet' ? 'Mainnet' : 'Testnet'}): 
                     {algorandAddress.slice(0, 4)}...{algorandAddress.slice(-4)}
                   </p>
                   <Button
@@ -353,12 +353,12 @@ export default function DashboardPage() {
                     size="sm"
                     onClick={disconnectAlgorandWallet}
                     className="text-xs"
-                  >
+                      <span>Mainnet</span>
                     Disconnect
                   </Button>
                 </div>
               )}
-            </div>
+                      <span>Testnet</span>
           </div>
           <div className="flex gap-2">
             <div className="flex gap-1 bg-muted rounded-lg p-1">

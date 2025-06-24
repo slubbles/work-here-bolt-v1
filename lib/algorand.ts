@@ -6,7 +6,7 @@ export const ZERO_ADDRESS = 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 // Algorand network configurations
 export const ALGORAND_NETWORKS = {
   'algorand-mainnet': {
-    name: 'Algorand MainNet',
+    name: 'Algorand Mainnet',
     algodUrl: 'https://mainnet-api.algonode.cloud',
     indexerUrl: 'https://mainnet-idx.algonode.cloud',
     token: '',
@@ -17,7 +17,7 @@ export const ALGORAND_NETWORKS = {
     color: 'bg-[#00d4aa]'
   },
   'algorand-testnet': {
-    name: 'Algorand TestNet',
+    name: 'Algorand Testnet',
     algodUrl: 'https://testnet-api.algonode.cloud',
     indexerUrl: 'https://testnet-idx.algonode.cloud',
     token: '',

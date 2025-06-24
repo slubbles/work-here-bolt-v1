@@ -176,7 +176,7 @@ export default function StatsSection() {
                 <div className="w-12 h-12 rounded-xl bg-purple-500/20 flex items-center justify-center mx-auto mb-4">
                   <span className="text-purple-500 font-bold">A</span>
                 </div>
-                <h4 className="text-foreground font-semibold mb-2">Algorand Network</h4>
+                <h4 className="text-foreground font-semibold mb-2">Algorand Testnet</h4>
                 <p className="text-muted-foreground text-sm mb-4">Ultra-low cost ASA creation</p>
                 <div className="text-purple-500 font-bold text-lg">
                   {algorandStats ? algorandStats.totalTokens.toLocaleString() : '1,247'} tokens
