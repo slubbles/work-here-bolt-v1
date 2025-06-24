@@ -61,8 +61,8 @@ export default function Navbar() {
 
   const navLinks = [
     { name: 'Create Token', href: '/create' },
-    { name: 'Tokenomics', href: '/tokenomics' },
-    { name: 'Verify', href: '/verify' },
+    { name: 'Tokenomics Simulator', href: '/tokenomics' },
+    { name: 'Token Verification', href: '/verify' },
     { name: 'Dashboard', href: '/dashboard' },
   ];
 

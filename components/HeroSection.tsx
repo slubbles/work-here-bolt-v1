@@ -87,11 +87,11 @@ export default function HeroSection() {
             </div>
 
             {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4 pt-4">
+            <div className="flex flex-col sm:flex-row gap-4 pt-6">
               <Link href="/create">
                 <Button 
                   size="lg" 
-                  className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-8 py-4 text-lg font-semibold w-full sm:w-auto shadow-xl hover:shadow-2xl group rounded-xl button-enhanced"
+                  className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-8 py-4 text-lg font-semibold w-full sm:w-auto shadow-xl hover:shadow-2xl group rounded-xl button-enhanced transform hover:scale-105 transition-all duration-300"
                 >
                   <Rocket className="w-5 h-5 mr-2 group-hover:animate-bounce" />
                   Create Your Token Now
@@ -101,7 +101,7 @@ export default function HeroSection() {
               <Button 
                 variant="outline" 
                 size="lg" 
-                className="border-2 border-border text-foreground hover:bg-muted px-8 py-4 text-lg font-semibold backdrop-blur-sm rounded-xl"
+                className="border-2 border-border text-foreground hover:bg-muted px-8 py-4 text-lg font-semibold backdrop-blur-sm rounded-xl w-full sm:w-auto transform hover:scale-105 transition-all duration-300"
               >
                 <Play className="w-5 h-5 mr-2" />
                 Watch Demo
