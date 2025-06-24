@@ -22,11 +22,16 @@ export default function StatsSection() {
   ];
 
   useEffect(() => {
-    // Load Algorand stats
+    // Load Algorand stats with error handling
     const loadAlgorandStats = async () => {
-      const stats = await getAlgorandPlatformStats();
-      if (stats.success) {
-        setAlgorandStats(stats.data);
+      try {
+        const stats = await getAlgorandPlatformStats();
+        if (stats.success) {
+          setAlgorandStats(stats.data);
+        }
+      } catch (error) {
+        console.error('Failed to load Algorand stats:', error);
+        // Continue with default stats if Algorand stats fail
       }
     };
 
