@@ -142,7 +142,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
   // Save token to Supabase after successful deployment
   const saveTokenToSupabase = async (tokenDetails: any, network: string) => {
     try {
-      const tokenData = {
+      const supabaseTokenData = {
         token_name: tokenDetails.name || tokenData.name,
         token_symbol: tokenDetails.symbol || tokenData.symbol,
         network: network,
@@ -160,7 +160,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
         transaction_hash: tokenDetails.signature || tokenDetails.transactionId
       };
 
-      const result = await saveToken(tokenData);
+      const result = await saveToken(supabaseTokenData);
       if (result.success) {
         console.log('✅ Token saved to Supabase successfully');
       } else {

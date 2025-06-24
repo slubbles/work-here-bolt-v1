@@ -67,14 +67,29 @@ export const supabaseHelpers = {
     const isPlaceholderKey = !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY.includes('placeholder');
     return !(isPlaceholderUrl || isPlaceholderKey);
   },
+  
   async uploadFileToStorage(file: File, bucket: string = 'token-assets', path?: string): Promise<{ success: boolean; url?: string; error?: string }> {
     try {
-      if (!(await this.checkSupabaseConnection())) {
+      if (!(await supabaseHelpers.checkSupabaseConnection())) {
         return { success: false, error: 'Supabase not configured. Please set up your .env.local file with real Supabase credentials.' };
       }
       
       // Generate unique filename if path not provided
       const fileName = path || `${Date.now()}-${Math.random().toString(36).substring(2)}-${file.name}`;
+      
+      // Check if bucket exists and create if needed
+      const { data: buckets, error: bucketListError } = await supabase.storage.listBuckets();
+      if (!bucketListError && !buckets.find(b => b.name === bucket)) {
+        console.log(`Creating storage bucket: ${bucket}`);
+        const { error: createBucketError } = await supabase.storage.createBucket(bucket, {
+          public: true,
+          allowedMimeTypes: ['image/*', 'application/json'],
+          fileSizeLimit: 5 * 1024 * 1024 // 5MB
+        });
+        if (createBucketError) {
+          console.warn(`Could not create bucket ${bucket}:`, createBucketError.message);
+        }
+      }
       
       // Upload file to Supabase Storage
       const { data, error } = await supabase.storage
@@ -109,7 +124,7 @@ export const supabaseHelpers = {
 
   async deleteFileFromStorage(fileName: string, bucket: string = 'token-assets'): Promise<{ success: boolean; error?: string }> {
     try {
-      if (!(await this.checkSupabaseConnection())) {
+      if (!(await supabaseHelpers.checkSupabaseConnection())) {
         return { success: false, error: 'Supabase not configured. Please set up your .env.local file with real Supabase credentials.' };
       }
       
@@ -135,7 +150,7 @@ export const supabaseHelpers = {
   // Enhanced upload function for metadata JSON files (ARC-3 compliance)
   async uploadMetadataToStorage(metadata: any, bucket: string = 'token-metadata', fileName?: string): Promise<{ success: boolean; url?: string; error?: string }> {
     try {
-      if (!(await this.checkSupabaseConnection())) {
+      if (!(await supabaseHelpers.checkSupabaseConnection())) {
         return { success: false, error: 'Supabase not configured. Please set up your .env.local file with real Supabase credentials.' };
       }
       
@@ -148,6 +163,20 @@ export const supabaseHelpers = {
       // Create blob from JSON string
       const blob = new Blob([metadataJson], { type: 'application/json' });
       
+      // Check if bucket exists and create if needed
+      const { data: buckets, error: bucketListError } = await supabase.storage.listBuckets();
+      if (!bucketListError && !buckets.find(b => b.name === bucket)) {
+        console.log(`Creating storage bucket: ${bucket}`);
+        const { error: createBucketError } = await supabase.storage.createBucket(bucket, {
+          public: true,
+          allowedMimeTypes: ['application/json'],
+          fileSizeLimit: 1024 * 1024 // 1MB
+        });
+        if (createBucketError) {
+          console.warn(`Could not create bucket ${bucket}:`, createBucketError.message);
+        }
+      }
+      
       // Upload blob to Supabase Storage
       const { data, error } = await supabase.storage
         .from(bucket)
@@ -158,7 +187,30 @@ export const supabaseHelpers = {
         });
 
       if (error) {
-        console.error('Error uploading metadata:', error);
+        console.error('Error uploading metadata to Supabase:', error);
+        
+        // Fallback: Use JSONBin.io for metadata hosting
+        console.log('Attempting fallback metadata upload to JSONBin.io...');
+        try {
+          const response = await fetch('https://api.jsonbin.io/v3/b', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Bin-Private': 'false'
+            },
+            body: metadataJson
+          });
+          
+          if (response.ok) {
+            const result = await response.json();
+            const fallbackUrl = `https://api.jsonbin.io/v3/b/${result.metadata.id}/latest`;
+            console.log('✅ Fallback metadata upload successful:', fallbackUrl);
+            return { success: true, url: fallbackUrl };
+          }
+        } catch (fallbackError) {
+          console.error('Fallback upload also failed:', fallbackError);
+        }
+        
         return { success: false, error: error.message };
       }
 
@@ -176,7 +228,7 @@ export const supabaseHelpers = {
 
   // User Profile Operations
   async createUserProfile(userId: string, email?: string) {
-    if (!(await this.checkSupabaseConnection())) {
+    if (!(await supabaseHelpers.checkSupabaseConnection())) {
       return { success: false, error: 'Supabase not configured. Please set up your .env.local file with real Supabase credentials.' };
     }
     
@@ -200,7 +252,7 @@ export const supabaseHelpers = {
   },
 
   async getUserProfile(userId: string) {
-    if (!(await this.checkSupabaseConnection())) {
+    if (!(await supabaseHelpers.checkSupabaseConnection())) {
       return { success: false, error: 'Supabase not configured. Please set up your .env.local file with real Supabase credentials.' };
     }
     
@@ -219,7 +271,7 @@ export const supabaseHelpers = {
   },
 
   async updateUserCredits(userId: string, newBalance: number) {
-    if (!(await this.checkSupabaseConnection())) {
+    if (!(await supabaseHelpers.checkSupabaseConnection())) {
       return { success: false, error: 'Supabase not configured. Please set up your .env.local file with real Supabase credentials.' };
     }
     
@@ -240,7 +292,7 @@ export const supabaseHelpers = {
 
   // Token Creation History Operations
   async saveTokenCreation(tokenData: Omit<TokenCreationHistory, 'id' | 'created_at'>) {
-    if (!(await this.checkSupabaseConnection())) {
+    if (!(await supabaseHelpers.checkSupabaseConnection())) {
       return { success: false, error: 'Supabase not configured. Please set up your .env.local file with real Supabase credentials.' };
     }
     
@@ -259,7 +311,7 @@ export const supabaseHelpers = {
   },
 
   async getUserTokenHistory(userId: string, limit = 50) {
-    if (!(await this.checkSupabaseConnection())) {
+    if (!(await supabaseHelpers.checkSupabaseConnection())) {
       return { success: false, error: 'Supabase not configured. Please set up your .env.local file with real Supabase credentials.' };
     }
     
@@ -280,7 +332,7 @@ export const supabaseHelpers = {
 
   // Credit Transaction Operations
   async addCreditTransaction(transaction: Omit<CreditTransaction, 'id' | 'timestamp'>) {
-    if (!(await this.checkSupabaseConnection())) {
+    if (!(await supabaseHelpers.checkSupabaseConnection())) {
       return { success: false, error: 'Supabase not configured. Please set up your .env.local file with real Supabase credentials.' };
     }
     
@@ -299,7 +351,7 @@ export const supabaseHelpers = {
   },
 
   async getUserCreditHistory(userId: string, limit = 100) {
-    if (!(await this.checkSupabaseConnection())) {
+    if (!(await supabaseHelpers.checkSupabaseConnection())) {
       return { success: false, error: 'Supabase not configured. Please set up your .env.local file with real Supabase credentials.' };
     }
     
@@ -320,7 +372,7 @@ export const supabaseHelpers = {
 
   // Advanced Features Check
   async hasAdvancedFeatures(userId: string): Promise<boolean> {
-    const profileResult = await this.getUserProfile(userId);
+    const profileResult = await supabaseHelpers.getUserProfile(userId);
     
     if (!profileResult.success) {
       return false;
@@ -331,17 +383,17 @@ export const supabaseHelpers = {
     // User has advanced features if:
     // 1. They have a pro/premium subscription, OR
     // 2. They have credits remaining (pay-per-use model)
-    return profile.subscription_tier !== 'free' || (profile.credits_balance && profile.credits_balance > 0);
+    return profile.subscription_tier !== 'free' || Boolean(profile.credits_balance && profile.credits_balance > 0);
   },
 
   // Deduct credits for feature usage
   async useCredits(userId: string, amount: number, description: string) {
     // First get current balance
-    if (!(await this.checkSupabaseConnection())) {
+    if (!(await supabaseHelpers.checkSupabaseConnection())) {
       return { success: false, error: 'Supabase not configured. Please set up your .env.local file with real Supabase credentials.' };
     }
     
-    const profileResult = await this.getUserProfile(userId);
+    const profileResult = await supabaseHelpers.getUserProfile(userId);
     if (!profileResult.success) {
       return { success: false, error: 'Could not fetch user profile' };
     }
@@ -355,13 +407,13 @@ export const supabaseHelpers = {
     const newBalance = currentBalance - amount;
 
     // Update balance
-    const updateResult = await this.updateUserCredits(userId, newBalance);
+    const updateResult = await supabaseHelpers.updateUserCredits(userId, newBalance);
     if (!updateResult.success) {
       return updateResult;
     }
 
     // Record transaction
-    const transactionResult = await this.addCreditTransaction({
+    const transactionResult = await supabaseHelpers.addCreditTransaction({
       user_id: userId,
       type: 'usage',
       amount: -amount, // Negative for usage
