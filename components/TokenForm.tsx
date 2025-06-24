@@ -654,11 +654,13 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
       )}
 
       {/* Token Details Form */}
-      <Card>
+      <Card className="token-form-card border-2 border-red-500/10">
         <CardHeader>
-          <CardTitle>Token Details</CardTitle>
+          <CardTitle className="text-2xl flex items-center space-x-2">
+            <span>🎨 Token Details</span>
+          </CardTitle>
           <CardDescription>
-            Configure your token's basic information and properties
+            Configure your token's basic information and properties ✨
           </CardDescription>
         </CardHeader>
         <CardContent className="form-section">
@@ -672,7 +674,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
                   placeholder="My Awesome Token"
                   value={tokenData.name}
                   onChange={(e) => updateTokenData('name', e.target.value)}
-                  className="form-input"
+                  className="form-input-enhanced"
                 />
               </div>
               <div className="space-y-2">
@@ -682,7 +684,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
                   placeholder="MAT"
                   value={tokenData.symbol}
                   onChange={(e) => updateTokenData('symbol', e.target.value.toUpperCase())}
-                  className="form-input"
+                  className="form-input-enhanced"
                 />
               </div>
             </div>
@@ -694,7 +696,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
                 placeholder="Describe your token's purpose and utility..."
                 value={tokenData.description}
                 onChange={(e) => updateTokenData('description', e.target.value)}
-                className="form-textarea"
+                className="form-input-enhanced min-h-[120px]"
               />
             </div>
 
@@ -708,7 +710,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
                   placeholder="1000000"
                   value={tokenData.totalSupply}
                   onChange={(e) => updateTokenData('totalSupply', e.target.value)}
-                  className="form-input"
+                  className="form-input-enhanced"
                   min="1"
                   max="18446744073709551615"
                 />
@@ -719,7 +721,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
               <div className="space-y-2">
                 <Label htmlFor="decimals" className="form-label">Decimals</Label>
                 <Select value={tokenData.decimals} onValueChange={(value) => updateTokenData('decimals', value)}>
-                  <SelectTrigger className="form-input">
+                  <SelectTrigger className="form-input-enhanced">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -771,7 +773,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
                     placeholder="https://example.com/logo.png"
                     value={tokenData.logoUrl}
                     onChange={(e) => updateTokenData('logoUrl', e.target.value)}
-                    className="form-input"
+                    className="form-input-enhanced"
                   />
                 </div>
               </div>
@@ -787,7 +789,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
                     placeholder="https://yourwebsite.com"
                     value={tokenData.website}
                     onChange={(e) => updateTokenData('website', e.target.value)}
-                    className="form-input"
+                    className="form-input-enhanced"
                   />
                 </div>
                 <div className="flex items-center space-x-3">
@@ -796,7 +798,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
                     placeholder="https://github.com/yourproject"
                     value={tokenData.github}
                     onChange={(e) => updateTokenData('github', e.target.value)}
-                    className="form-input"
+                    className="form-input-enhanced"
                   />
                 </div>
                 <div className="flex items-center space-x-3">
@@ -805,7 +807,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
                     placeholder="https://twitter.com/yourproject"
                     value={tokenData.twitter}
                     onChange={(e) => updateTokenData('twitter', e.target.value)}
-                    className="form-input"
+                    className="form-input-enhanced"
                   />
                 </div>
               </div>
@@ -852,19 +854,21 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
 
             {/* Deployment Progress */}
             {isDeploying && (
-              <div className="space-y-4 p-6 bg-blue-500/5 border border-blue-500/20 rounded-lg">
+              <div className="space-y-4 p-6 bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/30 rounded-xl loading-shimmer">
                 <div className="flex items-center space-x-3">
                   <Loader2 className="w-5 h-5 text-blue-500 animate-spin" />
-                  <span className="text-blue-600 font-medium">{deploymentStep}</span>
+                  <span className="text-blue-600 font-bold text-lg">{deploymentStep}</span>
                 </div>
-                <div className="w-full bg-muted rounded-full h-3">
+                <div className="w-full bg-muted rounded-full h-4 overflow-hidden">
                   <div 
-                    className="h-3 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full transition-all duration-500"
+                    className="h-4 bg-gradient-to-r from-blue-500 via-purple-500 to-blue-600 rounded-full transition-all duration-500 relative overflow-hidden"
                     style={{ width: `${deploymentProgress}%` }}
-                  ></div>
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-pulse"></div>
+                  </div>
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  Please don't close this window while your token is being created...
+                <p className="text-sm text-blue-600 font-medium animate-pulse">
+                  🚀 Please don't close this window while your token is being created...
                 </p>
               </div>
             )}

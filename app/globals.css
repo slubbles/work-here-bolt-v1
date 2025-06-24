@@ -324,7 +324,7 @@
 
   /* Enhanced form styles */
   .form-section {
-    @apply space-y-8;
+    @apply space-y-6;
   }
 
   .form-group {
@@ -385,6 +385,49 @@
     @apply bg-yellow-500/20 text-yellow-600 border-yellow-500/30 text-xs font-semibold;
   }
 
+  /* Enhanced token form animations */
+  .token-form-card {
+    @apply glass-card transition-all duration-500 hover:shadow-2xl;
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.02) 0%, rgba(239, 68, 68, 0.05) 100%);
+  }
+
+  .form-input-enhanced {
+    @apply input-enhanced transition-all duration-300 focus:ring-4 focus:ring-red-500/30 focus:border-red-500/50;
+  }
+
+  .form-input-enhanced:focus {
+    box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.15), 0 8px 20px rgba(0, 0, 0, 0.12);
+    transform: translateY(-1px);
+  }
+
+  /* Success state animations */
+  .success-pulse {
+    animation: successPulse 2s infinite;
+  }
+
+  @keyframes successPulse {
+    0%, 100% { 
+      box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+    }
+    50% { 
+      box-shadow: 0 0 0 10px rgba(34, 197, 94, 0);
+    }
+  }
+
+  /* Loading shimmer effect */
+  .loading-shimmer {
+    background: linear-gradient(90deg, 
+      rgba(255, 255, 255, 0) 0%, 
+      rgba(255, 255, 255, 0.1) 50%, 
+      rgba(255, 255, 255, 0) 100%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
   .text-enhanced {
     letter-spacing: -0.01em;
     line-height: 1.6;

@@ -1,6 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  swcMinify: false,
+  swcMinify: true,
+  compiler: {
+    removeConsole: process.env.NODE_ENV === 'production',
+  },
+  images: {
+    domains: ['api.dicebear.com', 'images.unsplash.com'],
+    formats: ['image/webp', 'image/avif'],
+  },
   transpilePackages: ['algosdk', '@perawallet/connect'],
   eslint: {
     ignoreDuringBuilds: true,
@@ -10,6 +17,7 @@ const nextConfig = {
   // Experimental features for better Algorand integration
   experimental: {
     esmExternals: true,
+    optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
   },
   // Webpack configuration to handle module resolution
   webpack: (config, { buildId, dev, isServer, defaultLoaders, webpack }) => {

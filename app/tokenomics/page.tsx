@@ -275,6 +275,15 @@ Visit: https://snarbles.xyz for more information
       });
       yPosition += 10;
 
+      // Add Distribution Visualization (simple text-based chart)
+      addText('DISTRIBUTION VISUALIZATION', 16, true);
+      Object.entries(distribution).forEach(([key, data]) => {
+        const barLength = Math.floor(data.value / 2); // Scale to fit page
+        const bar = '█'.repeat(barLength) + '░'.repeat(50 - barLength);
+        addText(`${data.label.padEnd(15)} ${data.value.toString().padStart(3)}% ${bar}`, 8);
+      });
+      yPosition += 10;
+
       // Recommendations
       addText('KEY RECOMMENDATIONS', 16, true);
       getStrengths().forEach(strength => {
@@ -466,17 +475,17 @@ Visit: https://snarbles.xyz for more information
                         <Input
                           value={data.label}
                           onChange={(e) => updateDistributionLabel(key, e.target.value)}
-                          className="input-enhanced w-32 text-sm"
+                          className="input-enhanced w-40 text-sm mr-4"
                           placeholder="Custom label"
                         />
-                        <span className="text-foreground font-medium">{data.value}%</span>
+                        <span className="text-foreground font-medium text-lg min-w-[60px] text-right">{data.value}%</span>
                       </div>
                       <Slider
                         value={[data.value]}
                         onValueChange={(newValue) => updateDistribution(key, newValue[0])}
                         max={100}
                         step={1}
-                        className="w-full"
+                        className="w-full mt-2"
                       />
                     </div>
                   ))}
@@ -522,11 +531,11 @@ Visit: https://snarbles.xyz for more information
 
             {/* Export Options */}
             <div className="glass-card p-8">
-              <h3 className="text-xl font-bold text-foreground mb-6">Export & Share</h3>
+              <h3 className="text-xl font-bold text-foreground mb-6">Export Reports</h3>
               <div className="space-y-4">
                 <Button 
                   onClick={generatePDFReport}
-                  className="w-full bg-red-500 hover:bg-red-600 text-white"
+                  className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white transform hover:scale-105 transition-all duration-300"
                 >
                   <Download className="w-4 h-4 mr-2" />
                   Generate PDF Report
@@ -534,18 +543,10 @@ Visit: https://snarbles.xyz for more information
                 <Button 
                   onClick={generateDetailedReport}
                   variant="outline"
-                  className="w-full border-border text-foreground hover:bg-muted"
+                  className="w-full border-border text-foreground hover:bg-muted transform hover:scale-105 transition-all duration-300"
                 >
                   <FileText className="w-4 h-4 mr-2" />
                   Download Detailed Analysis
-                </Button>
-                <Button 
-                  onClick={shareTokenomics}
-                  variant="outline"
-                  className="w-full border-border text-foreground hover:bg-muted"
-                >
-                  <Share2 className="w-4 h-4 mr-2" />
-                  Share Configuration
                 </Button>
               </div>
             </div>
