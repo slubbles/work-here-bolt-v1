@@ -12,13 +12,10 @@ const nextConfig = {
   },
   // Webpack configuration to handle module resolution
   webpack: (config, { buildId, dev, isServer, defaultLoaders, webpack }) => {
-    // Ensure algosdk and related packages are properly handled
-    config.externals = config.externals || [];
+    // Don't externalize algosdk and pera wallet for client-side
     if (!isServer) {
-      config.externals.push({
-        'algosdk': 'algosdk',
-        '@perawallet/connect': '@perawallet/connect'
-      });
+      // Remove problematic externals that were causing issues
+      config.externals = config.externals || [];
     }
     
     // Add polyfills for Node.js modules
