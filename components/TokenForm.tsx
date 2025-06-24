@@ -446,6 +446,16 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
                       ? `Algorand ${deploymentResult.network === 'algorand-mainnet' ? 'MainNet' : 'TestNet'}` 
                       : 'Solana'} Token Created!
                   </p>
+                  {deploymentResult.assetId && (
+                    <p className="text-sm">
+                      <strong>Asset ID:</strong> {deploymentResult.assetId}
+                    </p>
+                  )}
+                  {deploymentResult.transactionId && (
+                    <p className="text-sm">
+                      <strong>Transaction ID:</strong> {deploymentResult.transactionId}
+                    </p>
+                  )}
                   <p className="text-sm">
                     {deploymentResult.network?.startsWith('algorand')
                       ? 'To see your token in Pera Wallet, you need to opt-in to receive it.'
