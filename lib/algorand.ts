@@ -323,10 +323,61 @@ export async function createAlgorandToken(
       throw new Error(`Transaction submitted but not confirmed on ${network}. Please check the explorer for transaction status. TX ID: ${txId}`);
     }
     
-    // Extract asset ID from transaction confirmation
-    const assetId = confirmedTxn['asset-index'];
+    // Extract asset ID from transaction confirmation with robust fallback logic
+    console.log('🔍 Examining confirmed transaction for asset ID...');
+    console.log('Confirmed transaction keys:', Object.keys(confirmedTxn));
+
+    // Try multiple ways to extract asset ID from confirmation
+    let assetId = confirmedTxn['asset-index'] || 
+                  confirmedTxn.assetIndex || 
+                  confirmedTxn['created-asset-index'] ||
+                  confirmedTxn.createdAssetIndex ||
+                  confirmedTxn['inner-txns']?.[0]?.['asset-index'];
+
+    // For asset creation transactions, the asset ID might be in different locations
+    if (!assetId && confirmedTxn.txn) {
+      assetId = confirmedTxn.txn['asset-index'] || 
+                confirmedTxn.txn.assetIndex ||
+                confirmedTxn.txn['created-asset-index'];
+    }
+
+    // Check in global-state-delta or logs
+    if (!assetId && confirmedTxn['global-state-delta']) {
+      const deltaEntries = confirmedTxn['global-state-delta'];
+      for (const entry of deltaEntries) {
+        if (entry.key === 'asset-id' || entry.key === 'assetId') {
+          assetId = entry.value?.uint || entry.value?.bytes;
+          break;
+        }
+      }
+    }
+
+    // If still not found, try to get it by looking at the transaction result
+    if (!assetId && confirmedTxn.confirmedRound) {
+      console.log('🔍 Attempting to retrieve asset ID from account assets...');
+      
+      try {
+        // Get account info to find the newly created asset
+        const accountInfo = await algodClient.accountInformation(creatorAddress).do();
+        const assets = accountInfo.createdAssets || [];
+        
+        if (assets.length > 0) {
+          // Get the asset with the highest ID (most recently created)
+          const latestAsset = assets.reduce((prev: any, current: any) => 
+            (current.index > prev.index) ? current : prev
+          );
+          assetId = latestAsset.index;
+          console.log('✅ Found asset ID from account assets:', assetId);
+        }
+      } catch (accountError) {
+        console.warn('Could not retrieve account info for asset ID lookup:', accountError);
+      }
+    }
+
     if (!assetId) {
-      throw new Error('Asset ID not found in confirmed transaction');
+      console.error('❌ Asset ID not found in confirmed transaction');
+      console.error('Full transaction details:', JSON.stringify(confirmedTxn, null, 2));
+      throw new Error(`Asset creation transaction confirmed (TX: ${txId}) but asset ID could not be extracted. Please check the ${networkConfig.explorer}/tx/${txId} for the asset details.`);
     }
     
     console.log(`✅ Token created successfully on ${network}!`);
