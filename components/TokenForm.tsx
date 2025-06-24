@@ -701,12 +701,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
                   className="form-input"
                   min="1"
                   max="1000000000"
-                  min="1"
-                  max="1000000000"
                 />
-                <p className="text-xs text-muted-foreground">
-                  Maximum recommended: 1 billion (considering decimals)
-                </p>
                 <p className="text-xs text-muted-foreground">
                   Maximum recommended: 1 billion (considering decimals)
                 </p>

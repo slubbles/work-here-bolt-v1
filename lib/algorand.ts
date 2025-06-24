@@ -260,15 +260,6 @@ export async function createAlgorandToken(
       metadataUrl = shortUrl;
     }
     
-    // Validate URL length for Algorand compatibility (96 character limit)
-    if (metadataUrl.length > 96) {
-      console.warn(`⚠️ Metadata URL is ${metadataUrl.length} characters, but Algorand limit is 96. Using truncated URL.`);
-      // Use a shorter fallback URL for Algorand compatibility
-      const shortUrl = 'https://token.info';
-      console.log(`🔧 Using fallback URL: ${shortUrl}`);
-      metadataUrl = shortUrl;
-    }
-    
     // Get suggested transaction parameters
     const suggestedParams = await algodClient.getTransactionParams().do();
     
