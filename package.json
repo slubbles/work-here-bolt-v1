@@ -5,19 +5,13 @@
   "scripts": {
     "dev": "rm -rf .next && next dev",
     "build": "rm -rf .next && next build",
-    "build:production": "npm run lint:fix && npm run build",
+    "build:production": "npm run lint:fix && npm run build && npm run export",
     "start": "next start",
     "lint": "next lint",
     "lint:fix": "next lint --fix",
+    "export": "next export",
     "analyze": "cross-env ANALYZE=true npm run build",
-    "clean": "rm -rf .next out",
-    "deploy:vercel": "vercel --prod",
-    "deploy:netlify": "netlify deploy --prod --dir=out",
-    "precommit": "npm run lint:fix",
-    "typecheck": "tsc --noEmit",
-    "test:build": "npm run build && npm run start",
-    "check:deployment": "node scripts/check-deployment.js",
-    "prepare:deploy": "npm run check:deployment && npm run build"
+    "clean": "rm -rf .next out"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.28.0",
