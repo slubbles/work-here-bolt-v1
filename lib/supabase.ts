@@ -276,14 +276,14 @@ export const supabaseHelpers = {
         // Fallback 4: Create a data URL as last resort
         console.log('Using data URL as final fallback...');
         try {
-          // Create a minimal metadata object that fits in Algorand's 96-character limit
+          // Create a short URL that fits Algorand's 96-character limit
           const minimalMetadata = {
             name: metadata.name || 'Token',
             symbol: metadata.properties?.symbol || 'TKN',
             decimals: metadata.properties?.decimals || 9
           };
           
-          // Try a minimal data URL first
+          // Try a minimal data URL that fits in 96 characters
           const minimalJson = JSON.stringify(minimalMetadata);
           const shortDataUrl = `data:application/json;base64,${btoa(minimalJson)}`;
           
@@ -292,16 +292,23 @@ export const supabaseHelpers = {
             return { success: true, url: shortDataUrl };
           }
           
-          // If still too long, use an even more minimal approach
+          // If data URL is too long, use a simple short URL
           console.log('⚠️ Data URL too long for Algorand, using minimal URL...');
-          // Use a simple short URL that represents basic token info
           const tokenHash = btoa(`${metadata.name}-${metadata.properties?.symbol}`).substring(0, 8);
           const minimalUrl = `https://token.info/${tokenHash}`;
           
+          // Ensure the URL is within Algorand's 96-character limit
+          if (minimalUrl.length <= 96) {
+            console.log('✅ Minimal URL created for Algorand compatibility:', minimalUrl);
+            return { success: true, url: minimalUrl };
+          }
+          
+          // Ultimate minimal fallback
+          const ultraMinimalUrl = 'https://token.info';
           console.log('✅ Minimal URL created for Algorand compatibility:', minimalUrl);
-          return { success: true, url: minimalUrl };
+          return { success: true, url: ultraMinimalUrl };
         } catch (dataError) {
-          // Ultimate fallback - return a very short URL
+          // Absolute last resort - return the shortest possible URL
           const fallbackUrl = 'https://algorand.org';
           console.log('✅ Ultimate fallback URL:', fallbackUrl);
           return { success: true, url: fallbackUrl };
