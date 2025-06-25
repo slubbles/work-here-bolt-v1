@@ -7,10 +7,10 @@ import TokenPreview from '@/components/TokenPreview';
 export default function CreateTokenPage() {
   const [tokenData, setTokenData] = useState({
     name: 'My Awesome Token',
-    symbol: 'MAT',
+    symbol: '',
     description: '',
     totalSupply: '1000000',
-    decimals: '9',
+    decimals: '9', // Smart default: 9 decimals (recommended)
     logoUrl: '',
     website: '',
     github: '',
