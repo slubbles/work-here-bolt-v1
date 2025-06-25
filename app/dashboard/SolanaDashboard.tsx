@@ -21,11 +21,20 @@ import {
   BarChart3,
   Calendar,
   Wallet,
-  ArrowRight
+  ArrowRight,
+  Download,
+  FileDown,
+  ChevronDown
 } from 'lucide-react';
 import { DashboardSkeleton, StatCardSkeleton, TokenCardSkeleton, ChartSkeleton, TransactionItemSkeleton, TokenOverviewSkeleton, ManagementActionsSkeleton } from '@/components/skeletons/DashboardSkeletons';
 import Link from 'next/link';
 import { useWallet } from '@solana/wallet-adapter-react';
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 export default function SolanaDashboard() {
   const [selectedToken, setSelectedToken] = useState(0);
@@ -105,6 +114,162 @@ export default function SolanaDashboard() {
     alert(`Successfully transferred ${transferAmount} ${userTokens[selectedToken].symbol} to ${transferAddress}`);
     setTransferAmount('');
     setTransferAddress('');
+  };
+
+  // CSV Export Functions
+  const convertToCSV = (data: any[], headers: string[]): string => {
+    const csvRows = [];
+    
+    // Add headers
+    csvRows.push(headers.join(','));
+    
+    // Add data rows
+    for (const row of data) {
+      const values = headers.map(header => {
+        const value = row[header] || '';
+        // Escape commas and quotes in CSV
+        return `"${String(value).replace(/"/g, '""')}"`;
+      });
+      csvRows.push(values.join(','));
+    }
+    
+    return csvRows.join('\n');
+  };
+
+  const downloadCSV = (csv: string, filename: string): void => {
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    
+    if (link.download !== undefined) {
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', filename);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }
+  };
+
+  const exportTransactions = (format: 'csv' | 'json' = 'csv'): void => {
+    const filename = `${userTokens[selectedToken]?.symbol || 'TOKEN'}_transactions_${new Date().toISOString().split('T')[0]}`;
+    
+    if (format === 'csv') {
+      const headers = ['type', 'amount', 'to', 'time', 'status', 'token_symbol'];
+      const exportData = transactionData.map(tx => ({
+        type: tx.type,
+        amount: tx.amount,
+        to: tx.to,
+        time: tx.time,
+        status: tx.status,
+        token_symbol: userTokens[selectedToken]?.symbol || 'TOKEN'
+      }));
+      
+      const csv = convertToCSV(exportData, headers);
+      downloadCSV(csv, `${filename}.csv`);
+    } else {
+      // JSON export
+      const exportData = {
+        token: userTokens[selectedToken],
+        transactions: transactionData,
+        exported_at: new Date().toISOString(),
+        total_transactions: transactionData.length
+      };
+      
+      const jsonString = JSON.stringify(exportData, null, 2);
+      const blob = new Blob([jsonString], { type: 'application/json' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `${filename}.json`;
+      link.click();
+      URL.revokeObjectURL(link.href);
+    }
+    
+    toast({
+      title: "Export Successful",
+      description: `Transaction data exported as ${format.toUpperCase()}`,
+    });
+  };
+
+  const exportChartData = (format: 'csv' | 'json' = 'csv'): void => {
+    const filename = `${userTokens[selectedToken]?.symbol || 'TOKEN'}_analytics_${new Date().toISOString().split('T')[0]}`;
+    
+    if (format === 'csv') {
+      const headers = ['period', 'value', 'token_symbol', 'data_type'];
+      const exportData = chartData.map(item => ({
+        period: item.name,
+        value: item.value,
+        token_symbol: userTokens[selectedToken]?.symbol || 'TOKEN',
+        data_type: 'price_chart'
+      }));
+      
+      const csv = convertToCSV(exportData, headers);
+      downloadCSV(csv, `${filename}.csv`);
+    } else {
+      // JSON export
+      const exportData = {
+        token: userTokens[selectedToken],
+        chart_data: chartData,
+        analytics: {
+          total_supply: userTokens[selectedToken]?.totalSupply,
+          holders: userTokens[selectedToken]?.holders,
+          current_value: userTokens[selectedToken]?.value,
+          change: userTokens[selectedToken]?.change
+        },
+        exported_at: new Date().toISOString(),
+        data_points: chartData.length
+      };
+      
+      const jsonString = JSON.stringify(exportData, null, 2);
+      const blob = new Blob([jsonString], { type: 'application/json' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `${filename}.json`;
+      link.click();
+      URL.revokeObjectURL(link.href);
+    }
+    
+    toast({
+      title: "Export Successful",
+      description: `Analytics data exported as ${format.toUpperCase()}`,
+    });
+  };
+
+  const exportAllData = (): void => {
+    const filename = `${userTokens[selectedToken]?.symbol || 'TOKEN'}_complete_data_${new Date().toISOString().split('T')[0]}`;
+    
+    const completeData = {
+      token_info: userTokens[selectedToken],
+      transactions: transactionData,
+      chart_data: chartData,
+      analytics: {
+        total_supply: userTokens[selectedToken]?.totalSupply,
+        holders: userTokens[selectedToken]?.holders,
+        current_value: userTokens[selectedToken]?.value,
+        change: userTokens[selectedToken]?.change
+      },
+      export_metadata: {
+        exported_at: new Date().toISOString(),
+        export_type: 'complete_dashboard_data',
+        version: '1.0',
+        total_transactions: transactionData.length,
+        total_chart_points: chartData.length
+      }
+    };
+    
+    const jsonString = JSON.stringify(completeData, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `${filename}.json`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+    
+    toast({
+      title: "Complete Export Successful",
+      description: "All dashboard data exported as JSON",
+    });
   };
 
   // Redirect to wallet connection if not connected
@@ -368,7 +533,28 @@ export default function SolanaDashboard() {
                   </div>
                 ) : (
                   <div className="glass-card p-6">
-                    <h4 className="text-lg font-semibold text-foreground mb-4">Holder Distribution</h4>
+                    <div className="flex items-center justify-between mb-4">
+                      <h4 className="text-lg font-semibold text-foreground">Holder Distribution</h4>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="outline" size="sm" className="gap-2">
+                            <FileDown className="w-4 h-4" />
+                            Export Analytics
+                            <ChevronDown className="w-4 h-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => exportChartData('csv')}>
+                            <Download className="w-4 h-4 mr-2" />
+                            Export as CSV
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => exportChartData('json')}>
+                            <FileDown className="w-4 h-4 mr-2" />
+                            Export as JSON
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                     <div className="h-64">
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={chartData}>
@@ -403,7 +589,32 @@ export default function SolanaDashboard() {
                   </div>
                 ) : (
                   <div className="glass-card p-6">
-                    <h4 className="text-lg font-semibold text-foreground mb-4">Recent Transactions</h4>
+                    <div className="flex items-center justify-between mb-4">
+                      <h4 className="text-lg font-semibold text-foreground">Recent Transactions</h4>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="outline" size="sm" className="gap-2">
+                            <Download className="w-4 h-4" />
+                            Export Transactions
+                            <ChevronDown className="w-4 h-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => exportTransactions('csv')}>
+                            <Download className="w-4 h-4 mr-2" />
+                            Export as CSV
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => exportTransactions('json')}>
+                            <FileDown className="w-4 h-4 mr-2" />
+                            Export as JSON
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={exportAllData}>
+                            <FileDown className="w-4 h-4 mr-2" />
+                            Export All Data
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                     <div className="space-y-4">
                       {transactionData.map((tx, index) => (
                         <div key={index} className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
@@ -488,6 +699,14 @@ export default function SolanaDashboard() {
                         <Button variant="outline" className="border-border text-muted-foreground hover:bg-muted h-12">
                           <BarChart3 className="w-4 h-4 mr-2" />
                           View Analytics
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          onClick={exportAllData}
+                          className="border-border text-muted-foreground hover:bg-muted h-12 gap-2"
+                        >
+                          <Download className="w-4 h-4" />
+                          Export All Data
                         </Button>
                       </div>
                     </div>
