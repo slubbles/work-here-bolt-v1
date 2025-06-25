@@ -119,7 +119,8 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
   }
 
   return (
-    <div className="xl:sticky xl:top-24 space-y-6">
+    <>
+      <div className="xl:sticky xl:top-24 space-y-6">
       <div className="text-center space-y-4">
         <div className="flex items-center justify-center space-x-2">
           <Sparkles className="w-5 h-5 text-red-500" />
@@ -403,6 +404,7 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
           </div>
         ) : null}
       </div>
-    </div>
+      </div>
+    </>
   );
 }
