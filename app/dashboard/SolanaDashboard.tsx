@@ -19,6 +19,7 @@ import {
   Send,
   Flame,
   BarChart3,
+  AlertCircle,
   Calendar,
   Wallet,
   ArrowRight,
@@ -36,6 +37,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function SolanaDashboard() {
   const [selectedToken, setSelectedToken] = useState(0);
@@ -51,10 +53,25 @@ export default function SolanaDashboard() {
   const { connected, publicKey } = useWallet();
   const { toast } = useToast();
 
+  // Debug logging to trace connection and loading states
+  useEffect(() => {
+    console.log('🔍 Dashboard State Debug:', {
+      connected,
+      publicKey: publicKey?.toString(),
+      isLoading,
+      isLoadingTokens,
+      isLoadingChart,
+      isLoadingTransactions,
+      isLoadingStats
+    });
+  }, [connected, publicKey, isLoading, isLoadingTokens, isLoadingChart, isLoadingTransactions, isLoadingStats]);
+
   // Simulate loading states
   useEffect(() => {
+    console.log('🔄 Wallet connection changed:', connected);
     if (connected) {
-      // Simulate initial data loading
+      console.log('✅ Wallet connected, starting data loading...');
+      // Simulate initial data loading with better state management
       const timer1 = setTimeout(() => setIsLoading(false), 1500);
       const timer2 = setTimeout(() => setIsLoadingTokens(false), 2000);
       const timer3 = setTimeout(() => setIsLoadingChart(false), 2500);
@@ -68,6 +85,14 @@ export default function SolanaDashboard() {
         clearTimeout(timer4);
         clearTimeout(timer5);
       };
+    } else {
+      // Reset loading states when wallet disconnects
+      console.log('❌ Wallet disconnected, resetting states...');
+      setIsLoading(true);
+      setIsLoadingTokens(true);
+      setIsLoadingChart(true);
+      setIsLoadingTransactions(true);
+      setIsLoadingStats(true);
     }
   }, [connected]);
 
@@ -282,23 +307,42 @@ export default function SolanaDashboard() {
     return (
       <div className="min-h-screen app-background flex items-center justify-center">
         <div className="max-w-md mx-auto text-center">
-          <div className="glass-card p-8 space-y-6">
+          <Card className="glass-card border-orange-500/30 bg-orange-500/5">
+            <CardHeader className="text-center">
             <div className="w-16 h-16 rounded-full bg-red-500/20 flex items-center justify-center mx-auto">
               <Wallet className="w-8 h-8 text-red-500" />
             </div>
+              <div className="space-y-2">
+                <h2 className="text-2xl font-bold text-foreground">Wallet Required</h2>
+                <p className="text-muted-foreground">
+                  Connect your Solana wallet to access your token dashboard
+                </p>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
+                <div className="flex items-start space-x-2">
+                  <AlertCircle className="w-5 h-5 text-blue-500 mt-0.5" />
+                  <div className="text-sm text-blue-600">
+                    <p className="font-semibold mb-1">To access your dashboard:</p>
+                    <ul className="list-disc list-inside space-y-1">
+                      <li>Click "Connect Wallet" in the top right</li>
+                      <li>Select your Solana wallet (Phantom, Solflare, etc.)</li>
+                      <li>Approve the connection</li>
+                      <li>Your dashboard will load automatically</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
             <div>
-              <h2 className="text-2xl font-bold text-foreground mb-2">Connect Your Wallet</h2>
-              <p className="text-muted-foreground">
-                You need to connect your Solana wallet to access the dashboard and manage your tokens.
-              </p>
-            </div>
             <div className="text-center">
               <Link href="/" className="text-red-500 hover:text-red-600 text-sm inline-flex items-center">
                 Back to Home
                 <ArrowRight className="w-4 h-4 ml-1" />
               </Link>
             </div>
-          </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     );
@@ -306,8 +350,12 @@ export default function SolanaDashboard() {
 
   // Show full loading skeleton on initial load
   if (isLoading) {
+    console.log('🔄 Showing dashboard loading skeleton...');
     return <DashboardSkeleton />;
   }
+
+  // Log when dashboard content is about to render
+  console.log('✅ Rendering dashboard content with wallet:', publicKey?.toString());
 
   return (
     <div className="min-h-screen app-background">
