@@ -14,13 +14,17 @@ const nextConfig = {
     dangerouslyAllowSVG: true,
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
-  transpilePackages: ['algosdk', '@perawallet/connect'],
+  // Fix for Solana wallet adapters
   transpilePackages: [
     'algosdk', 
     '@perawallet/connect',
     '@solana/wallet-adapter-base',
     '@solana/wallet-adapter-react',
     '@solana/wallet-adapter-react-ui',
+    '@solana/wallet-adapter-wallets',
+    '@solana/wallet-adapter-phantom',
+    '@solana/wallet-adapter-solflare',
+    '@solana/wallet-adapter-backpack',
     '@solana/web3.js',
     '@solana/spl-token',
     '@coral-xyz/anchor'
@@ -30,26 +34,30 @@ const nextConfig = {
   },
   // Explicitly define page extensions for App Router only
   pageExtensions: ['ts', 'tsx', 'js', 'jsx'],
-  // Experimental features for better Algorand integration
+  // Experimental features for better performance
   experimental: {
     optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
     optimizeCss: true,
     scrollRestoration: true,
-    turbo: {
-      rules: {
-        '*.svg': {
-          loaders: ['@svgr/webpack'],
-          as: '*.js',
-        },
-      },
-    },
+    // Enable SWC for faster builds
+    forceSwcTransforms: true,
   },
-  // Webpack configuration to handle module resolution
+  // Enhanced webpack configuration to handle Solana modules
   webpack: (config, { buildId, dev, isServer, defaultLoaders, webpack }) => {
-    // Don't externalize algosdk and pera wallet for client-side
+    // Fix for import.meta usage in Solana wallet adapters
+    config.module.rules.push({
+      test: /\.m?js$/,
+      type: 'javascript/auto',
+      resolve: {
+        fullySpecified: false,
+      },
+    });
+
+    // Don't externalize wallet adapter modules on client side
     if (!isServer) {
-      // Remove problematic externals that were causing issues
-      config.externals = config.externals || [];
+      config.externals = config.externals.filter(
+        (external) => typeof external !== 'string' || !external.includes('@solana')
+      );
     }
     
     // Add polyfills for Node.js modules
@@ -73,17 +81,39 @@ const nextConfig = {
       querystring: require.resolve('querystring-es3'),
     };
 
-    // Make Buffer globally available
+    // Make Buffer and process globally available
     config.plugins.push(
       new webpack.ProvidePlugin({
         Buffer: ['buffer', 'Buffer'],
         process: 'process/browser',
       })
     );
+
+    // Handle import.meta for wallet adapters
+    config.plugins.push(
+      new webpack.DefinePlugin({
+        'import.meta': {
+          env: JSON.stringify(process.env),
+          webpackHot: 'undefined',
+        },
+      })
+    );
     
-    // Optimize for Algorand SDK
-    config.optimization = config.optimization || {};
-    config.optimization.sideEffects = false;
+    // Optimize for better performance
+    config.optimization = {
+      ...config.optimization,
+      sideEffects: false,
+      usedExports: true,
+    };
+
+    // Ignore specific modules that cause issues
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      // Fix for wallet adapter modules
+      '@solana/wallet-adapter-base': require.resolve('@solana/wallet-adapter-base'),
+      '@solana/wallet-adapter-react': require.resolve('@solana/wallet-adapter-react'),
+      '@solana/wallet-adapter-react-ui': require.resolve('@solana/wallet-adapter-react-ui'),
+    };
     
     // Add bundle analyzer in development
     if (process.env.ANALYZE === 'true') {
