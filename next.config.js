@@ -15,6 +15,16 @@ const nextConfig = {
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
   transpilePackages: ['algosdk', '@perawallet/connect'],
+  transpilePackages: [
+    'algosdk', 
+    '@perawallet/connect',
+    '@solana/wallet-adapter-base',
+    '@solana/wallet-adapter-react',
+    '@solana/wallet-adapter-react-ui',
+    '@solana/web3.js',
+    '@solana/spl-token',
+    '@coral-xyz/anchor'
+  ],
   eslint: {
     ignoreDuringBuilds: true,
   },
