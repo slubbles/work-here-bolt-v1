@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -21,7 +21,8 @@ import {
   BarChart3,
   Calendar,
   Wallet,
-  ArrowRight
+  ArrowRight,
+  Download
 } from 'lucide-react';
 import { DashboardSkeleton, StatCardSkeleton, TokenCardSkeleton, ChartSkeleton, TransactionItemSkeleton, TokenOverviewSkeleton, ManagementActionsSkeleton } from '@/components/skeletons/DashboardSkeletons';
 import Link from 'next/link';
@@ -38,6 +39,58 @@ export default function SolanaDashboard() {
   
   // Solana wallet integration
   const { connected, publicKey } = useWallet();
+
+  // Export functions
+  const handleExportTransactions = useCallback(() => {
+    const csvHeaders = ['Type', 'Amount', 'To', 'Time', 'Status'];
+    const csvRows = transactionData.map(tx => [
+      tx.type,
+      tx.amount,
+      tx.to,
+      tx.time,
+      tx.status
+    ]);
+    
+    const csvContent = [
+      csvHeaders.join(','),
+      ...csvRows.map(row => row.map(cell => `"${cell}"`).join(','))
+    ].join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `token-transactions-${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }, [transactionData]);
+
+  const handleExportChartData = useCallback(() => {
+    const csvHeaders = ['Name', 'Value'];
+    const csvRows = chartData.map(item => [
+      item.name,
+      item.value.toString()
+    ]);
+    
+    const csvContent = [
+      csvHeaders.join(','),
+      ...csvRows.map(row => row.map(cell => `"${cell}"`).join(','))
+    ].join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `token-analytics-${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }, [chartData]);
 
   // Simulate loading states
   useEffect(() => {
@@ -364,11 +417,26 @@ export default function SolanaDashboard() {
               <TabsContent value="analytics" className="space-y-6">
                 {isLoadingChart ? (
                   <div className="glass-card p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="w-40 h-6 bg-muted animate-pulse rounded"></div>
+                      <div className="w-24 h-8 bg-muted animate-pulse rounded"></div>
+                    </div>
                     <ChartSkeleton />
                   </div>
                 ) : (
                   <div className="glass-card p-6">
-                    <h4 className="text-lg font-semibold text-foreground mb-4">Holder Distribution</h4>
+                    <div className="flex items-center justify-between mb-4">
+                      <h4 className="text-lg font-semibold text-foreground">Holder Distribution</h4>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleExportChartData}
+                        className="border-border text-muted-foreground hover:bg-muted"
+                      >
+                        <Download className="w-4 h-4 mr-2" />
+                        Export Data
+                      </Button>
+                    </div>
                     <div className="h-64">
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={chartData}>
@@ -394,7 +462,10 @@ export default function SolanaDashboard() {
               <TabsContent value="transactions" className="space-y-6">
                 {isLoadingTransactions ? (
                   <div className="glass-card p-6">
-                    <h4 className="text-lg font-semibold text-foreground mb-4">Recent Transactions</h4>
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="w-40 h-6 bg-muted animate-pulse rounded"></div>
+                      <div className="w-24 h-8 bg-muted animate-pulse rounded"></div>
+                    </div>
                     <div className="space-y-4">
                       <TransactionItemSkeleton />
                       <TransactionItemSkeleton />
@@ -403,7 +474,18 @@ export default function SolanaDashboard() {
                   </div>
                 ) : (
                   <div className="glass-card p-6">
-                    <h4 className="text-lg font-semibold text-foreground mb-4">Recent Transactions</h4>
+                    <div className="flex items-center justify-between mb-4">
+                      <h4 className="text-lg font-semibold text-foreground">Recent Transactions</h4>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleExportTransactions}
+                        className="border-border text-muted-foreground hover:bg-muted"
+                      >
+                        <Download className="w-4 h-4 mr-2" />
+                        Export CSV
+                      </Button>
+                    </div>
                     <div className="space-y-4">
                       {transactionData.map((tx, index) => (
                         <div key={index} className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">

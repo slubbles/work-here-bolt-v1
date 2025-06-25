@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Send, Plus, Flame, BarChart3, Network, Sparkles, TrendingUp, Pause } from 'lucide-react';
@@ -161,11 +162,19 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
             )}
           </div>
 
-          {description && (
+          {description ? (
             <div className="glass-card p-6 bg-muted/20 rounded-xl">
               <p className="text-muted-foreground leading-relaxed text-lg">
                 {description}
               </p>
+            </div>
+          ) : (
+            <div className="glass-card p-6 bg-muted/20 rounded-xl">
+              <div className="space-y-2">
+                <div className="h-4 bg-muted animate-pulse rounded w-full"></div>
+                <div className="h-4 bg-muted animate-pulse rounded w-3/4 mx-auto"></div>
+                <div className="h-4 bg-muted animate-pulse rounded w-1/2 mx-auto"></div>
+              </div>
             </div>
           )}
         </div>
