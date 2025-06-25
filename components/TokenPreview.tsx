@@ -116,7 +116,6 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
   // Show skeleton while loading
   if (isLoading || (isContentLoading && !tokenData.name && !tokenData.symbol)) {
     return <TokenPreviewSkeleton />;
-  }
 
   return (
     <div className="xl:sticky xl:top-24 space-y-6">
