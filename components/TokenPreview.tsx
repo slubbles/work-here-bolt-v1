@@ -116,6 +116,7 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
   // Show skeleton while loading
   if (isLoading || (isContentLoading && !tokenData.name && !tokenData.symbol)) {
     return <TokenPreviewSkeleton />;
+  }
 
   return (
     <div className="xl:sticky xl:top-24 space-y-6">
@@ -210,7 +211,7 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
                 <Skeleton className="h-4 w-1/2 mx-auto" />
               </div>
             </div>
-          )}
+          ) : null}
         </div>
 
         {isContentLoading ? (
@@ -246,7 +247,7 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
             </Button>
           ) : isContentLoading ? (
             <Skeleton className="h-14 w-full rounded-xl" />
-          )}
+          ) : null}
           
           {burnable && !isContentLoading ? (
             <Button 
@@ -259,7 +260,7 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
             </Button>
           ) : isContentLoading ? (
             <Skeleton className="h-14 w-full rounded-xl" />
-          )}
+          ) : null}
           
           {pausable && !isContentLoading ? (
             <Button 
@@ -272,7 +273,7 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
             </Button>
           ) : isContentLoading ? (
             <Skeleton className="h-14 w-full rounded-xl" />
-          )}
+          ) : null}
           
           {isContentLoading ? (
             <Skeleton className="h-14 w-full rounded-xl col-span-2" />
@@ -400,7 +401,7 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
               <Skeleton className="h-8 w-20 rounded-xl" />
             </div>
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   );
