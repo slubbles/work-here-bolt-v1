@@ -103,7 +103,6 @@ const nextConfig = {
     config.optimization = {
       ...config.optimization,
       sideEffects: false,
-      usedExports: true,
     };
 
     // Ignore specific modules that cause issues
