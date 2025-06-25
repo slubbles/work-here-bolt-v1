@@ -23,6 +23,7 @@ import {
   Wallet,
   ArrowRight
 } from 'lucide-react';
+import { DashboardSkeleton, StatCardSkeleton, TokenCardSkeleton, ChartSkeleton, TransactionItemSkeleton, TokenOverviewSkeleton, ManagementActionsSkeleton } from '@/components/skeletons/DashboardSkeletons';
 import Link from 'next/link';
 import { useWallet } from '@solana/wallet-adapter-react';
 
@@ -30,9 +31,31 @@ export default function SolanaDashboard() {
   const [selectedToken, setSelectedToken] = useState(0);
   const [transferAmount, setTransferAmount] = useState('');
   const [transferAddress, setTransferAddress] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingTokens, setIsLoadingTokens] = useState(true);
+  const [isLoadingChart, setIsLoadingChart] = useState(true);
+  const [isLoadingTransactions, setIsLoadingTransactions] = useState(true);
   
   // Solana wallet integration
   const { connected, publicKey } = useWallet();
+
+  // Simulate loading states
+  useEffect(() => {
+    if (connected) {
+      // Simulate initial data loading
+      const timer1 = setTimeout(() => setIsLoading(false), 1500);
+      const timer2 = setTimeout(() => setIsLoadingTokens(false), 2000);
+      const timer3 = setTimeout(() => setIsLoadingChart(false), 2500);
+      const timer4 = setTimeout(() => setIsLoadingTransactions(false), 3000);
+      
+      return () => {
+        clearTimeout(timer1);
+        clearTimeout(timer2);
+        clearTimeout(timer3);
+        clearTimeout(timer4);
+      };
+    }
+  }, [connected]);
 
   const userTokens = [
     {
@@ -111,6 +134,11 @@ export default function SolanaDashboard() {
     );
   }
 
+  // Show full loading skeleton on initial load
+  if (isLoading) {
+    return <DashboardSkeleton />;
+  }
+
   return (
     <div className="min-h-screen app-background">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -135,42 +163,53 @@ export default function SolanaDashboard() {
 
         {/* Stats Overview */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
-          <div className="glass-card p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-muted-foreground text-sm">Total Tokens</p>
-                <p className="text-2xl font-bold text-foreground">2</p>
+          {isLoading ? (
+            <>
+              <StatCardSkeleton />
+              <StatCardSkeleton />
+              <StatCardSkeleton />
+              <StatCardSkeleton />
+            </>
+          ) : (
+            <>
+              <div className="glass-card p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-muted-foreground text-sm">Total Tokens</p>
+                    <p className="text-2xl font-bold text-foreground">2</p>
+                  </div>
+                  <Coins className="w-8 h-8 text-red-500" />
+                </div>
               </div>
-              <Coins className="w-8 h-8 text-red-500" />
-            </div>
-          </div>
-          <div className="glass-card p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-muted-foreground text-sm">Total Value</p>
-                <p className="text-2xl font-bold text-foreground">$3,700</p>
+              <div className="glass-card p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-muted-foreground text-sm">Total Value</p>
+                    <p className="text-2xl font-bold text-foreground">$3,700</p>
+                  </div>
+                  <DollarSign className="w-8 h-8 text-red-500" />
+                </div>
               </div>
-              <DollarSign className="w-8 h-8 text-red-500" />
-            </div>
-          </div>
-          <div className="glass-card p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-muted-foreground text-sm">Total Holders</p>
-                <p className="text-2xl font-bold text-foreground">2,100</p>
+              <div className="glass-card p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-muted-foreground text-sm">Total Holders</p>
+                    <p className="text-2xl font-bold text-foreground">2,100</p>
+                  </div>
+                  <Users className="w-8 h-8 text-red-500" />
+                </div>
               </div>
-              <Users className="w-8 h-8 text-red-500" />
-            </div>
-          </div>
-          <div className="glass-card p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-muted-foreground text-sm">Avg. Growth</p>
-                <p className="text-2xl font-bold text-foreground">+10.4%</p>
+              <div className="glass-card p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-muted-foreground text-sm">Avg. Growth</p>
+                    <p className="text-2xl font-bold text-foreground">+10.4%</p>
+                  </div>
+                  <TrendingUp className="w-8 h-8 text-red-500" />
+                </div>
               </div>
-              <TrendingUp className="w-8 h-8 text-red-500" />
-            </div>
-          </div>
+            </>
+          )}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -178,40 +217,48 @@ export default function SolanaDashboard() {
           <div className="lg:col-span-1">
             <div className="glass-card p-6">
               <h2 className="text-xl font-bold text-foreground mb-6">Your Tokens</h2>
-              <div className="space-y-4">
-                {userTokens.map((token, index) => (
-                  <div 
-                    key={index}
-                    className={`p-4 rounded-lg cursor-pointer transition-all ${
-                      selectedToken === index 
-                        ? 'bg-red-500/20 border border-red-500/50' 
-                        : 'bg-muted/50 hover:bg-muted'
-                    }`}
-                    onClick={() => setSelectedToken(index)}
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 rounded-full bg-red-500 flex items-center justify-center text-white font-bold">
-                          {token.symbol.slice(0, 2)}
+              {isLoadingTokens ? (
+                <div className="space-y-4">
+                  <TokenCardSkeleton />
+                  <TokenCardSkeleton />
+                  <TokenCardSkeleton />
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {userTokens.map((token, index) => (
+                    <div 
+                      key={index}
+                      className={`p-4 rounded-lg cursor-pointer transition-all ${
+                        selectedToken === index 
+                          ? 'bg-red-500/20 border border-red-500/50' 
+                          : 'bg-muted/50 hover:bg-muted'
+                      }`}
+                      onClick={() => setSelectedToken(index)}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-10 h-10 rounded-full bg-red-500 flex items-center justify-center text-white font-bold">
+                            {token.symbol.slice(0, 2)}
+                          </div>
+                          <div>
+                            <p className="text-foreground font-medium">{token.name}</p>
+                            <p className="text-muted-foreground text-sm">{token.symbol}</p>
+                          </div>
                         </div>
+                      </div>
+                      <div className="flex justify-between items-center">
                         <div>
-                          <p className="text-foreground font-medium">{token.name}</p>
-                          <p className="text-muted-foreground text-sm">{token.symbol}</p>
+                          <p className="text-foreground font-semibold">{token.balance}</p>
+                          <p className="text-muted-foreground text-sm">{token.value}</p>
                         </div>
+                        <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
+                          {token.change}
+                        </Badge>
                       </div>
                     </div>
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <p className="text-foreground font-semibold">{token.balance}</p>
-                        <p className="text-muted-foreground text-sm">{token.value}</p>
-                      </div>
-                      <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
-                        {token.change}
-                      </Badge>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
@@ -245,174 +292,207 @@ export default function SolanaDashboard() {
               </div>
 
               <TabsContent value="overview" className="space-y-6">
-                <div className="glass-card p-6">
-                  <div className="flex justify-between items-start mb-6">
-                    <div>
-                      <h3 className="text-2xl font-bold text-foreground">{userTokens[selectedToken].name}</h3>
-                      <p className="text-muted-foreground">{userTokens[selectedToken].symbol}</p>
+                {isLoadingTokens ? (
+                  <TokenOverviewSkeleton />
+                ) : (
+                  <div className="glass-card p-6">
+                    <div className="flex justify-between items-start mb-6">
+                      <div>
+                        <h3 className="text-2xl font-bold text-foreground">{userTokens[selectedToken].name}</h3>
+                        <p className="text-muted-foreground">{userTokens[selectedToken].symbol}</p>
+                      </div>
+                      <div className="flex space-x-2">
+                        <Button variant="outline" size="sm" className="border-border text-muted-foreground">
+                          <Copy className="w-4 h-4" />
+                        </Button>
+                        <Button variant="outline" size="sm" className="border-border text-muted-foreground">
+                          <ExternalLink className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </div>
-                    <div className="flex space-x-2">
-                      <Button variant="outline" size="sm" className="border-border text-muted-foreground">
-                        <Copy className="w-4 h-4" />
-                      </Button>
-                      <Button variant="outline" size="sm" className="border-border text-muted-foreground">
-                        <ExternalLink className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
 
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="bg-muted/50 rounded-lg p-4 text-center">
-                      <p className="text-muted-foreground text-sm">Balance</p>
-                      <p className="text-foreground font-bold">{userTokens[selectedToken].balance}</p>
-                    </div>
-                    <div className="bg-muted/50 rounded-lg p-4 text-center">
-                      <p className="text-muted-foreground text-sm">Value</p>
-                      <p className="text-foreground font-bold">{userTokens[selectedToken].value}</p>
-                    </div>
-                    <div className="bg-muted/50 rounded-lg p-4 text-center">
-                      <p className="text-muted-foreground text-sm">Holders</p>
-                      <p className="text-foreground font-bold">{userTokens[selectedToken].holders}</p>
-                    </div>
-                    <div className="bg-muted/50 rounded-lg p-4 text-center">
-                      <p className="text-muted-foreground text-sm">Supply</p>
-                      <p className="text-foreground font-bold">{userTokens[selectedToken].totalSupply}</p>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="bg-muted/50 rounded-lg p-4 text-center">
+                        <p className="text-muted-foreground text-sm">Balance</p>
+                        <p className="text-foreground font-bold">{userTokens[selectedToken].balance}</p>
+                      </div>
+                      <div className="bg-muted/50 rounded-lg p-4 text-center">
+                        <p className="text-muted-foreground text-sm">Value</p>
+                        <p className="text-foreground font-bold">{userTokens[selectedToken].value}</p>
+                      </div>
+                      <div className="bg-muted/50 rounded-lg p-4 text-center">
+                        <p className="text-muted-foreground text-sm">Holders</p>
+                        <p className="text-foreground font-bold">{userTokens[selectedToken].holders}</p>
+                      </div>
+                      <div className="bg-muted/50 rounded-lg p-4 text-center">
+                        <p className="text-muted-foreground text-sm">Supply</p>
+                        <p className="text-foreground font-bold">{userTokens[selectedToken].totalSupply}</p>
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
 
-                <div className="glass-card p-6">
-                  <h4 className="text-lg font-semibold text-foreground mb-4">Price Chart</h4>
-                  <div className="h-64">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={chartData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="currentColor" opacity={0.3} />
-                        <XAxis dataKey="name" stroke="currentColor" opacity={0.7} />
-                        <YAxis stroke="currentColor" opacity={0.7} />
-                        <Tooltip 
-                          contentStyle={{ 
-                            backgroundColor: 'var(--background)', 
-                            border: '1px solid var(--border)',
-                            borderRadius: '8px',
-                            color: 'var(--foreground)'
-                          }}
-                        />
-                        <Line type="monotone" dataKey="value" stroke="#EF4444" strokeWidth={2} />
-                      </LineChart>
-                    </ResponsiveContainer>
+                {isLoadingChart ? (
+                  <div className="glass-card p-6">
+                    <ChartSkeleton />
                   </div>
-                </div>
+                ) : (
+                  <div className="glass-card p-6">
+                    <h4 className="text-lg font-semibold text-foreground mb-4">Price Chart</h4>
+                    <div className="h-64">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={chartData}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="currentColor" opacity={0.3} />
+                          <XAxis dataKey="name" stroke="currentColor" opacity={0.7} />
+                          <YAxis stroke="currentColor" opacity={0.7} />
+                          <Tooltip 
+                            contentStyle={{ 
+                              backgroundColor: 'var(--background)', 
+                              border: '1px solid var(--border)',
+                              borderRadius: '8px',
+                              color: 'var(--foreground)'
+                            }}
+                          />
+                          <Line type="monotone" dataKey="value" stroke="#EF4444" strokeWidth={2} />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                )}
               </TabsContent>
 
               <TabsContent value="analytics" className="space-y-6">
-                <div className="glass-card p-6">
-                  <h4 className="text-lg font-semibold text-foreground mb-4">Holder Distribution</h4>
-                  <div className="h-64">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={chartData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="currentColor" opacity={0.3} />
-                        <XAxis dataKey="name" stroke="currentColor" opacity={0.7} />
-                        <YAxis stroke="currentColor" opacity={0.7} />
-                        <Tooltip 
-                          contentStyle={{ 
-                            backgroundColor: 'var(--background)', 
-                            border: '1px solid var(--border)',
-                            borderRadius: '8px',
-                            color: 'var(--foreground)'
-                          }}
-                        />
-                        <Bar dataKey="value" fill="#EF4444" />
-                      </BarChart>
-                    </ResponsiveContainer>
+                {isLoadingChart ? (
+                  <div className="glass-card p-6">
+                    <ChartSkeleton />
                   </div>
-                </div>
+                ) : (
+                  <div className="glass-card p-6">
+                    <h4 className="text-lg font-semibold text-foreground mb-4">Holder Distribution</h4>
+                    <div className="h-64">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={chartData}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="currentColor" opacity={0.3} />
+                          <XAxis dataKey="name" stroke="currentColor" opacity={0.7} />
+                          <YAxis stroke="currentColor" opacity={0.7} />
+                          <Tooltip 
+                            contentStyle={{ 
+                              backgroundColor: 'var(--background)', 
+                              border: '1px solid var(--border)',
+                              borderRadius: '8px',
+                              color: 'var(--foreground)'
+                            }}
+                          />
+                          <Bar dataKey="value" fill="#EF4444" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                )}
               </TabsContent>
 
               <TabsContent value="transactions" className="space-y-6">
-                <div className="glass-card p-6">
-                  <h4 className="text-lg font-semibold text-foreground mb-4">Recent Transactions</h4>
-                  <div className="space-y-4">
-                    {transactionData.map((tx, index) => (
-                      <div key={index} className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
-                        <div className="flex items-center space-x-3">
-                          <div className="w-8 h-8 rounded-full bg-red-500/20 flex items-center justify-center">
-                            <Send className="w-4 h-4 text-red-400" />
-                          </div>
-                          <div>
-                            <p className="text-foreground font-medium">{tx.type}</p>
-                            <p className="text-muted-foreground text-sm">{tx.amount} to {tx.to}</p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-muted-foreground text-sm">{tx.time}</p>
-                          <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
-                            {tx.status}
-                          </Badge>
-                        </div>
-                      </div>
-                    ))}
+                {isLoadingTransactions ? (
+                  <div className="glass-card p-6">
+                    <h4 className="text-lg font-semibold text-foreground mb-4">Recent Transactions</h4>
+                    <div className="space-y-4">
+                      <TransactionItemSkeleton />
+                      <TransactionItemSkeleton />
+                      <TransactionItemSkeleton />
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="glass-card p-6">
+                    <h4 className="text-lg font-semibold text-foreground mb-4">Recent Transactions</h4>
+                    <div className="space-y-4">
+                      {transactionData.map((tx, index) => (
+                        <div key={index} className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+                          <div className="flex items-center space-x-3">
+                            <div className="w-8 h-8 rounded-full bg-red-500/20 flex items-center justify-center">
+                              <Send className="w-4 h-4 text-red-400" />
+                            </div>
+                            <div>
+                              <p className="text-foreground font-medium">{tx.type}</p>
+                              <p className="text-muted-foreground text-sm">{tx.amount} to {tx.to}</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-muted-foreground text-sm">{tx.time}</p>
+                            <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
+                              {tx.status}
+                            </Badge>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </TabsContent>
 
               <TabsContent value="manage" className="space-y-6">
-                {/* Token Transfer */}
-                <div className="glass-card p-6">
-                  <h4 className="text-lg font-semibold text-foreground mb-6">Transfer Tokens</h4>
-                  <div className="space-y-4">
-                    <div>
-                      <Label htmlFor="transferAddress" className="text-foreground font-medium">Recipient Address</Label>
-                      <Input
-                        id="transferAddress"
-                        placeholder="Enter wallet address (e.g., 7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU)"
-                        value={transferAddress}
-                        onChange={(e) => setTransferAddress(e.target.value)}
-                        className="input-enhanced mt-2"
-                      />
+                {isLoadingTokens ? (
+                  <ManagementActionsSkeleton />
+                ) : (
+                  <>
+                    {/* Token Transfer */}
+                    <div className="glass-card p-6">
+                      <h4 className="text-lg font-semibold text-foreground mb-6">Transfer Tokens</h4>
+                      <div className="space-y-4">
+                        <div>
+                          <Label htmlFor="transferAddress" className="text-foreground font-medium">Recipient Address</Label>
+                          <Input
+                            id="transferAddress"
+                            placeholder="Enter wallet address (e.g., 7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU)"
+                            value={transferAddress}
+                            onChange={(e) => setTransferAddress(e.target.value)}
+                            className="input-enhanced mt-2"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="transferAmount" className="text-foreground font-medium">Amount</Label>
+                          <Input
+                            id="transferAmount"
+                            type="number"
+                            placeholder={`Enter amount of ${userTokens[selectedToken].symbol}`}
+                            value={transferAmount}
+                            onChange={(e) => setTransferAmount(e.target.value)}
+                            className="input-enhanced mt-2"
+                          />
+                        </div>
+                        <Button 
+                          onClick={handleTransfer}
+                          className="bg-red-500 hover:bg-red-600 text-white w-full"
+                        >
+                          <Send className="w-4 h-4 mr-2" />
+                          Transfer {userTokens[selectedToken].symbol}
+                        </Button>
+                      </div>
                     </div>
-                    <div>
-                      <Label htmlFor="transferAmount" className="text-foreground font-medium">Amount</Label>
-                      <Input
-                        id="transferAmount"
-                        type="number"
-                        placeholder={`Enter amount of ${userTokens[selectedToken].symbol}`}
-                        value={transferAmount}
-                        onChange={(e) => setTransferAmount(e.target.value)}
-                        className="input-enhanced mt-2"
-                      />
-                    </div>
-                    <Button 
-                      onClick={handleTransfer}
-                      className="bg-red-500 hover:bg-red-600 text-white w-full"
-                    >
-                      <Send className="w-4 h-4 mr-2" />
-                      Transfer {userTokens[selectedToken].symbol}
-                    </Button>
-                  </div>
-                </div>
 
-                {/* Other Management Actions */}
-                <div className="glass-card p-6">
-                  <h4 className="text-lg font-semibold text-foreground mb-6">Token Management</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Button variant="outline" className="border-border text-muted-foreground hover:bg-muted h-12">
-                      <Plus className="w-4 h-4 mr-2" />
-                      Mint Tokens
-                    </Button>
-                    <Button variant="outline" className="border-border text-muted-foreground hover:bg-muted h-12">
-                      <Flame className="w-4 h-4 mr-2" />
-                      Burn Tokens
-                    </Button>
-                    <Button variant="outline" className="border-border text-muted-foreground hover:bg-muted h-12">
-                      <Settings className="w-4 h-4 mr-2" />
-                      Update Metadata
-                    </Button>
-                    <Button variant="outline" className="border-border text-muted-foreground hover:bg-muted h-12">
-                      <BarChart3 className="w-4 h-4 mr-2" />
-                      View Analytics
-                    </Button>
-                  </div>
-                </div>
+                    {/* Other Management Actions */}
+                    <div className="glass-card p-6">
+                      <h4 className="text-lg font-semibold text-foreground mb-6">Token Management</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <Button variant="outline" className="border-border text-muted-foreground hover:bg-muted h-12">
+                          <Plus className="w-4 h-4 mr-2" />
+                          Mint Tokens
+                        </Button>
+                        <Button variant="outline" className="border-border text-muted-foreground hover:bg-muted h-12">
+                          <Flame className="w-4 h-4 mr-2" />
+                          Burn Tokens
+                        </Button>
+                        <Button variant="outline" className="border-border text-muted-foreground hover:bg-muted h-12">
+                          <Settings className="w-4 h-4 mr-2" />
+                          Update Metadata
+                        </Button>
+                        <Button variant="outline" className="border-border text-muted-foreground hover:bg-muted h-12">
+                          <BarChart3 className="w-4 h-4 mr-2" />
+                          View Analytics
+                        </Button>
+                      </div>
+                    </div>
+                  </>
+                )}
               </TabsContent>
             </Tabs>
           </div>

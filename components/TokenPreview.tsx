@@ -3,6 +3,7 @@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Send, Plus, Flame, BarChart3, Network, Sparkles, TrendingUp, Pause } from 'lucide-react';
+import { TokenPreviewSkeleton } from '@/components/skeletons/TokenPreviewSkeleton';
 
 interface TokenPreviewProps {
   tokenData: {
@@ -23,6 +24,28 @@ interface TokenPreviewProps {
 }
 
 export default function TokenPreview({ tokenData }: TokenPreviewProps) {
+  const [isLoading, setIsLoading] = useState(true);
+  const [isImageLoading, setIsImageLoading] = useState(true);
+
+  // Simulate initial loading
+  useEffect(() => {
+    const timer = setTimeout(() => setIsLoading(false), 1000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Handle image loading state
+  useEffect(() => {
+    if (tokenData.logoUrl) {
+      setIsImageLoading(true);
+      const img = new Image();
+      img.onload = () => setIsImageLoading(false);
+      img.onerror = () => setIsImageLoading(false);
+      img.src = tokenData.logoUrl;
+    } else {
+      setIsImageLoading(false);
+    }
+  }, [tokenData.logoUrl]);
+
   const {
     name,
     symbol,
@@ -74,6 +97,11 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
 
   const networkInfo = getNetworkInfo(network);
 
+  // Show skeleton while loading
+  if (isLoading) {
+    return <TokenPreviewSkeleton />;
+  }
+
   return (
     <div className="xl:sticky xl:top-24 space-y-6">
       <div className="text-center space-y-4">
@@ -100,7 +128,7 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
           <div className="text-base text-muted-foreground uppercase tracking-wide font-bold">Token Details</div>
           
           <div className="flex justify-center relative">
-            {logoUrl ? (
+            {logoUrl && !isImageLoading ? (
               <div className="relative">
                 <img
                   src={logoUrl}
@@ -108,6 +136,10 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
                   className="w-40 h-40 rounded-full object-cover border-4 border-red-500/50 shadow-2xl"
                 />
                 <div className="absolute -inset-3 bg-gradient-to-r from-red-500/20 to-red-600/20 rounded-full blur-lg"></div>
+              </div>
+            ) : isImageLoading ? (
+              <div className="w-40 h-40 rounded-full bg-muted animate-pulse flex items-center justify-center">
+                <div className="text-muted-foreground text-xs">Loading...</div>
               </div>
             ) : (
               <div className="token-preview-circle w-40 h-40 text-3xl relative">
@@ -117,12 +149,16 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
           </div>
 
           <div className="space-y-2">
-            <h3 className="text-4xl font-bold text-foreground">
-              {name || 'My Token'}
-            </h3>
-            <p className="text-muted-foreground text-2xl font-bold">
-              {symbol.toUpperCase() || 'TKN'}
-            </p>
+            {name ? (
+              <h3 className="text-4xl font-bold text-foreground">{name}</h3>
+            ) : (
+              <div className="w-48 h-10 bg-muted animate-pulse rounded mx-auto"></div>
+            )}
+            {symbol ? (
+              <p className="text-muted-foreground text-2xl font-bold">{symbol.toUpperCase()}</p>
+            ) : (
+              <div className="w-16 h-6 bg-muted animate-pulse rounded mx-auto"></div>
+            )}
           </div>
 
           {description && (
@@ -215,31 +251,47 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
         <div className="space-y-4">
           <div className="flex justify-between items-center p-4 bg-muted/30 rounded-xl">
             <span className="text-muted-foreground font-semibold text-base">Network:</span>
-            <div className="flex items-center space-x-2">
-              <Badge className={`${networkInfo.color} text-xs px-3 py-1 rounded-lg font-semibold`}>
-                {networkInfo.name}
-              </Badge>
-              {network.includes('algorand') && (
-                <span className="text-xs text-muted-foreground">
-                  ({network === 'algorand-mainnet' ? 'Production' : 'Testing'})
-                </span>
-              )}
-            </div>
+            {networkInfo ? (
+              <div className="flex items-center space-x-2">
+                <Badge className={`${networkInfo.color} text-xs px-3 py-1 rounded-lg font-semibold`}>
+                  {networkInfo.name}
+                </Badge>
+                {network.includes('algorand') && (
+                  <span className="text-xs text-muted-foreground">
+                    ({network === 'algorand-mainnet' ? 'Production' : 'Testing'})
+                  </span>
+                )}
+              </div>
+            ) : (
+              <div className="w-24 h-6 bg-muted animate-pulse rounded"></div>
+            )}
           </div>
           
           <div className="flex justify-between items-center p-4 bg-muted/30 rounded-xl">
             <span className="text-muted-foreground font-semibold text-base">Symbol:</span>
-            <span className="text-foreground font-bold text-lg">{symbol.toUpperCase() || 'TKN'}</span>
+            {symbol ? (
+              <span className="text-foreground font-bold text-lg">{symbol.toUpperCase()}</span>
+            ) : (
+              <div className="w-12 h-5 bg-muted animate-pulse rounded"></div>
+            )}
           </div>
           
           <div className="flex justify-between items-center p-4 bg-muted/30 rounded-xl">
             <span className="text-muted-foreground font-semibold text-base">Supply:</span>
-            <span className="text-foreground font-bold text-lg">{formatSupply(totalSupply) || '1,000,000'}</span>
+            {totalSupply ? (
+              <span className="text-foreground font-bold text-lg">{formatSupply(totalSupply)}</span>
+            ) : (
+              <div className="w-20 h-5 bg-muted animate-pulse rounded"></div>
+            )}
           </div>
           
           <div className="flex justify-between items-center p-4 bg-muted/30 rounded-xl">
             <span className="text-muted-foreground font-semibold text-base">Decimals:</span>
-            <span className="text-foreground font-bold text-lg">{decimals || '6'}</span>
+            {decimals ? (
+              <span className="text-foreground font-bold text-lg">{decimals}</span>
+            ) : (
+              <div className="w-4 h-5 bg-muted animate-pulse rounded"></div>
+            )}
           </div>
         </div>
 
