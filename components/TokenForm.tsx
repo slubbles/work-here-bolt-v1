@@ -7,18 +7,28 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Upload, Loader2, CheckCircle, AlertTriangle, Rocket, Network, Globe, Github, Twitter, Zap, DollarSign, Clock, Shield } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useWallet } from '@solana/wallet-adapter-react';
-import { useMemo } from 'react';
 import { useAlgorandWallet } from '@/components/providers/AlgorandWalletProvider';
+import { 
+  Upload, 
+  Rocket, 
+  Settings, 
+  Globe, 
+  Github, 
+  Twitter, 
+  AlertCircle, 
+  CheckCircle, 
+  Loader2,
+  Network,
+  Zap,
+  Shield
+} from 'lucide-react';
+import { createAlgorandToken } from '@/lib/algorand';
 import { createTokenOnChain } from '@/lib/solana';
-import { createAlgorandToken, optInToAsset, checkWalletConnection } from '@/lib/algorand';
 import { supabaseHelpers } from '@/lib/supabase';
-import { useTokenHistory } from '@/hooks/useSupabase';
 
 interface TokenFormProps {
   tokenData: {
@@ -40,1071 +50,507 @@ interface TokenFormProps {
 }
 
 export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
-  const [isDeploying, setIsDeploying] = useState(false);
-  const [deploymentResult, setDeploymentResult] = useState<any>(null);
-  const [error, setError] = useState('');
-  const [uploadingImage, setUploadingImage] = useState(false);
-  const [mounted, setMounted] = useState(false);
-  const [algorandWalletStatus, setAlgorandWalletStatus] = useState<any>(null);
-  const [deploymentProgress, setDeploymentProgress] = useState(0);
-  const [deploymentStep, setDeploymentStep] = useState('');
-  
-  // Real-time validation state
-  const [validationErrors, setValidationErrors] = useState({
-    name: '',
-    symbol: '',
-    totalSupply: '',
-  });
   const { toast } = useToast();
   
-  // Supabase token history integration
-  const { saveToken } = useTokenHistory();
-
   // Wallet connections
-  const { connected: solanaConnected, publicKey: solanaPublicKey, wallet: solanaWallet } = useWallet();
-  const { 
-    connected: algorandConnected, 
-    address: algorandAddress, 
-    signTransaction: algorandSignTransaction,
-    selectedNetwork: algorandSelectedNetwork,
-    setSelectedNetwork: setAlgorandSelectedNetwork,
-    networkConfig: algorandNetworkConfig,
-    isPeraWalletReady,
-    isConnecting: algorandIsConnecting
-  } = useAlgorandWallet();
+  const { connected: solanaConnected, publicKey: solanaPublicKey } = useWallet();
+  const { connected: algorandConnected, address: algorandAddress, signTransaction } = useAlgorandWallet();
 
-  useEffect(() => {
-    setMounted(true);
-    
-    // Welcome toast for new users
-    const hasSeenWelcome = localStorage.getItem('snarbles_welcome_shown');
-    if (!hasSeenWelcome) {
-      setTimeout(() => {
-        toast({
-          title: "Welcome to Snarbles! 🚀",
-          description: "Create your own token in under 30 seconds with no coding required.",
-          duration: 5000,
-        });
-        localStorage.setItem('snarbles_welcome_shown', 'true');
-      }, 1000);
-    }
-  }, []);
+  // Validation states
+  const [nameError, setNameError] = useState('');
+  const [symbolError, setSymbolError] = useState('');
+  const [totalSupplyError, setTotalSupplyError] = useState('');
+  const [decimalsError, setDecimalsError] = useState('');
+  const [logoError, setLogoError] = useState('');
+  const [isFormValid, setIsFormValid] = useState(false);
 
-  useEffect(() => {
-    // Toast for wallet connection status
-    if (mounted) {
-      if (algorandConnected && algorandAddress) {
-        toast({
-          title: "Algorand Wallet Connected",
-          description: `Connected to ${algorandNetworkConfig?.name || 'Algorand Network'}`,
-          duration: 3000,
-        });
-        checkAlgorandWalletStatus();
-      } else if (mounted && !algorandConnected && algorandAddress === null) {
-        // Only show disconnect toast if we were previously connected
-        const wasConnected = localStorage.getItem('algorand_was_connected');
-        if (wasConnected === 'true') {
-          toast({
-            title: "Algorand Wallet Disconnected",
-            description: "Your Algorand wallet has been disconnected.",
-            variant: "destructive",
-            duration: 3000,
-          });
-          localStorage.removeItem('algorand_was_connected');
+  // Deployment state
+  const [isDeploying, setIsDeploying] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+
+  // Validation functions
+  const validateName = (value: string): string => {
+    if (!value.trim()) return 'Token name is required';
+    if (value.length < 2) return 'Token name must be at least 2 characters';
+    if (value.length > 32) return 'Token name must be 32 characters or less';
+    if (!/^[a-zA-Z0-9\s\-_]+$/.test(value)) return 'Token name can only contain letters, numbers, spaces, hyphens, and underscores';
+    return '';
+  };
+
+  const validateSymbol = (value: string): string => {
+    if (!value.trim()) return 'Token symbol is required';
+    if (value.length < 2) return 'Symbol must be at least 2 characters';
+    if (value.length > 10) return 'Symbol must be 10 characters or less';
+    if (!/^[A-Z0-9]+$/.test(value.toUpperCase())) return 'Symbol can only contain letters and numbers';
+    return '';
+  };
+
+  const validateTotalSupply = (value: string): string => {
+    if (!value.trim()) return 'Total supply is required';
+    const numValue = parseFloat(value);
+    if (isNaN(numValue)) return 'Total supply must be a valid number';
+    if (numValue <= 0) return 'Total supply must be greater than 0';
+    if (numValue > 1000000000000) return 'Total supply is too large';
+    if (!/^\d+(\.\d+)?$/.test(value)) return 'Total supply must be a positive number';
+    return '';
+  };
+
+  const validateDecimals = (value: string): string => {
+    if (!value.trim()) return 'Decimals value is required';
+    const numValue = parseInt(value);
+    if (isNaN(numValue)) return 'Decimals must be a valid number';
+    if (numValue < 0) return 'Decimals cannot be negative';
+    if (numValue > 18) return 'Decimals cannot exceed 18';
+    return '';
+  };
+
+  const validateLogoUrl = (value: string): string => {
+    if (value && value.trim()) {
+      try {
+        new URL(value);
+        if (!value.match(/\.(jpg|jpeg|png|gif|svg|webp)$/i)) {
+          return 'Logo URL must point to an image file (jpg, png, gif, svg, webp)';
         }
+      } catch {
+        return 'Please enter a valid URL';
       }
-      
-      // Track connection state
-      if (algorandConnected) {
-        localStorage.setItem('algorand_was_connected', 'true');
-      }
-    }
-  }, [algorandConnected, algorandAddress, algorandSelectedNetwork, mounted, toast]);
-
-  // Toast for Solana wallet connection
-  useEffect(() => {
-    if (mounted) {
-      if (solanaConnected && solanaPublicKey) {
-        toast({
-          title: "Solana Wallet Connected",
-          description: `Connected: ${solanaPublicKey.toString().slice(0, 4)}...${solanaPublicKey.toString().slice(-4)}`,
-          duration: 3000,
-        });
-      } else if (mounted && !solanaConnected) {
-        // Only show disconnect toast if we were previously connected
-        const wasConnected = localStorage.getItem('solana_was_connected');
-        if (wasConnected === 'true') {
-          toast({
-            title: "Solana Wallet Disconnected",
-            description: "Your Solana wallet has been disconnected.",
-            variant: "destructive",
-            duration: 3000,
-          });
-          localStorage.removeItem('solana_was_connected');
-        }
-      }
-      
-      // Track connection state
-      if (solanaConnected) {
-        localStorage.setItem('solana_was_connected', 'true');
-      }
-    }
-  }, [solanaConnected, solanaPublicKey, mounted, toast]);
-
-  const checkAlgorandWalletStatus = async () => {
-    if (!algorandAddress) return;
-    
-    try {
-      const status = await checkWalletConnection(algorandAddress, algorandSelectedNetwork);
-      setAlgorandWalletStatus(status);
-    } catch (error) {
-      console.error('Error checking Algorand wallet status:', error);
-    }
-  };
-
-  const updateTokenData = (field: string, value: any) => {
-    setTokenData({ ...tokenData, [field]: value });
-  };
-
-  // Individual field validation functions
-  const validateTokenName = (name: string) => {
-    if (!name.trim()) {
-      return 'Token name is required';
-    }
-    if (name.length < 2) {
-      return 'Token name must be at least 2 characters';
-    }
-    if (name.length > 32) {
-      return 'Token name must be 32 characters or less';
-    }
-    if (!/^[a-zA-Z0-9\s-_]+$/.test(name)) {
-      return 'Token name can only contain letters, numbers, spaces, hyphens, and underscores';
     }
     return '';
   };
 
-  const validateTokenSymbol = (symbol: string) => {
-    if (!symbol.trim()) {
-      return 'Token symbol is required';
-    }
-    if (symbol.length < 2) {
-      return 'Token symbol must be at least 2 characters';
-    }
-    if (symbol.length > 10) {
-      return 'Token symbol must be 10 characters or less';
-    }
-    if (!/^[A-Z0-9]+$/.test(symbol.toUpperCase())) {
-      return 'Token symbol can only contain letters and numbers';
-    }
-    return '';
+  // Handle input changes with validation
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setTokenData({ ...tokenData, name: value });
+    setNameError(validateName(value));
   };
 
-  const validateTotalSupply = (supply: string) => {
-    if (!supply.trim()) {
-      return 'Total supply is required';
-    }
-    
-    const numSupply = parseFloat(supply);
-    if (isNaN(numSupply)) {
-      return 'Total supply must be a valid number';
-    }
-    if (numSupply <= 0) {
-      return 'Total supply must be greater than 0';
-    }
-    if (numSupply > Number.MAX_SAFE_INTEGER) {
-      return 'Total supply is too large';
-    }
-    
-    // Check if the total with decimals exceeds safe limits
-    const decimalsNum = parseInt(tokenData.decimals);
-    const totalWithDecimals = numSupply * Math.pow(10, decimalsNum);
-    if (!Number.isSafeInteger(totalWithDecimals)) {
-      return `Total supply ${numSupply} with ${decimalsNum} decimals exceeds safe limits`;
-    }
-    
-    return '';
+  const handleSymbolChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.toUpperCase();
+    setTokenData({ ...tokenData, symbol: value });
+    setSymbolError(validateSymbol(value));
   };
 
-  // Validate individual field and update error state
-  const validateField = (field: keyof typeof validationErrors, value: string) => {
-    let error = '';
-    
-    switch (field) {
-      case 'name':
-        error = validateTokenName(value);
-        break;
-      case 'symbol':
-        error = validateTokenSymbol(value);
-        break;
-      case 'totalSupply':
-        error = validateTotalSupply(value);
-        break;
-    }
-    
-    setValidationErrors(prev => ({ ...prev, [field]: error }));
+  const handleTotalSupplyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setTokenData({ ...tokenData, totalSupply: value });
+    setTotalSupplyError(validateTotalSupply(value));
   };
 
-  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) {
-      toast({
-        title: "No File Selected",
-        description: "Please select an image file to upload.",
-        variant: "destructive",
-        duration: 3000,
-      });
-      return;
-    }
+  const handleDecimalsChange = (value: string) => {
+    setTokenData({ ...tokenData, decimals: value });
+    setDecimalsError(validateDecimals(value));
+  };
+
+  const handleLogoUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setTokenData({ ...tokenData, logoUrl: value });
+    setLogoError(validateLogoUrl(value));
+  };
+
+  // File upload handler
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      const errorMsg = 'Please select a valid image file (PNG, JPG, GIF, etc.)';
-      setError(errorMsg);
       toast({
         title: "Invalid File Type",
-        description: errorMsg,
+        description: "Please select an image file (PNG, JPG, GIF, SVG, WebP)",
         variant: "destructive",
-        duration: 4000,
       });
       return;
     }
 
-    // Validate file size (max 5MB)
+    // Validate file size (5MB max)
     if (file.size > 5 * 1024 * 1024) {
-      const errorMsg = 'Image size must be less than 5MB';
-      setError(errorMsg);
       toast({
         title: "File Too Large",
-        description: errorMsg,
+        description: "Please select an image smaller than 5MB",
         variant: "destructive",
-        duration: 4000,
       });
       return;
     }
 
-    setUploadingImage(true);
-    setError('');
-    
-    // Show upload start toast
+    setIsUploading(true);
     toast({
-      title: "Uploading Image...",
-      description: "Please wait while we upload your token logo.",
-      duration: 2000,
+      title: "Uploading Logo",
+      description: "Please wait while we upload your logo...",
     });
 
     try {
-      const result = await supabaseHelpers.uploadFileToStorage(file, 'token-assets');
+      const uploadResult = await supabaseHelpers.uploadFileToStorage(file, 'token-assets');
       
-      if (result.success && result.url) {
-        updateTokenData('logoUrl', result.url);
+      if (uploadResult.success && uploadResult.url) {
+        setTokenData({ ...tokenData, logoUrl: uploadResult.url });
+        setLogoError('');
         toast({
-          title: "Image Uploaded Successfully! ✅",
-          description: "Your token logo has been uploaded and will be displayed on your token.",
-          duration: 4000,
+          title: "Upload Successful",
+          description: "Your logo has been uploaded successfully!",
         });
       } else {
-        const errorMsg = result.error || 'Failed to upload image';
-        setError(errorMsg);
-        toast({
-          title: "Upload Failed",
-          description: errorMsg,
-          variant: "destructive",
-          duration: 5000,
-        });
+        throw new Error(uploadResult.error || 'Upload failed');
       }
     } catch (error) {
-      const errorMsg = 'Failed to upload image. Please try again.';
-      setError(errorMsg);
+      console.error('Logo upload error:', error);
       toast({
-        title: "Upload Error",
-        description: errorMsg,
+        title: "Upload Failed",
+        description: "Failed to upload logo. Please try again or enter a URL manually.",
         variant: "destructive",
-        duration: 5000,
       });
     } finally {
-      setUploadingImage(false);
+      setIsUploading(false);
     }
   };
 
-  // Check if form is valid (no validation errors and required fields filled)
-  const isFormValid = useMemo(() => {
-    // Check if any validation errors exist
-    const hasErrors = Object.values(validationErrors).some(error => error !== '');
-    if (hasErrors) return false;
+  // Check form validity
+  useEffect(() => {
+    const hasValidName = !nameError && tokenData.name.trim();
+    const hasValidSymbol = !symbolError && tokenData.symbol.trim();
+    const hasValidSupply = !totalSupplyError && tokenData.totalSupply.trim();
+    const hasValidDecimals = !decimalsError && tokenData.decimals.trim();
+    const hasValidLogo = !logoError;
     
-    // Check if required fields are filled
-    if (!tokenData.name.trim()) return false;
-    if (!tokenData.symbol.trim()) return false;
-    if (!tokenData.totalSupply.trim()) return false;
-    
-    // Additional validation for numeric values
-    const supply = parseFloat(tokenData.totalSupply);
-    if (isNaN(supply) || supply <= 0) return false;
-    
-    return true;
-  }, [validationErrors, tokenData.name, tokenData.symbol, tokenData.totalSupply]);
+    setIsFormValid(hasValidName && hasValidSymbol && hasValidSupply && hasValidDecimals && hasValidLogo);
+  }, [nameError, symbolError, totalSupplyError, decimalsError, logoError, tokenData]);
 
-  // Enhanced field update function with validation
-  const updateTokenDataWithValidation = (field: string, value: any) => {
-    updateTokenData(field, value);
-    
-    // Trigger validation for specific fields
-    if (field === 'name' || field === 'symbol' || field === 'totalSupply') {
-      validateField(field as keyof typeof validationErrors, value);
+  // Get connected wallet info
+  const getConnectedWallet = () => {
+    if (tokenData.network.startsWith('algorand') && algorandConnected) {
+      return { type: 'algorand', address: algorandAddress };
     }
+    if (tokenData.network.startsWith('solana') && solanaConnected) {
+      return { type: 'solana', address: solanaPublicKey?.toString() };
+    }
+    return null;
   };
 
-  const validateForm = () => {
-    if (!tokenData.name.trim()) {
-      const errorMsg = 'Token name is required';
-      setError(errorMsg);
-      toast({
-        title: "Validation Error",
-        description: errorMsg,
-        variant: "destructive",
-        duration: 4000,
-      });
-      return false;
-    }
-    if (!tokenData.symbol.trim()) {
-      const errorMsg = 'Token symbol is required';
-      setError(errorMsg);
-      toast({
-        title: "Validation Error",
-        description: errorMsg,
-        variant: "destructive",
-        duration: 4000,
-      });
-      return false;
-    }
-    if (!tokenData.totalSupply || parseFloat(tokenData.totalSupply) <= 0) {
-      const errorMsg = 'Total supply must be greater than 0';
-      setError(errorMsg);
-      toast({
-        title: "Validation Error",
-        description: errorMsg,
-        variant: "destructive",
-        duration: 4000,
-      });
-      return false;
-    }
-    
-    // Validate total supply doesn't overflow JavaScript's safe integer limit
-    const totalSupplyNum = parseFloat(tokenData.totalSupply);
-    const decimalsNum = parseInt(tokenData.decimals);
-    const totalWithDecimals = totalSupplyNum * Math.pow(10, decimalsNum);
-    
-    if (!Number.isSafeInteger(totalWithDecimals)) {
-      const errorMsg = `Total supply ${totalSupplyNum} with ${decimalsNum} decimals exceeds safe limits. Please reduce the total supply or decimals.`;
-      setError(errorMsg);
-      toast({
-        title: "Validation Error",
-        description: errorMsg,
-        variant: "destructive",
-        duration: 6000,
-      });
-      return false;
-    }
-    
-    // Success validation toast
-    toast({
-      title: "Validation Passed ✅",
-      description: "All token parameters are valid. Ready to deploy!",
-      duration: 2000,
-    });
-    
-    return true;
-  };
-
-  // Save token to Supabase after successful deployment
-  const saveTokenToSupabase = async (tokenDetails: any, network: string) => {
-    try {
-      const supabaseTokenData = {
-        token_name: tokenDetails.name || tokenData.name,
-        token_symbol: tokenDetails.symbol || tokenData.symbol,
-        network: network,
-        contract_address: tokenDetails.assetId || tokenDetails.tokenAddress || tokenDetails.mintAddress,
-        description: tokenData.description,
-        total_supply: parseFloat(tokenData.totalSupply) || undefined,
-        decimals: parseInt(tokenData.decimals) || undefined,
-        logo_url: tokenData.logoUrl || undefined,
-        website: tokenData.website || undefined,
-        github: tokenData.github || undefined,
-        twitter: tokenData.twitter || undefined,
-        mintable: tokenData.mintable,
-        burnable: tokenData.burnable,
-        pausable: tokenData.pausable,
-        transaction_hash: tokenDetails.signature || tokenDetails.transactionId
-      };
-
-      const result = await saveToken(supabaseTokenData);
-      if (result.success) {
-        console.log('✅ Token saved to Supabase successfully');
-      } else {
-        console.warn('⚠️ Failed to save token to Supabase:', result.error);
-        // Don't fail the entire process if Supabase save fails
-      }
-    } catch (error) {
-      console.warn('⚠️ Error saving token to Supabase:', error);
-      // Don't fail the entire process if Supabase save fails
-    }
-  };
-
-  const updateProgress = (step: string, progress: number) => {
-    setDeploymentStep(step);
-    setDeploymentProgress(progress);
-  };
-
+  // Handle token deployment
   const handleDeploy = async () => {
-    if (!validateForm()) return;
+    // Check wallet connection
+    const wallet = getConnectedWallet();
+    if (!wallet) {
+      toast({
+        title: "Wallet Not Connected",
+        description: `Please connect your ${tokenData.network.startsWith('algorand') ? 'Algorand' : 'Solana'} wallet to deploy your token.`,
+        variant: "destructive",
+      });
+      return;
+    }
 
-    // Show deployment start toast
-    toast({
-      title: "Starting Token Deployment 🚀",
-      description: `Deploying ${tokenData.name} (${tokenData.symbol}) to ${selectedNetwork?.label}`,
-      duration: 3000,
-    });
+    // Final validation check
+    if (!isFormValid) {
+      toast({
+        title: "Form Validation Error",
+        description: "Please fix all validation errors before deploying your token.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setIsDeploying(true);
-    setError('');
-    setDeploymentResult(null);
-    setDeploymentProgress(0);
-    setDeploymentStep('Initializing...');
+    
+    toast({
+      title: "Deploying Token",
+      description: `Creating your ${tokenData.name} token on ${tokenData.network}...`,
+    });
 
     try {
-      const isAlgorandNetwork = tokenData.network.startsWith('algorand');
-      
-      if (isAlgorandNetwork) {
+      let result;
+
+      if (tokenData.network.startsWith('algorand')) {
         // Algorand deployment
-        if (!algorandConnected || !algorandAddress) {
-          const errorMsg = 'Please connect your Algorand wallet first';
-          setError(errorMsg);
-          toast({
-            title: "Wallet Not Connected",
-            description: errorMsg,
-            variant: "destructive",
-            duration: 4000,
-          });
-          return;
-        }
-
-        toast({
-          title: "Preparing Algorand Transaction...",
-          description: "Creating token parameters and metadata",
-          duration: 2000,
-        });
-
-        updateProgress('Preparing Algorand transaction...', 20);
-
-        const algorandTokenData = {
-          name: tokenData.name,
-          symbol: tokenData.symbol,
-          description: tokenData.description,
-          decimals: parseInt(tokenData.decimals),
-          totalSupply: tokenData.totalSupply,
-          logoUrl: tokenData.logoUrl,
-          website: tokenData.website,
-          github: tokenData.github,
-          twitter: tokenData.twitter,
-          mintable: tokenData.mintable,
-          burnable: tokenData.burnable,
-          pausable: tokenData.pausable,
-        };
-
-        updateProgress('Creating token on Algorand...', 60);
-
-        const result = await createAlgorandToken(
-          algorandAddress,
-          algorandTokenData,
-          algorandSignTransaction,
-          supabaseHelpers.uploadMetadataToStorage,
-          algorandSelectedNetwork
-        );
-
-        if (result.success) {
-          updateProgress('Opting in to token...', 80);
-          
-          toast({
-            title: "Token Created Successfully! 🎉",
-            description: `${tokenData.name} (${tokenData.symbol}) is now live on ${algorandSelectedNetwork}`,
-            duration: 5000,
-          });
-          
-          // Auto opt-in creator to the new token
-          if (result.assetId) {
-            console.log('Attempting to opt-in creator to asset:', result.assetId);
-            try {
-              const optInResult = await optInToAsset(
-                algorandAddress,
-                result.assetId,
-                algorandSignTransaction,
-                algorandSelectedNetwork
-              );
-              
-              if (optInResult.success) {
-                console.log('✓ Creator successfully opted-in to token');
-                toast({
-                  title: "Auto Opt-in Successful ✅",
-                  description: "You've been automatically opted-in to your new token",
-                  duration: 3000,
-                });
-              } else {
-                console.warn('Opt-in failed:', optInResult.error);
-                toast({
-                  title: "Opt-in Warning ⚠️",
-                  description: "Token created but auto opt-in failed. Please opt-in manually.",
-                  variant: "destructive",
-                  duration: 5000,
-                });
-              }
-            } catch (optInError) {
-              console.error('Opt-in error:', optInError);
-              toast({
-                title: "Opt-in Error",
-                description: "Token created but auto opt-in failed. Please opt-in manually.",
-                variant: "destructive",
-                duration: 5000,
-              });
-            }
-          }
-
-          updateProgress('Finalizing...', 100);
-
-          setDeploymentResult({
-            ...result,
-            network: algorandSelectedNetwork,
-            explorerUrl: result.details?.explorerUrl,
-            message: 'Token created and you have been automatically opted-in!'
-          });
-          
-          // Save to Supabase
-          await saveTokenToSupabase({
+        result = await createAlgorandToken(
+          algorandAddress!,
+          {
             name: tokenData.name,
             symbol: tokenData.symbol,
-            assetId: result.assetId,
-            transactionId: result.transactionId
-          }, algorandSelectedNetwork);
-        } else {
-          const errorMsg = result.error || 'Failed to create Algorand token';
-          setError(errorMsg);
-          toast({
-            title: "Algorand Token Creation Failed",
-            description: errorMsg,
-            variant: "destructive",
-            duration: 6000,
-          });
-        }
+            description: tokenData.description,
+            decimals: parseInt(tokenData.decimals),
+            totalSupply: tokenData.totalSupply,
+            logoUrl: tokenData.logoUrl,
+            website: tokenData.website,
+            github: tokenData.github,
+            twitter: tokenData.twitter,
+            mintable: tokenData.mintable,
+            burnable: tokenData.burnable,
+            pausable: tokenData.pausable,
+          },
+          signTransaction,
+          supabaseHelpers.uploadMetadataToStorage,
+          tokenData.network
+        );
       } else {
         // Solana deployment
-        if (!solanaConnected || !solanaPublicKey || !solanaWallet) {
-          const errorMsg = 'Please connect your Solana wallet first';
-          setError(errorMsg);
-          toast({
-            title: "Wallet Not Connected",
-            description: errorMsg,
-            variant: "destructive",
-            duration: 4000,
-          });
-          return;
-        }
-
-        toast({
-          title: "Preparing Solana Transaction...",
-          description: "Creating token parameters and smart contract",
-          duration: 2000,
-        });
-
-        updateProgress('Preparing Solana transaction...', 20);
-
-        const solanaTokenData = {
-          name: tokenData.name,
-          symbol: tokenData.symbol,
-          description: tokenData.description,
-          decimals: parseInt(tokenData.decimals),
-          totalSupply: parseInt(tokenData.totalSupply),
-          logoUrl: tokenData.logoUrl,
-          website: tokenData.website,
-          github: tokenData.github,
-          twitter: tokenData.twitter,
-          mintable: tokenData.mintable,
-          burnable: tokenData.burnable,
-          pausable: tokenData.pausable,
-        };
-
-        updateProgress('Creating token on Solana...', 60);
-
-        const result = await createTokenOnChain(solanaWallet, solanaTokenData);
-
-        if (result.success) {
-          updateProgress('Finalizing...', 100);
-          
-          toast({
-            title: "Solana Token Created! 🎉",
-            description: `${tokenData.name} (${tokenData.symbol}) is now live on Solana`,
-            duration: 5000,
-          });
-          
-          setDeploymentResult({
-            ...result,
-            network: tokenData.network,
-            explorerUrl: `https://explorer.solana.com/address/${result.tokenAddress}?cluster=devnet`
-          });
-          
-          // Save to Supabase
-          await saveTokenToSupabase({
+        result = await createTokenOnChain(
+          { publicKey: solanaPublicKey },
+          {
             name: tokenData.name,
             symbol: tokenData.symbol,
-            tokenAddress: result.tokenAddress,
-            mintAddress: result.mintAddress,
-            signature: result.signature
-          }, tokenData.network);
-        } else {
-          const errorMsg = result.error || 'Failed to create Solana token';
-          setError(errorMsg);
-          toast({
-            title: "Solana Token Creation Failed",
-            description: errorMsg,
-            variant: "destructive",
-            duration: 6000,
-          });
-        }
+            description: tokenData.description,
+            decimals: parseInt(tokenData.decimals),
+            totalSupply: parseFloat(tokenData.totalSupply),
+            logoUrl: tokenData.logoUrl,
+            website: tokenData.website,
+            github: tokenData.github,
+            twitter: tokenData.twitter,
+            mintable: tokenData.mintable,
+            burnable: tokenData.burnable,
+            pausable: tokenData.pausable,
+          }
+        );
       }
+
+      if (result.success) {
+        toast({
+          title: "🎉 Token Created Successfully!",
+          description: `Your ${tokenData.name} token has been deployed. Transaction: ${result.transactionId || result.signature}`,
+        });
+
+        // Save to user history if possible
+        try {
+          await supabaseHelpers.saveTokenCreation({
+            user_id: wallet.address,
+            token_name: tokenData.name,
+            token_symbol: tokenData.symbol,
+            network: tokenData.network,
+            contract_address: result.assetId?.toString() || result.tokenAddress || result.mintAddress || '',
+            description: tokenData.description,
+            total_supply: parseFloat(tokenData.totalSupply),
+            decimals: parseInt(tokenData.decimals),
+            logo_url: tokenData.logoUrl,
+            website: tokenData.website,
+            github: tokenData.github,
+            twitter: tokenData.twitter,
+            mintable: tokenData.mintable,
+            burnable: tokenData.burnable,
+            pausable: tokenData.pausable,
+            transaction_hash: result.transactionId || result.signature,
+          });
+        } catch (saveError) {
+          console.warn('Could not save to user history:', saveError);
+        }
+
+        // Reset form
+        setTokenData({
+          name: '',
+          symbol: '',
+          description: '',
+          totalSupply: '1000000',
+          decimals: '9',
+          logoUrl: '',
+          website: '',
+          github: '',
+          twitter: '',
+          mintable: true,
+          burnable: false,
+          pausable: false,
+          network: tokenData.network,
+        });
+
+      } else {
+        throw new Error(result.error || 'Deployment failed');
+      }
+
     } catch (error) {
       console.error('Deployment error:', error);
-      const errorMsg = error instanceof Error ? error.message : 'Deployment failed';
-      setError(errorMsg);
+      
+      let errorMessage = 'An unexpected error occurred during deployment';
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+
       toast({
-        title: "Deployment Error",
-        description: errorMsg,
+        title: "Deployment Failed",
+        description: errorMessage,
         variant: "destructive",
-        duration: 6000,
       });
     } finally {
       setIsDeploying(false);
-      setDeploymentProgress(0);
-      setDeploymentStep('');
     }
   };
 
-  const networkOptions = [
-    {
-      value: 'algorand-mainnet',
-      label: 'Algorand Mainnet',
-      description: 'Production Network',
-      cost: '~$0.002',
-      recommended: false,
-      color: 'bg-[#00d4aa]/20 text-[#00d4aa] border-[#00d4aa]/30',
-      available: algorandConnected && isPeraWalletReady,
-      comingSoon: false
-    },
+  const networks = [
     {
       value: 'algorand-testnet',
       label: 'Algorand Testnet',
-      description: 'Ultra Low Cost Testing',
+      badge: 'FREE',
       cost: '~$0.001',
-      recommended: false,
-      color: 'bg-[#76f935]/20 text-[#76f935] border-[#76f935]/30',
-      available: algorandConnected && isPeraWalletReady,
-      comingSoon: false
+      available: true,
+      color: 'bg-[#76f935]/20 text-[#76f935] border-[#76f935]/30'
+    },
+    {
+      value: 'algorand-mainnet',
+      label: 'Algorand Mainnet',
+      badge: 'PROD',
+      cost: '~$0.002',
+      available: true,
+      color: 'bg-[#00d4aa]/20 text-[#00d4aa] border-[#00d4aa]/30'
     },
     {
       value: 'solana-devnet',
       label: 'Solana Devnet',
-      description: 'Testing Environment - Free',
-      cost: 'Free',
-      recommended: false,
-      color: 'bg-green-500/20 text-green-400 border-green-500/30',
-      available: solanaConnected,
-      comingSoon: false
+      badge: 'FREE',
+      cost: '~$2-5',
+      available: false,
+      color: 'bg-blue-500/20 text-blue-400 border-blue-500/30'
     },
     {
-      value: 'soon-network',
-      label: 'SOON Network',
-      description: 'Next-gen Blockchain',
-      cost: 'Coming Soon',
-      recommended: false,
-      color: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
+      value: 'solana-mainnet',
+      label: 'Solana Mainnet',
+      badge: 'PROD',
+      cost: '~$2-5',
       available: false,
-      comingSoon: true
+      color: 'bg-green-500/20 text-green-400 border-green-500/30'
     }
   ];
 
-  const selectedNetwork = networkOptions.find(n => n.value === tokenData.network);
-  const canDeploy = selectedNetwork?.available && !selectedNetwork?.comingSoon;
-
-  if (!mounted) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500"></div>
-      </div>
-    );
-  }
-
-  if (deploymentResult) {
-    // Success toast when user copies address
-    const copyButtons = document.querySelectorAll('[title="Copy address"]');
-    copyButtons.forEach(button => {
-      button.addEventListener('click', () => {
-        toast({
-          title: "Address Copied! 📋",
-          description: "Contract address has been copied to your clipboard",
-          duration: 2000,
-        });
-      });
-    });
-    
-    return (
-      <div className="max-w-2xl mx-auto">
-        <Card className="border-green-500/50 bg-green-500/5">
-          <CardHeader className="text-center">
-            <div className="w-16 h-16 rounded-full bg-green-500/20 flex items-center justify-center mx-auto mb-4">
-              <CheckCircle className="w-8 h-8 text-green-500" />
-            </div>
-            <CardTitle className="text-2xl font-bold text-foreground">🎉 Token Created Successfully!</CardTitle>
-            <CardDescription className="text-lg">
-              Your <strong>{tokenData.name} ({tokenData.symbol})</strong> token is now live on{' '}
-              <span className="font-bold text-blue-600">
-                {deploymentResult.network === 'algorand-testnet' ? 'Algorand TestNet' : 
-                 deploymentResult.network === 'algorand-mainnet' ? 'Algorand MainNet' : 'Solana Network'}
-              </span>!
-              <br />
-              <span className="text-sm text-muted-foreground mt-2 block">
-                ✅ Token details have been saved to your dashboard history.
-              </span>
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="text-center">
-              <div className="inline-flex items-center space-x-2 bg-muted/50 rounded-lg px-4 py-2">
-                <Network className="w-4 h-4 text-muted-foreground" />
-                <span className="text-sm font-medium">
-                  {deploymentResult.network?.startsWith('algorand') 
-                    ? `Asset ID (${deploymentResult.network === 'algorand-mainnet' ? 'MainNet' : 'TestNet'})`
-                    : 'Token Address'
-                  }:
-                </span>
-                <code className="text-sm font-mono bg-background px-2 py-1 rounded">
-                  {deploymentResult.assetId || deploymentResult.tokenAddress}
-                </code>
-              </div>
-            </div>
-
-            {deploymentResult.network?.startsWith('algorand') && (
-              <Alert className="border-green-500/30 bg-green-500/10">
-                <CheckCircle className="h-4 w-4 text-green-500" />
-                <AlertDescription className="text-green-600">
-                  ✅ Successfully opted in! Your token should now appear in Pera Wallet.
-                </AlertDescription>
-              </Alert>
-            )}
-
-            <Alert className="border-blue-500/30 bg-blue-500/10">
-              <CheckCircle className="h-4 w-4 text-blue-500" />
-              <AlertDescription>
-                <div className="space-y-2">
-                  <p className="font-semibold text-blue-600">
-                    🔗 {deploymentResult.network?.startsWith('algorand') 
-                      ? `Algorand ${deploymentResult.network === 'algorand-mainnet' ? 'MainNet' : 'TestNet'}` 
-                      : 'Solana'} Token Created!
-                  </p>
-                  {deploymentResult.assetId && (
-                    <p className="text-sm">
-                      <strong>Asset ID:</strong> {deploymentResult.assetId}
-                    </p>
-                  )}
-                  {deploymentResult.transactionId && (
-                    <p className="text-sm">
-                      <strong>Transaction ID:</strong> {deploymentResult.transactionId}
-                    </p>
-                  )}
-                  <p className="text-sm">
-                    {deploymentResult.network?.startsWith('algorand')
-                      ? 'To see your token in Pera Wallet, you need to opt-in to receive it.'
-                      : 'Your token is now available on the Solana blockchain.'
-                    }
-                  </p>
-                </div>
-              </AlertDescription>
-            </Alert>
-
-            <div className="flex flex-col space-y-3">
-              <Button 
-                onClick={() => {
-                  window.open(deploymentResult.explorerUrl, '_blank');
-                  toast({
-                    title: "Opening Explorer",
-                    description: "Viewing your token on the blockchain explorer",
-                    duration: 2000,
-                  });
-                }}
-                className="w-full"
-                variant="outline"
-              >
-                🔍 View on {deploymentResult.network?.startsWith('algorand') 
-                  ? `${deploymentResult.network === 'algorand-mainnet' ? 'MainNet ' : 'TestNet '}Explorer` 
-                  : 'Solana Explorer'}
-              </Button>
-              
-              <div className="grid grid-cols-2 gap-3">
-                <Button 
-                  onClick={() => {
-                    setDeploymentResult(null);
-                    setError('');
-                    toast({
-                      title: "Ready for Another Token",
-                      description: "Form has been reset. Create your next token!",
-                      duration: 3000,
-                    });
-                  }}
-                  variant="outline"
-                  className="w-full"
-                >
-                  Create Another
-                </Button>
-                <Button 
-                  onClick={() => {
-                    toast({
-                      title: "Redirecting to Dashboard",
-                      description: "View and manage all your tokens",
-                      duration: 2000,
-                    });
-                    setTimeout(() => {
-                      window.location.href = '/dashboard';
-                    }, 500);
-                  }}
-                  className="w-full bg-red-500 hover:bg-red-600 text-white"
-                >
-                  View Dashboard
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   return (
-    <div className="max-w-2xl mx-auto form-section">
+    <div className="space-y-8">
       {/* Header */}
       <div className="text-center space-y-4">
-        <div className="flex items-center justify-center space-x-2 text-red-500 font-medium text-sm">
-          <Rocket className="w-4 h-4" />
-          <span className="uppercase tracking-wide">Token Creation</span>
+        <div className="flex items-center justify-center space-x-2">
+          <Rocket className="w-6 h-6 text-red-500" />
+          <h1 className="text-4xl font-bold text-foreground">Create Your Token</h1>
+          <Rocket className="w-6 h-6 text-red-500" />
         </div>
-        <h1 className="text-4xl font-bold text-foreground">Create Your Token</h1>
-        <p className="text-muted-foreground text-lg">
-          Design and deploy your custom token in minutes across multiple blockchains
+        <p className="text-muted-foreground text-xl">
+          Launch your cryptocurrency token in under 30 seconds
         </p>
       </div>
 
       {/* Network Selection */}
-      <Card>
+      <Card className="glass-card">
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
-            <Network className="w-5 h-5" />
-            <span>Choose Network</span>
+            <Network className="w-5 h-5 text-red-500" />
+            <span>Select Blockchain Network</span>
           </CardTitle>
-          <CardDescription>
-            Select the blockchain network where you want to deploy your token
-          </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-3">
-            {networkOptions.map((network) => (
+        <CardContent>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {networks.map((network) => (
               <div
                 key={network.value}
                 className={`network-card ${
-                  network.comingSoon
-                    ? 'coming-soon'
-                    : network.available
-                    ? tokenData.network === network.value
-                      ? 'active'
-                      : 'available'
-                    : 'disabled'
-                }`}
-                onClick={() => {
-                  if (network.available && !network.comingSoon) {
-                    updateTokenData('network', network.value);
-                    toast({
-                      title: `${network.label} Selected`,
-                      description: `Token will be deployed to ${network.label}`,
-                      duration: 2000,
-                    });
-                    // Update Algorand network if selecting Algorand
-                    if (network.value.startsWith('algorand')) {
-                      setAlgorandSelectedNetwork(network.value);
-                    }
-                  }
-                }}
+                  tokenData.network === network.value ? 'active' : ''
+                } ${network.available ? 'available' : 'disabled'}`}
+                onClick={() => network.available && setTokenData({ ...tokenData, network: network.value })}
               >
-                {network.comingSoon && (
-                  <div className="coming-soon-overlay">
-                    <Badge className="coming-soon-badge">
-                      Coming Soon
-                    </Badge>
-                  </div>
-                )}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className={`w-3 h-3 rounded-full ${
-                      tokenData.network === network.value ? 'bg-red-500' : 'bg-muted-foreground'
-                    }`} />
-                    <div>
-                      <div className="flex items-center space-x-2">
-                        <span className="font-semibold text-foreground">{network.label}</span>
-                        {network.recommended && (
-                          <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs">
-                            Recommended
-                          </Badge>
-                        )}
-                        {!network.available && !network.comingSoon && (
-                          <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30 text-xs">
-                            Connect Wallet
-                          </Badge>
-                        )}
-                      </div>
-                      <p className="text-sm text-muted-foreground">{network.description}</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <Badge className={network.color}>
-                      {network.cost}
-                    </Badge>
-                  </div>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-semibold text-foreground">{network.label}</h3>
+                  <Badge className={network.color}>
+                    {network.badge}
+                  </Badge>
                 </div>
+                <p className="text-sm text-muted-foreground mb-2">
+                  Deployment cost: {network.cost}
+                </p>
+                {!network.available && (
+                  <Badge className="coming-soon-badge">
+                    Coming Soon
+                  </Badge>
+                )}
               </div>
             ))}
           </div>
-
-          {!canDeploy && (
-            <Alert>
-              <AlertTriangle className="h-4 w-4" />
-              <AlertDescription>
-                {selectedNetwork?.comingSoon 
-                  ? `${selectedNetwork.label} is coming soon. Please select an available network.`
-                  : 'Please connect a wallet for your selected network to continue with token creation.'
-                }
-              </AlertDescription>
-            </Alert>
-          )}
         </CardContent>
       </Card>
 
-      {/* Algorand Wallet Status */}
-      {tokenData.network.startsWith('algorand') && algorandConnected && algorandWalletStatus && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Shield className="w-5 h-5" />
-              <span>Algorand Wallet Status</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Network:</span>
-                <span className="font-medium">
-                  <Badge className={algorandNetworkConfig?.isMainnet 
-                    ? 'bg-[#00d4aa]/20 text-[#00d4aa] border-[#00d4aa]/30'
-                    : 'bg-[#76f935]/20 text-[#76f935] border-[#76f935]/30'
-                  }>
-                    {algorandNetworkConfig?.name || 'Algorand Network'}
-                  </Badge>
-                </span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Balance:</span>
-                <span className="font-medium">{algorandWalletStatus.balance?.toFixed(4)} ALGO</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Can Create Token:</span>
-                <Badge className={algorandWalletStatus.canCreateToken 
-                  ? 'bg-green-500/20 text-green-400 border-green-500/30'
-                  : 'bg-red-500/20 text-red-400 border-red-500/30'
-                }>
-                  {algorandWalletStatus.canCreateToken ? '✅ Yes' : '❌ Insufficient Balance'}
-                </Badge>
-              </div>
-              {!algorandWalletStatus.canCreateToken && (
-                <Alert>
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertDescription>
-                    You need at least <strong>{algorandWalletStatus.recommendedBalance} ALGO</strong> to create a token on {algorandNetworkConfig?.name}.
-                    Current balance: {algorandWalletStatus.balance?.toFixed(4)} ALGO
-                  </AlertDescription>
-                </Alert>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Token Details Form */}
-      <Card className="token-form-card border-2 border-red-500/10">
+      {/* Token Information */}
+      <Card className="glass-card">
         <CardHeader>
-          <CardTitle className="text-2xl flex items-center space-x-2">
-            <span>Token Details</span>
+          <CardTitle className="flex items-center space-x-2">
+            <Settings className="w-5 h-5 text-red-500" />
+            <span>Token Information</span>
           </CardTitle>
-          <CardDescription>
-            Configure your token's basic information and properties
-          </CardDescription>
         </CardHeader>
         <CardContent className="form-section">
-          {/* Basic Info */}
           <div className="form-group">
+            <div className="space-y-2">
+              <Label htmlFor="name" className="form-label">Token Name *</Label>
+              <Input
+                id="name"
+                placeholder="e.g., My Awesome Token"
+                value={tokenData.name}
+                onChange={handleNameChange}
+                className={`form-input ${nameError ? 'border-red-500' : ''}`}
+              />
+              {nameError && (
+                <div className="flex items-center space-x-1 text-red-500 text-sm">
+                  <AlertCircle className="w-4 h-4" />
+                  <span>{nameError}</span>
+                </div>
+              )}
+              {!nameError && tokenData.name && (
+                <div className="flex items-center space-x-1 text-green-500 text-sm">
+                  <CheckCircle className="w-4 h-4" />
+                  <span>Valid token name</span>
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="symbol" className="form-label">Token Symbol *</Label>
+              <Input
+                id="symbol"
+                placeholder="e.g., MAT"
+                value={tokenData.symbol}
+                onChange={handleSymbolChange}
+                className={`form-input ${symbolError ? 'border-red-500' : ''}`}
+                maxLength={10}
+              />
+              {symbolError && (
+                <div className="flex items-center space-x-1 text-red-500 text-sm">
+                  <AlertCircle className="w-4 h-4" />
+                  <span>{symbolError}</span>
+                </div>
+              )}
+              {!symbolError && tokenData.symbol && (
+                <div className="flex items-center space-x-1 text-green-500 text-sm">
+                  <CheckCircle className="w-4 h-4" />
+                  <span>Valid symbol</span>
+                </div>
+              )}
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="name" className="form-label">Token Name *</Label>
+                <Label htmlFor="totalSupply" className="form-label">Total Supply *</Label>
                 <Input
-                  id="name"
-                  placeholder="My Awesome Token"
-                  value={tokenData.name}
-                  onChange={(e) => updateTokenDataWithValidation('name', e.target.value)}
-                  onBlur={() => validateField('name', tokenData.name)}
-                  className="form-input-enhanced"
-                  style={{
-                    borderColor: validationErrors.name ? '#EF4444' : undefined,
-                    boxShadow: validationErrors.name ? '0 0 0 3px rgba(239, 68, 68, 0.1)' : undefined
-                  }}
+                  id="totalSupply"
+                  type="number"
+                  placeholder="1000000"
+                  value={tokenData.totalSupply}
+                  onChange={handleTotalSupplyChange}
+                  className={`form-input ${totalSupplyError ? 'border-red-500' : ''}`}
                 />
-                {validationErrors.name && (
-                  <div className="flex items-center space-x-2 text-red-500 text-sm mt-1">
-                    <AlertTriangle className="w-4 h-4" />
-                    <span>{validationErrors.name}</span>
-                  </div>
-                )}
-                {!validationErrors.name && tokenData.name.trim() && (
-                  <div className="flex items-center space-x-2 text-green-500 text-sm mt-1">
-                    <CheckCircle className="w-4 h-4" />
-                    <span>Valid token name</span>
+                {totalSupplyError && (
+                  <div className="flex items-center space-x-1 text-red-500 text-sm">
+                    <AlertCircle className="w-4 h-4" />
+                    <span>{totalSupplyError}</span>
                   </div>
                 )}
               </div>
+
               <div className="space-y-2">
-                <Label htmlFor="symbol" className="form-label">Token Symbol *</Label>
-                <Input
-                  id="symbol"
-                  placeholder="MAT"
-                  value={tokenData.symbol}
-                  onChange={(e) => updateTokenDataWithValidation('symbol', e.target.value.toUpperCase())}
-                  onBlur={() => validateField('symbol', tokenData.symbol)}
-                  className="form-input-enhanced"
-                  style={{
-                    borderColor: validationErrors.symbol ? '#EF4444' : undefined,
-                    boxShadow: validationErrors.symbol ? '0 0 0 3px rgba(239, 68, 68, 0.1)' : undefined
-                  }}
-                />
-                {validationErrors.symbol && (
-                  <div className="flex items-center space-x-2 text-red-500 text-sm mt-1">
-                    <AlertTriangle className="w-4 h-4" />
-                    <span>{validationErrors.symbol}</span>
-                  </div>
-                )}
-                {!validationErrors.symbol && tokenData.symbol.trim() && (
-                  <div className="flex items-center space-x-2 text-green-500 text-sm mt-1">
-                    <CheckCircle className="w-4 h-4" />
-                    <span>Valid token symbol</span>
+                <Label htmlFor="decimals" className="form-label">Decimals *</Label>
+                <Select value={tokenData.decimals} onValueChange={handleDecimalsChange}>
+                  <SelectTrigger className={`form-input ${decimalsError ? 'border-red-500' : ''}`}>
+                    <SelectValue placeholder="Select decimals" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0">0 - No decimals</SelectItem>
+                    <SelectItem value="6">6 - Standard</SelectItem>
+                    <SelectItem value="9">9 - High precision</SelectItem>
+                    <SelectItem value="18">18 - Maximum</SelectItem>
+                  </SelectContent>
+                </Select>
+                {decimalsError && (
+                  <div className="flex items-center space-x-1 text-red-500 text-sm">
+                    <AlertCircle className="w-4 h-4" />
+                    <span>{decimalsError}</span>
                   </div>
                 )}
               </div>
@@ -1116,319 +562,207 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
                 id="description"
                 placeholder="Describe your token's purpose and utility..."
                 value={tokenData.description}
-                onChange={(e) => updateTokenData('description', e.target.value)}
-                className="form-input-enhanced min-h-[120px]"
-                onBlur={() => {
-                  if (tokenData.description.length > 0) {
-                    toast({
-                      title: "Description Added ✅",
-                      description: "Token description will help users understand your project",
-                      duration: 2000,
-                    });
-                  }
-                }}
+                onChange={(e) => setTokenData({ ...tokenData, description: e.target.value })}
+                className="form-textarea"
+                maxLength={200}
               />
+              <p className="text-xs text-muted-foreground">
+                {tokenData.description.length}/200 characters
+              </p>
             </div>
+          </div>
+        </CardContent>
+      </Card>
 
-            {/* Token Economics */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="totalSupply" className="form-label">Total Supply *</Label>
-                <Input
-                  id="totalSupply"
-                  type="number"
-                  placeholder="1000000"
-                  value={tokenData.totalSupply}
-                  onChange={(e) => updateTokenDataWithValidation('totalSupply', e.target.value)}
-                  onBlur={() => validateField('totalSupply', tokenData.totalSupply)}
-                  className="form-input-enhanced"
-                  style={{
-                    borderColor: validationErrors.totalSupply ? '#EF4444' : undefined,
-                    boxShadow: validationErrors.totalSupply ? '0 0 0 3px rgba(239, 68, 68, 0.1)' : undefined
-                  }}
-                  min="1"
-                  max="18446744073709551615"
-                  onBlur={() => {
-                    const supply = parseFloat(tokenData.totalSupply);
-                    if (supply > 0) {
-                      toast({
-                        title: "Supply Set ✅",
-                        description: `Total supply: ${supply.toLocaleString()} tokens`,
-                        duration: 2000,
-                      });
-                    }
-                  }}
-                />
-                <p className="text-xs text-muted-foreground">
-                  Maximum: 18.4 quintillion (Algorand protocol limit)
-                </p>
-                {validationErrors.totalSupply && (
-                  <div className="flex items-center space-x-2 text-red-500 text-sm mt-1">
-                    <AlertTriangle className="w-4 h-4" />
-                    <span>{validationErrors.totalSupply}</span>
-                  </div>
-                )}
-                {!validationErrors.totalSupply && tokenData.totalSupply.trim() && parseFloat(tokenData.totalSupply) > 0 && (
-                  <div className="flex items-center space-x-2 text-green-500 text-sm mt-1">
-                    <CheckCircle className="w-4 h-4" />
-                    <span>Valid total supply</span>
-                  </div>
-                )}
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="decimals" className="form-label">Decimals</Label>
-                <Select value={tokenData.decimals} onValueChange={(value) => updateTokenData('decimals', value)}>
-                  <SelectTrigger className="form-input-enhanced">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="6">6 decimals</SelectItem>
-                    <SelectItem value="9">9 decimals</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+      {/* Logo Upload */}
+      <Card className="glass-card">
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <Upload className="w-5 h-5 text-red-500" />
+            <span>Token Logo</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="logoFile" className="form-label">Upload Logo</Label>
+            <div className="flex items-center space-x-4">
+              <Input
+                id="logoFile"
+                type="file"
+                accept="image/*"
+                onChange={handleFileUpload}
+                className="form-input"
+                disabled={isUploading}
+              />
+              {isUploading && <Loader2 className="w-4 h-4 animate-spin text-red-500" />}
             </div>
+            <p className="text-xs text-muted-foreground">
+              Upload PNG, JPG, GIF, SVG, or WebP. Max 5MB.
+            </p>
+          </div>
 
-            {/* Logo Upload */}
-            <div className="space-y-4">
-              <Label htmlFor="logo" className="form-label">Logo Image</Label>
-              <div className="space-y-4">
-                <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
-                  <input
-                    type="file"
-                    id="logo-upload"
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                    className="hidden"
-                    disabled={uploadingImage}
-                  />
-                  <label htmlFor="logo-upload" className="cursor-pointer">
-                    <div className="space-y-2">
-                      {uploadingImage ? (
-                        <Loader2 className="w-8 h-8 text-red-500 mx-auto animate-spin" />
-                      ) : (
-                        <Upload className="w-8 h-8 text-muted-foreground mx-auto" />
-                      )}
-                      <p className="text-sm text-muted-foreground">
-                        {uploadingImage ? 'Uploading...' : 'Click to upload logo (PNG/JPG, max 5MB)'}
-                      </p>
-                    </div>
-                  </label>
-                </div>
-                
-                {tokenData.logoUrl && (
-                  <div className="flex items-center space-x-3 p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
-                    <img src={tokenData.logoUrl} alt="Token logo" className="w-10 h-10 rounded-full object-cover" />
-                    <span className="text-green-600 text-sm font-medium">Logo uploaded successfully</span>
-                  </div>
-                )}
-
-                <div className="space-y-2">
-                  <Label htmlFor="logoUrl" className="form-label">Or enter image URL manually</Label>
-                  <Input
-                    id="logoUrl"
-                    placeholder="https://example.com/logo.png"
-                    value={tokenData.logoUrl}
-                    onChange={(e) => updateTokenData('logoUrl', e.target.value)}
-                    className="form-input-enhanced"
-                    onBlur={() => {
-                      if (tokenData.logoUrl) {
-                        toast({
-                          title: "Logo URL Added ✅",
-                          description: "Logo will be displayed with your token",
-                          duration: 2000,
-                        });
-                      }
-                    }}
-                  />
-                </div>
-              </div>
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-border" />
             </div>
-
-            {/* Social Links */}
-            <div className="space-y-4">
-              <Label className="form-label">Social Links (Optional)</Label>
-              <div className="grid gap-3">
-                <div className="flex items-center space-x-3">
-                  <Globe className="w-4 h-4 text-muted-foreground" />
-                  <Input
-                    placeholder="https://yourwebsite.com"
-                    value={tokenData.website}
-                    onChange={(e) => updateTokenData('website', e.target.value)}
-                    className="form-input-enhanced"
-                  />
-                </div>
-                <div className="flex items-center space-x-3">
-                  <Github className="w-4 h-4 text-muted-foreground" />
-                  <Input
-                    placeholder="https://github.com/yourproject"
-                    value={tokenData.github}
-                    onChange={(e) => updateTokenData('github', e.target.value)}
-                    className="form-input-enhanced"
-                  />
-                </div>
-                <div className="flex items-center space-x-3">
-                  <Twitter className="w-4 h-4 text-muted-foreground" />
-                  <Input
-                    placeholder="https://twitter.com/yourproject"
-                    value={tokenData.twitter}
-                    onChange={(e) => updateTokenData('twitter', e.target.value)}
-                    className="form-input-enhanced"
-                  />
-                </div>
-              </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-background px-2 text-muted-foreground">Or</span>
             </div>
+          </div>
 
-            {/* Token Features */}
-            <div className="space-y-4">
-              <Label className="form-label">Token Features</Label>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="space-y-1">
-                    <div className="font-medium text-foreground">Mintable</div>
-                    <div className="text-sm text-muted-foreground">Allow creating new tokens after deployment</div>
-                  </div>
-                  <Switch
-                    checked={tokenData.mintable}
-                    onCheckedChange={(checked) => {
-                      updateTokenData('mintable', checked);
-                      toast({
-                        title: checked ? "Mintable Enabled ✅" : "Mintable Disabled",
-                        description: checked ? "You can create new tokens after deployment" : "Token supply is now fixed",
-                        duration: 2000,
-                      });
-                    }}
-                  />
-                </div>
-                
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="space-y-1">
-                    <div className="font-medium text-foreground">Burnable</div>
-                    <div className="text-sm text-muted-foreground">Allow permanently destroying tokens</div>
-                  </div>
-                  <Switch
-                    checked={tokenData.burnable}
-                    onCheckedChange={(checked) => {
-                      updateTokenData('burnable', checked);
-                      toast({
-                        title: checked ? "Burnable Enabled ✅" : "Burnable Disabled",
-                        description: checked ? "Tokens can be permanently destroyed" : "Tokens cannot be burned",
-                        duration: 2000,
-                      });
-                    }}
-                  />
-                </div>
-                
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="space-y-1">
-                    <div className="font-medium text-foreground">Pausable</div>
-                    <div className="text-sm text-muted-foreground">Allow pausing token transfers in emergencies</div>
-                  </div>
-                  <Switch
-                    checked={tokenData.pausable}
-                    onCheckedChange={(checked) => {
-                      updateTokenData('pausable', checked);
-                      toast({
-                        title: checked ? "Pausable Enabled ✅" : "Pausable Disabled",
-                        description: checked ? "Token transfers can be paused in emergencies" : "Token transfers cannot be paused",
-                        duration: 2000,
-                      });
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Deployment Progress */}
-            {isDeploying && (
-              <div className="space-y-4 p-6 bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/30 rounded-xl loading-shimmer">
-                <div className="flex items-center space-x-3">
-                  <Loader2 className="w-5 h-5 text-blue-500 animate-spin" />
-                  <span className="text-blue-600 font-bold text-lg">{deploymentStep}</span>
-                </div>
-                <div className="w-full bg-muted rounded-full h-4 overflow-hidden">
-                  <div 
-                    className="h-4 bg-gradient-to-r from-blue-500 via-purple-500 to-blue-600 rounded-full transition-all duration-500 relative overflow-hidden"
-                    style={{ width: `${deploymentProgress}%` }}
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-pulse"></div>
-                  </div>
-                </div>
-                <p className="text-sm text-blue-600 font-medium animate-pulse">
-                  Please don't close this window while your token is being created...
-                </p>
-              </div>
-            )}
-
-            {/* Error Display */}
-            {error && (
-              <Alert>
-                <AlertTriangle className="h-4 w-4" />
-                <AlertDescription className="text-red-600">
-                  {error}
-                </AlertDescription>
-              </Alert>
-            )}
-
-            {/* Deploy Button */}
-            <Button
-              onClick={() => {
-                if (!canDeploy) {
-                  toast({
-                    title: "Cannot Deploy",
-                    description: "Please connect a wallet for your selected network",
-                    variant: "destructive",
-                    duration: 4000,
-                  });
-                  return;
-                }
-                handleDeploy();
-              }}
-              disabled={!canDeploy || !isFormValid || isDeploying || (tokenData.network.startsWith('algorand') && algorandWalletStatus && !algorandWalletStatus.canCreateToken)}
-              className="w-full bg-red-500 hover:bg-red-600 text-white h-12 text-lg font-semibold"
-            >
-              {isDeploying ? (
-                <div className="flex items-center space-x-3">
-                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                  <span>Creating on {selectedNetwork?.label}...</span>
-                </div>
-              ) : (
-                <div className="flex items-center space-x-2">
-                  <Rocket className="w-5 h-5 mr-2" />
-                  <span>🚀 Deploy to {selectedNetwork?.label}</span>
-                </div>
-              )}
-            </Button>
-
-            {/* Form Validation Status */}
-            {!isFormValid && Object.values(validationErrors).some(error => error !== '') && (
-              <div className="text-center text-sm text-red-500 space-y-1">
-                <AlertTriangle className="w-4 h-4 mx-auto" />
-                <p>Please fix the validation errors above to continue</p>
-              </div>
-            )}
-
-            {selectedNetwork && (
-              <div className="text-center text-sm text-muted-foreground">
-                <div className="flex items-center justify-center space-x-4">
-                  <div className="flex items-center space-x-1">
-                    <Clock className="w-3 h-3" />
-                    <span>~30 seconds</span>
-                  </div>
-                  <div className="flex items-center space-x-1">
-                    <DollarSign className="w-3 h-3" />
-                    <span>{selectedNetwork.cost}</span>
-                  </div>
-                  <div className="flex items-center space-x-1">
-                    <Shield className="w-3 h-3" />
-                    <span>Secure</span>
-                  </div>
-                </div>
+          <div className="space-y-2">
+            <Label htmlFor="logoUrl" className="form-label">Logo URL</Label>
+            <Input
+              id="logoUrl"
+              type="url"
+              placeholder="https://example.com/logo.png"
+              value={tokenData.logoUrl}
+              onChange={handleLogoUrlChange}
+              className={`form-input ${logoError ? 'border-red-500' : ''}`}
+            />
+            {logoError && (
+              <div className="flex items-center space-x-1 text-red-500 text-sm">
+                <AlertCircle className="w-4 h-4" />
+                <span>{logoError}</span>
               </div>
             )}
           </div>
         </CardContent>
       </Card>
+
+      {/* Social Links */}
+      <Card className="glass-card">
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <Globe className="w-5 h-5 text-red-500" />
+            <span>Social Links</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="form-group">
+          <div className="space-y-2">
+            <Label htmlFor="website" className="form-label flex items-center space-x-2">
+              <Globe className="w-4 h-4" />
+              <span>Website</span>
+            </Label>
+            <Input
+              id="website"
+              type="url"
+              placeholder="https://yourproject.com"
+              value={tokenData.website}
+              onChange={(e) => setTokenData({ ...tokenData, website: e.target.value })}
+              className="form-input"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="github" className="form-label flex items-center space-x-2">
+              <Github className="w-4 h-4" />
+              <span>GitHub</span>
+            </Label>
+            <Input
+              id="github"
+              type="url"
+              placeholder="https://github.com/yourproject"
+              value={tokenData.github}
+              onChange={(e) => setTokenData({ ...tokenData, github: e.target.value })}
+              className="form-input"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="twitter" className="form-label flex items-center space-x-2">
+              <Twitter className="w-4 h-4" />
+              <span>Twitter</span>
+            </Label>
+            <Input
+              id="twitter"
+              type="url"
+              placeholder="https://twitter.com/yourproject"
+              value={tokenData.twitter}
+              onChange={(e) => setTokenData({ ...tokenData, twitter: e.target.value })}
+              className="form-input"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Token Features */}
+      <Card className="glass-card">
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <Shield className="w-5 h-5 text-red-500" />
+            <span>Token Features</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg">
+            <div>
+              <h4 className="font-semibold text-foreground">Mintable</h4>
+              <p className="text-sm text-muted-foreground">Allow creating new tokens after deployment</p>
+            </div>
+            <Switch
+              checked={tokenData.mintable}
+              onCheckedChange={(checked) => setTokenData({ ...tokenData, mintable: checked })}
+            />
+          </div>
+
+          <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg">
+            <div>
+              <h4 className="font-semibold text-foreground">Burnable</h4>
+              <p className="text-sm text-muted-foreground">Allow permanently destroying tokens</p>
+            </div>
+            <Switch
+              checked={tokenData.burnable}
+              onCheckedChange={(checked) => setTokenData({ ...tokenData, burnable: checked })}
+            />
+          </div>
+
+          <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg">
+            <div>
+              <h4 className="font-semibold text-foreground">Pausable</h4>
+              <p className="text-sm text-muted-foreground">Allow pausing all token transfers</p>
+            </div>
+            <Switch
+              checked={tokenData.pausable}
+              onCheckedChange={(checked) => setTokenData({ ...tokenData, pausable: checked })}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Deploy Button */}
+      <div className="text-center pt-8">
+        <Button
+          size="lg"
+          onClick={handleDeploy}
+          disabled={!isFormValid || isDeploying}
+          className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-12 py-4 text-lg font-bold rounded-xl shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+        >
+          {isDeploying ? (
+            <>
+              <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+              Deploying Token...
+            </>
+          ) : (
+            <>
+              <Zap className="w-5 h-5 mr-2" />
+              Deploy Token
+            </>
+          )}
+        </Button>
+        
+        {!isFormValid && (
+          <p className="text-sm text-muted-foreground mt-3">
+            Please fix all validation errors to enable deployment
+          </p>
+        )}
+        
+        {!getConnectedWallet() && (
+          <p className="text-sm text-yellow-600 mt-3">
+            Connect your {tokenData.network.startsWith('algorand') ? 'Algorand' : 'Solana'} wallet to deploy
+          </p>
+        )}
+      </div>
     </div>
   );
 }
