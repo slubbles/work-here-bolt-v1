@@ -35,6 +35,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useToast } from '@/hooks/use-toast';
 
 export default function SolanaDashboard() {
   const [selectedToken, setSelectedToken] = useState(0);
@@ -44,9 +45,11 @@ export default function SolanaDashboard() {
   const [isLoadingTokens, setIsLoadingTokens] = useState(true);
   const [isLoadingChart, setIsLoadingChart] = useState(true);
   const [isLoadingTransactions, setIsLoadingTransactions] = useState(true);
+  const [isLoadingStats, setIsLoadingStats] = useState(true);
   
   // Solana wallet integration
   const { connected, publicKey } = useWallet();
+  const { toast } = useToast();
 
   // Simulate loading states
   useEffect(() => {
@@ -56,12 +59,14 @@ export default function SolanaDashboard() {
       const timer2 = setTimeout(() => setIsLoadingTokens(false), 2000);
       const timer3 = setTimeout(() => setIsLoadingChart(false), 2500);
       const timer4 = setTimeout(() => setIsLoadingTransactions(false), 3000);
+      const timer5 = setTimeout(() => setIsLoadingStats(false), 1200);
       
       return () => {
         clearTimeout(timer1);
         clearTimeout(timer2);
         clearTimeout(timer3);
         clearTimeout(timer4);
+        clearTimeout(timer5);
       };
     }
   }, [connected]);
@@ -328,7 +333,7 @@ export default function SolanaDashboard() {
 
         {/* Stats Overview */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
-          {isLoading ? (
+          {isLoadingStats ? (
             <>
               <StatCardSkeleton />
               <StatCardSkeleton />
@@ -457,7 +462,7 @@ export default function SolanaDashboard() {
               </div>
 
               <TabsContent value="overview" className="space-y-6">
-                {isLoadingTokens ? (
+                {isLoadingTokens || isLoadingStats ? (
                   <TokenOverviewSkeleton />
                 ) : (
                   <div className="glass-card p-6">
