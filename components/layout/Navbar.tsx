@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Menu, X, Sun, Moon, Wallet, ChevronDown, Copy, Check } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -299,16 +298,13 @@ export default function Navbar() {
               )}
 
               {/* Enhanced Wallet Options Dropdown */}
-              <Dialog open={showWalletOptions} onOpenChange={setShowWalletOptions}>
-                <DialogContent className="sm:max-w-md">
-                  <DialogHeader>
-                    <DialogTitle>Connect Your Wallet</DialogTitle>
-                    <DialogDescription>
-                      Choose your preferred blockchain network and connect your wallet to start creating tokens.
-                    </DialogDescription>
-                  </DialogHeader>
-                  
+              {showWalletOptions && (
+                <div className="absolute right-0 top-full mt-2 w-80 bg-background/95 backdrop-blur-xl border border-border rounded-xl shadow-2xl z-50 p-4 animate-in slide-in-from-top-2 duration-200">
                   <div className="space-y-4">
+                    <div className="text-center">
+                      <h3 className="text-foreground font-bold text-lg mb-1">Wallet Management</h3>
+                      <p className="text-muted-foreground text-xs">Connect or manage your wallets</p>
+                    </div>
                     
                     {/* Solana Wallet */}
                     <div className="space-y-2">
@@ -485,18 +481,18 @@ export default function Navbar() {
                     )}
 
                     {/* Close Button */}
-                    <div className="pt-4 border-t border-border">
+                    <div className="pt-2 border-t border-border">
                       <Button
                         variant="ghost"
                         onClick={() => setShowWalletOptions(false)}
-                        className="w-full text-muted-foreground hover:bg-muted rounded-lg h-8 text-sm"
+                        className="w-full text-muted-foreground hover:bg-muted rounded-lg h-8 text-xs"
                       >
                         Close
                       </Button>
                     </div>
                   </div>
-                </DialogContent>
-              </Dialog>
+                </div>
+              )}
             </div>
           </div>
 
@@ -563,7 +559,7 @@ export default function Navbar() {
               
               {/* Enhanced Mobile Wallet Connections */}
               <div className="space-y-4">
-                <h4 className="text-foreground font-semibold text-lg">Wallet Connections</h4>
+                <h4 className="text-foreground font-semibold text-lg">Connected Wallets</h4>
                 
                 {/* Solana */}
                 <div className="space-y-3">
