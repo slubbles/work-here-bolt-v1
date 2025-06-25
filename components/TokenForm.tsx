@@ -13,6 +13,7 @@ import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useAlgorandWallet } from '@/components/providers/AlgorandWalletProvider';
+import { useSupabase } from '@/hooks/useSupabase';
 import { 
   Upload, 
   Rocket, 
@@ -62,6 +63,7 @@ interface DeploymentStep {
 
 export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
   const { toast } = useToast();
+  const { user: supabaseUser } = useSupabase();
   
   // Wallet connections
   const { connected: solanaConnected, publicKey: solanaPublicKey } = useWallet();
@@ -473,24 +475,26 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
 
         // Save to user history if possible
         try {
-          await supabaseHelpers.saveTokenCreation({
-            user_id: wallet.address,
-            token_name: tokenData.name,
-            token_symbol: tokenData.symbol,
-            network: tokenData.network,
-            contract_address: result.assetId?.toString() || result.tokenAddress || result.mintAddress || '',
-            description: tokenData.description,
-            total_supply: parseFloat(tokenData.totalSupply),
-            decimals: parseInt(tokenData.decimals),
-            logo_url: tokenData.logoUrl,
-            website: tokenData.website,
-            github: tokenData.github,
-            twitter: tokenData.twitter,
-            mintable: tokenData.mintable,
-            burnable: tokenData.burnable,
-            pausable: tokenData.pausable,
-            transaction_hash: result.transactionId || result.signature,
-          });
+          if (supabaseUser?.id) {
+            await supabaseHelpers.saveTokenCreation({
+              user_id: supabaseUser.id,
+              token_name: tokenData.name,
+              token_symbol: tokenData.symbol,
+              network: tokenData.network,
+              contract_address: result.assetId?.toString() || result.tokenAddress || result.mintAddress || '',
+              description: tokenData.description,
+              total_supply: parseFloat(tokenData.totalSupply),
+              decimals: parseInt(tokenData.decimals),
+              logo_url: tokenData.logoUrl,
+              website: tokenData.website,
+              github: tokenData.github,
+              twitter: tokenData.twitter,
+              mintable: tokenData.mintable,
+              burnable: tokenData.burnable,
+              pausable: tokenData.pausable,
+              transaction_hash: result.transactionId || result.signature,
+            });
+          }
         } catch (saveError) {
           console.warn('Could not save to user history:', saveError);
         }

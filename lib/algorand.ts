@@ -1,8 +1,5 @@
 import algosdk from 'algosdk';
 
-// Zero address for Algorand (used to disable features)
-export const ZERO_ADDRESS = 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
-
 // Algorand network configurations
 export const ALGORAND_NETWORKS = {
   'algorand-mainnet': {
@@ -277,10 +274,10 @@ export async function createAlgorandToken(
     }
     
     // Set manager addresses based on features
-    const managerAddress = tokenData.mintable ? creatorAddress : ZERO_ADDRESS;
+    const managerAddress = tokenData.mintable ? creatorAddress : undefined;
     const reserveAddress = creatorAddress; // Always set reserve to creator
-    const freezeAddress = tokenData.pausable ? creatorAddress : ZERO_ADDRESS;
-    const clawbackAddress = tokenData.burnable ? creatorAddress : ZERO_ADDRESS;
+    const freezeAddress = tokenData.pausable ? creatorAddress : undefined;
+    const clawbackAddress = tokenData.burnable ? creatorAddress : undefined;
     
     console.log('🔧 Creating asset with parameters:');
     console.log('- Manager (mintable):', managerAddress);
