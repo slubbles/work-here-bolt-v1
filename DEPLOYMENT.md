@@ -51,13 +51,9 @@ npm run build
 ```
 
 ### **Option 3: Static Export**
-```bash
-# Generate static files
-npm run build:production
+⚠️ **Note**: This application uses Next.js App Router which requires server-side capabilities and cannot be statically exported. Use Vercel or Netlify instead for proper App Router support.
 
-# Deploy 'out' folder to any static hosting
-# (GitHub Pages, AWS S3, etc.)
-```
+For static hosting, you would need to migrate to Pages Router or use a different framework.
 
 ## ⚙️ Environment Variables
 
