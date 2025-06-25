@@ -10,7 +10,9 @@
     "lint": "next lint",
     "lint:fix": "next lint --fix",
     "analyze": "cross-env ANALYZE=true npm run build",
-    "clean": "rm -rf .next out"
+    "clean": "rm -rf .next out",
+    "clean:all": "rm -rf .next out node_modules package-lock.json",
+    "fresh": "npm run clean:all && npm install && npm run dev"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.28.0",
