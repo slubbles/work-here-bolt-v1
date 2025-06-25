@@ -721,7 +721,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
                 placeholder="e.g., My Awesome Token"
                 value={tokenData.name}
                 onChange={handleNameChange}
-                className={`form-input ${nameError ? 'border-red-500' : ''}`}
+                className={`form-input touch-target ${nameError ? 'border-red-500' : ''}`}
                 disabled={isDeploying}
               />
               {nameError && (
@@ -746,7 +746,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
                 placeholder="e.g., MAT"
                 value={tokenData.symbol}
                 onChange={handleSymbolChange}
-                className={`form-input ${symbolError ? 'border-red-500' : ''}`}
+                className={`form-input touch-target ${symbolError ? 'border-red-500' : ''}`}
                 maxLength={10}
                 disabled={isDeploying}
               />
@@ -788,7 +788,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
                   placeholder="1000000"
                   value={tokenData.totalSupply}
                   onChange={handleTotalSupplyChange}
-                  className={`form-input ${totalSupplyError ? 'border-red-500' : ''}`}
+                  className={`form-input touch-target ${totalSupplyError ? 'border-red-500' : ''}`}
                   disabled={isDeploying}
                 />
                   {!tokenData.description && (
@@ -808,7 +808,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
               <div className="space-y-2">
                 <Label htmlFor="decimals" className="form-label">Decimals *</Label>
                 <Select value={tokenData.decimals} onValueChange={handleDecimalsChange} disabled={isDeploying}>
-                  <SelectTrigger className={`form-input ${decimalsError ? 'border-red-500' : ''}`}>
+                  <SelectTrigger className={`form-input touch-target ${decimalsError ? 'border-red-500' : ''}`}>
                     <SelectValue placeholder="Select decimals" />
                   </SelectTrigger>
                   <SelectContent>
@@ -837,7 +837,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
                 placeholder="Describe your token's purpose and utility..."
                 value={tokenData.description}
                 onChange={(e) => setTokenData({ ...tokenData, description: e.target.value })}
-                className="form-textarea"
+                className="form-textarea touch-target"
                 maxLength={200}
                 disabled={isDeploying}
               />
@@ -866,7 +866,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
                 type="file"
                 accept="image/*"
                 onChange={handleFileUpload}
-                className="form-input"
+                className="form-input touch-target"
                 disabled={isUploading || isDeploying}
               />
               {isUploading && <Loader2 className="w-4 h-4 animate-spin text-red-500" />}
@@ -893,7 +893,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
               placeholder="https://example.com/logo.png"
               value={tokenData.logoUrl}
               onChange={handleLogoUrlChange}
-              className={`form-input ${logoError ? 'border-red-500' : ''}`}
+              className={`form-input touch-target ${logoError ? 'border-red-500' : ''}`}
               disabled={isDeploying}
             />
             {logoError && (
@@ -927,7 +927,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
               placeholder="https://yourproject.com"
               value={tokenData.website}
               onChange={(e) => setTokenData({ ...tokenData, website: e.target.value })}
-              className="form-input"
+              className="form-input touch-target"
               disabled={isDeploying}
             />
           </div>
@@ -944,7 +944,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
               placeholder="https://github.com/yourproject"
               value={tokenData.github}
               onChange={(e) => setTokenData({ ...tokenData, github: e.target.value })}
-              className="form-input"
+              className="form-input touch-target"
               disabled={isDeploying}
             />
           </div>
@@ -961,7 +961,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
               placeholder="https://twitter.com/yourproject"
               value={tokenData.twitter}
               onChange={(e) => setTokenData({ ...tokenData, twitter: e.target.value })}
-              className="form-input"
+              className="form-input touch-target"
               disabled={isDeploying}
             />
           </div>
@@ -969,59 +969,68 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
       </Card>
 
       {/* Token Features */}
-      <Card className="glass-card">
+      <Card className="glass-card mobile-friendly-spacing">
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <Shield className="w-5 h-5 text-red-500" />
             <span>Token Features</span>
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg">
+        <CardContent className="space-y-8 md:space-y-6">
+          <div className="flex items-center justify-between p-6 md:p-4 bg-muted/30 rounded-lg min-h-[80px] md:min-h-[60px]">
             <div>
-              <h4 className="font-semibold text-foreground">Mintable</h4>
-              <p className="text-sm text-muted-foreground">Allow creating new tokens after deployment</p>
+              <h4 className="font-semibold text-foreground text-lg md:text-base">Mintable</h4>
+              <p className="text-base md:text-sm text-muted-foreground">Allow creating new tokens after deployment</p>
             </div>
-            <Switch
+            <div className="ml-4">
+              <Switch
               checked={tokenData.mintable}
               onCheckedChange={(checked) => setTokenData({ ...tokenData, mintable: checked })}
               disabled={isDeploying}
-            />
+              className="touch-target-switch"
+              />
+            </div>
           </div>
 
-          <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg">
+          <div className="flex items-center justify-between p-6 md:p-4 bg-muted/30 rounded-lg min-h-[80px] md:min-h-[60px]">
             <div>
-              <h4 className="font-semibold text-foreground">Burnable</h4>
-              <p className="text-sm text-muted-foreground">Allow permanently destroying tokens</p>
+              <h4 className="font-semibold text-foreground text-lg md:text-base">Burnable</h4>
+              <p className="text-base md:text-sm text-muted-foreground">Allow permanently destroying tokens</p>
             </div>
-            <Switch
+            <div className="ml-4">
+              <Switch
               checked={tokenData.burnable}
               onCheckedChange={(checked) => setTokenData({ ...tokenData, burnable: checked })}
               disabled={isDeploying}
-            />
+              className="touch-target-switch"
+              />
+            </div>
           </div>
 
-          <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg">
+          <div className="flex items-center justify-between p-6 md:p-4 bg-muted/30 rounded-lg min-h-[80px] md:min-h-[60px]">
             <div>
-              <h4 className="font-semibold text-foreground">Pausable</h4>
-              <p className="text-sm text-muted-foreground">Allow pausing all token transfers</p>
+              <h4 className="font-semibold text-foreground text-lg md:text-base">Pausable</h4>
+              <p className="text-base md:text-sm text-muted-foreground">Allow pausing all token transfers</p>
             </div>
-            <Switch
+            <div className="ml-4">
+              <Switch
               checked={tokenData.pausable}
               onCheckedChange={(checked) => setTokenData({ ...tokenData, pausable: checked })}
               disabled={isDeploying}
-            />
+              className="touch-target-switch"
+              />
+            </div>
           </div>
         </CardContent>
       </Card>
 
       {/* Deploy Button */}
-      <div className="text-center pt-8">
+      <div className="text-center pt-8 pb-8 md:pb-4">
         <Button
-          size="lg"
+          size="lg" 
           onClick={handleDeploy}
           disabled={!isFormValid || isDeploying}
-          className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-12 py-4 text-lg font-bold rounded-xl shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+          className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-12 py-4 md:py-4 py-6 text-xl md:text-lg font-bold rounded-xl shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none min-h-[64px] md:min-h-[56px] w-full md:w-auto"
         >
           {isDeploying ? (
             <>
@@ -1037,13 +1046,13 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
         </Button>
         
         {!isFormValid && !isDeploying && (
-          <p className="text-sm text-muted-foreground mt-3">
+          <p className="text-base md:text-sm text-muted-foreground mt-4 md:mt-3 px-4 md:px-0">
             Please fix all validation errors to enable deployment
           </p>
         )}
         
         {!getConnectedWallet() && !isDeploying && (
-          <p className="text-sm text-yellow-600 mt-3">
+          <p className="text-base md:text-sm text-yellow-600 mt-4 md:mt-3 px-4 md:px-0">
             Connect your {tokenData.network.startsWith('algorand') ? 'Algorand' : 'Solana'} wallet to deploy
           </p>
         )}

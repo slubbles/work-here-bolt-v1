@@ -262,29 +262,29 @@ export default function AdminPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
-              <Settings className="w-5 h-5" />
+              <Settings className="w-6 h-6 md:w-5 md:h-5" />
               <span>Admin Wallet Status</span>
             </CardTitle>
             <CardDescription>
               Connected admin wallet information
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-6 md:space-y-4">
             <div className="space-y-4">
-              <div className="flex items-center justify-between p-4 bg-green-500/10 border border-green-500/30 rounded-lg">
+              <div className="flex items-center justify-between p-6 md:p-4 bg-green-500/10 border border-green-500/30 rounded-lg min-h-[80px] md:min-h-[60px]">
                 <div className="flex items-center space-x-3">
-                  <CheckCircle className="w-5 h-5 text-green-500" />
+                  <CheckCircle className="w-6 h-6 md:w-5 md:h-5 text-green-500" />
                   <div>
-                    <p className="font-semibold text-green-600">✅ Admin wallet connected</p>
-                    <p className="text-sm text-muted-foreground">Full administrative access granted</p>
+                    <p className="font-semibold text-green-600 text-lg md:text-base">✅ Admin wallet connected</p>
+                    <p className="text-base md:text-sm text-muted-foreground">Full administrative access granted</p>
                   </div>
                 </div>
-                <WalletMultiButton className="!bg-green-500 hover:!bg-green-600 !rounded-xl" />
+                <WalletMultiButton className="!bg-green-500 hover:!bg-green-600 !rounded-xl !min-h-[48px] !px-4 !text-base md:!text-sm" />
               </div>
               
               <div className="space-y-2">
-                <p className="text-sm text-muted-foreground mb-2 font-medium">Connected Wallet:</p>
-                <p className="font-mono text-sm bg-muted p-3 rounded-lg break-all">
+                <p className="text-base md:text-sm text-muted-foreground mb-2 font-medium">Connected Wallet:</p>
+                <p className="font-mono text-base md:text-sm bg-muted p-4 md:p-3 rounded-lg break-all">
                   {publicKey?.toString()}
                 </p>
               </div>
@@ -300,12 +300,12 @@ export default function AdminPage() {
               Check if the platform has been initialized
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-6 md:space-y-4">
             <Button 
               onClick={checkPlatformState}
               disabled={isCheckingState}
               variant="outline"
-              className="w-full sm:w-auto"
+              className="w-full sm:w-auto min-h-[56px] md:min-h-[44px] text-lg md:text-base py-4 md:py-2"
             >
               {isCheckingState ? (
                 <>
@@ -343,10 +343,11 @@ export default function AdminPage() {
               Set up the platform state for token creation (Admin only)
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-6 md:space-y-4">
             <div className="space-y-2">
               <Label htmlFor="creationFee">Creation Fee (SOL)</Label>
               <Input
+                className="touch-target h-14 md:h-12 text-lg md:text-base"
                 id="creationFee"
                 type="number"
                 step="0.001"
@@ -363,7 +364,7 @@ export default function AdminPage() {
             <Button 
               onClick={handleInitialize}
               disabled={isInitializing}
-              className="w-full bg-red-500 hover:bg-red-600"
+              className="w-full bg-red-500 hover:bg-red-600 min-h-[56px] md:min-h-[44px] text-lg md:text-base py-4 md:py-2"
             >
               {isInitializing ? (
                 <>
@@ -409,20 +410,20 @@ export default function AdminPage() {
               Navigate to other platform features
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-4">
               <Link href="/create">
-                <Button variant="outline" className="w-full h-12">
+                <Button variant="outline" className="w-full min-h-[60px] md:min-h-[48px] text-lg md:text-base">
                   Create Token
                 </Button>
               </Link>
               <Link href="/dashboard">
-                <Button variant="outline" className="w-full h-12">
+                <Button variant="outline" className="w-full min-h-[60px] md:min-h-[48px] text-lg md:text-base">
                   Dashboard
                 </Button>
               </Link>
               <Link href="/verify">
-                <Button variant="outline" className="w-full h-12">
+                <Button variant="outline" className="w-full min-h-[60px] md:min-h-[48px] text-lg md:text-base">
                   Verify Tokens
                 </Button>
               </Link>
