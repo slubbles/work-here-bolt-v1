@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Upload, Loader2, CheckCircle, AlertTriangle, Rocket, Network, Globe, Github, Twitter, Zap, DollarSign, Clock, Shield } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useAlgorandWallet } from '@/components/providers/AlgorandWalletProvider';
 import { createTokenOnChain } from '@/lib/solana';
@@ -46,6 +47,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
   const [algorandWalletStatus, setAlgorandWalletStatus] = useState<any>(null);
   const [deploymentProgress, setDeploymentProgress] = useState(0);
   const [deploymentStep, setDeploymentStep] = useState('');
+  const { toast } = useToast();
   
   // Supabase token history integration
   const { saveToken } = useTokenHistory();
@@ -65,14 +67,81 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
 
   useEffect(() => {
     setMounted(true);
+    
+    // Welcome toast for new users
+    const hasSeenWelcome = localStorage.getItem('snarbles_welcome_shown');
+    if (!hasSeenWelcome) {
+      setTimeout(() => {
+        toast({
+          title: "Welcome to Snarbles! 🚀",
+          description: "Create your own token in under 30 seconds with no coding required.",
+          duration: 5000,
+        });
+        localStorage.setItem('snarbles_welcome_shown', 'true');
+      }, 1000);
+    }
   }, []);
 
   useEffect(() => {
-    // Check Algorand wallet status when connected
-    if (algorandConnected && algorandAddress) {
-      checkAlgorandWalletStatus();
+    // Toast for wallet connection status
+    if (mounted) {
+      if (algorandConnected && algorandAddress) {
+        toast({
+          title: "Algorand Wallet Connected",
+          description: `Connected to ${algorandNetworkConfig?.name || 'Algorand Network'}`,
+          duration: 3000,
+        });
+        checkAlgorandWalletStatus();
+      } else if (mounted && !algorandConnected && algorandAddress === null) {
+        // Only show disconnect toast if we were previously connected
+        const wasConnected = localStorage.getItem('algorand_was_connected');
+        if (wasConnected === 'true') {
+          toast({
+            title: "Algorand Wallet Disconnected",
+            description: "Your Algorand wallet has been disconnected.",
+            variant: "destructive",
+            duration: 3000,
+          });
+          localStorage.removeItem('algorand_was_connected');
+        }
+      }
+      
+      // Track connection state
+      if (algorandConnected) {
+        localStorage.setItem('algorand_was_connected', 'true');
+      }
     }
-  }, [algorandConnected, algorandAddress, algorandSelectedNetwork]);
+  }, [algorandConnected, algorandAddress, algorandSelectedNetwork, mounted, toast]);
+
+  // Toast for Solana wallet connection
+  useEffect(() => {
+    if (mounted) {
+      if (solanaConnected && solanaPublicKey) {
+        toast({
+          title: "Solana Wallet Connected",
+          description: `Connected: ${solanaPublicKey.toString().slice(0, 4)}...${solanaPublicKey.toString().slice(-4)}`,
+          duration: 3000,
+        });
+      } else if (mounted && !solanaConnected) {
+        // Only show disconnect toast if we were previously connected
+        const wasConnected = localStorage.getItem('solana_was_connected');
+        if (wasConnected === 'true') {
+          toast({
+            title: "Solana Wallet Disconnected",
+            description: "Your Solana wallet has been disconnected.",
+            variant: "destructive",
+            duration: 3000,
+          });
+          localStorage.removeItem('solana_was_connected');
+        }
+      }
+      
+      // Track connection state
+      if (solanaConnected) {
+        localStorage.setItem('solana_was_connected', 'true');
+      }
+    }
+  }, [solanaConnected, solanaPublicKey, mounted, toast]);
 
   const checkAlgorandWalletStatus = async () => {
     if (!algorandAddress) return;
@@ -91,33 +160,81 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
 
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file) return;
+    if (!file) {
+      toast({
+        title: "No File Selected",
+        description: "Please select an image file to upload.",
+        variant: "destructive",
+        duration: 3000,
+      });
+      return;
+    }
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      setError('Please select a valid image file');
+      const errorMsg = 'Please select a valid image file (PNG, JPG, GIF, etc.)';
+      setError(errorMsg);
+      toast({
+        title: "Invalid File Type",
+        description: errorMsg,
+        variant: "destructive",
+        duration: 4000,
+      });
       return;
     }
 
     // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      setError('Image size must be less than 5MB');
+      const errorMsg = 'Image size must be less than 5MB';
+      setError(errorMsg);
+      toast({
+        title: "File Too Large",
+        description: errorMsg,
+        variant: "destructive",
+        duration: 4000,
+      });
       return;
     }
 
     setUploadingImage(true);
     setError('');
+    
+    // Show upload start toast
+    toast({
+      title: "Uploading Image...",
+      description: "Please wait while we upload your token logo.",
+      duration: 2000,
+    });
 
     try {
       const result = await supabaseHelpers.uploadFileToStorage(file, 'token-assets');
       
       if (result.success && result.url) {
         updateTokenData('logoUrl', result.url);
+        toast({
+          title: "Image Uploaded Successfully! ✅",
+          description: "Your token logo has been uploaded and will be displayed on your token.",
+          duration: 4000,
+        });
       } else {
-        setError(result.error || 'Failed to upload image');
+        const errorMsg = result.error || 'Failed to upload image';
+        setError(errorMsg);
+        toast({
+          title: "Upload Failed",
+          description: errorMsg,
+          variant: "destructive",
+          duration: 5000,
+        });
       }
     } catch (error) {
-      setError('Failed to upload image. Please try again.');
+      const errorMsg = 'Failed to upload image. Please try again.';
+      setError(errorMsg);
+      toast({
+        title: "Upload Error",
+        description: errorMsg,
+        variant: "destructive",
+        duration: 5000,
+      });
     } finally {
       setUploadingImage(false);
     }
@@ -125,15 +242,36 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
 
   const validateForm = () => {
     if (!tokenData.name.trim()) {
-      setError('Token name is required');
+      const errorMsg = 'Token name is required';
+      setError(errorMsg);
+      toast({
+        title: "Validation Error",
+        description: errorMsg,
+        variant: "destructive",
+        duration: 4000,
+      });
       return false;
     }
     if (!tokenData.symbol.trim()) {
-      setError('Token symbol is required');
+      const errorMsg = 'Token symbol is required';
+      setError(errorMsg);
+      toast({
+        title: "Validation Error",
+        description: errorMsg,
+        variant: "destructive",
+        duration: 4000,
+      });
       return false;
     }
     if (!tokenData.totalSupply || parseFloat(tokenData.totalSupply) <= 0) {
-      setError('Total supply must be greater than 0');
+      const errorMsg = 'Total supply must be greater than 0';
+      setError(errorMsg);
+      toast({
+        title: "Validation Error",
+        description: errorMsg,
+        variant: "destructive",
+        duration: 4000,
+      });
       return false;
     }
     
@@ -143,9 +281,23 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
     const totalWithDecimals = totalSupplyNum * Math.pow(10, decimalsNum);
     
     if (!Number.isSafeInteger(totalWithDecimals)) {
-      setError(`Total supply ${totalSupplyNum} with ${decimalsNum} decimals exceeds safe limits. Please reduce the total supply or decimals.`);
+      const errorMsg = `Total supply ${totalSupplyNum} with ${decimalsNum} decimals exceeds safe limits. Please reduce the total supply or decimals.`;
+      setError(errorMsg);
+      toast({
+        title: "Validation Error",
+        description: errorMsg,
+        variant: "destructive",
+        duration: 6000,
+      });
       return false;
     }
+    
+    // Success validation toast
+    toast({
+      title: "Validation Passed ✅",
+      description: "All token parameters are valid. Ready to deploy!",
+      duration: 2000,
+    });
     
     return true;
   };
@@ -192,6 +344,13 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
   const handleDeploy = async () => {
     if (!validateForm()) return;
 
+    // Show deployment start toast
+    toast({
+      title: "Starting Token Deployment 🚀",
+      description: `Deploying ${tokenData.name} (${tokenData.symbol}) to ${selectedNetwork?.label}`,
+      duration: 3000,
+    });
+
     setIsDeploying(true);
     setError('');
     setDeploymentResult(null);
@@ -204,9 +363,22 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
       if (isAlgorandNetwork) {
         // Algorand deployment
         if (!algorandConnected || !algorandAddress) {
-          setError('Please connect your Algorand wallet first');
+          const errorMsg = 'Please connect your Algorand wallet first';
+          setError(errorMsg);
+          toast({
+            title: "Wallet Not Connected",
+            description: errorMsg,
+            variant: "destructive",
+            duration: 4000,
+          });
           return;
         }
+
+        toast({
+          title: "Preparing Algorand Transaction...",
+          description: "Creating token parameters and metadata",
+          duration: 2000,
+        });
 
         updateProgress('Preparing Algorand transaction...', 20);
 
@@ -238,6 +410,12 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
         if (result.success) {
           updateProgress('Opting in to token...', 80);
           
+          toast({
+            title: "Token Created Successfully! 🎉",
+            description: `${tokenData.name} (${tokenData.symbol}) is now live on ${algorandSelectedNetwork}`,
+            duration: 5000,
+          });
+          
           // Auto opt-in creator to the new token
           if (result.assetId) {
             console.log('Attempting to opt-in creator to asset:', result.assetId);
@@ -251,11 +429,28 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
               
               if (optInResult.success) {
                 console.log('✓ Creator successfully opted-in to token');
+                toast({
+                  title: "Auto Opt-in Successful ✅",
+                  description: "You've been automatically opted-in to your new token",
+                  duration: 3000,
+                });
               } else {
                 console.warn('Opt-in failed:', optInResult.error);
+                toast({
+                  title: "Opt-in Warning ⚠️",
+                  description: "Token created but auto opt-in failed. Please opt-in manually.",
+                  variant: "destructive",
+                  duration: 5000,
+                });
               }
             } catch (optInError) {
               console.error('Opt-in error:', optInError);
+              toast({
+                title: "Opt-in Error",
+                description: "Token created but auto opt-in failed. Please opt-in manually.",
+                variant: "destructive",
+                duration: 5000,
+              });
             }
           }
 
@@ -276,14 +471,34 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
             transactionId: result.transactionId
           }, algorandSelectedNetwork);
         } else {
-          setError(result.error || 'Failed to create Algorand token');
+          const errorMsg = result.error || 'Failed to create Algorand token';
+          setError(errorMsg);
+          toast({
+            title: "Algorand Token Creation Failed",
+            description: errorMsg,
+            variant: "destructive",
+            duration: 6000,
+          });
         }
       } else {
         // Solana deployment
         if (!solanaConnected || !solanaPublicKey || !solanaWallet) {
-          setError('Please connect your Solana wallet first');
+          const errorMsg = 'Please connect your Solana wallet first';
+          setError(errorMsg);
+          toast({
+            title: "Wallet Not Connected",
+            description: errorMsg,
+            variant: "destructive",
+            duration: 4000,
+          });
           return;
         }
+
+        toast({
+          title: "Preparing Solana Transaction...",
+          description: "Creating token parameters and smart contract",
+          duration: 2000,
+        });
 
         updateProgress('Preparing Solana transaction...', 20);
 
@@ -309,6 +524,12 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
         if (result.success) {
           updateProgress('Finalizing...', 100);
           
+          toast({
+            title: "Solana Token Created! 🎉",
+            description: `${tokenData.name} (${tokenData.symbol}) is now live on Solana`,
+            duration: 5000,
+          });
+          
           setDeploymentResult({
             ...result,
             network: tokenData.network,
@@ -324,12 +545,26 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
             signature: result.signature
           }, tokenData.network);
         } else {
-          setError(result.error || 'Failed to create Solana token');
+          const errorMsg = result.error || 'Failed to create Solana token';
+          setError(errorMsg);
+          toast({
+            title: "Solana Token Creation Failed",
+            description: errorMsg,
+            variant: "destructive",
+            duration: 6000,
+          });
         }
       }
     } catch (error) {
       console.error('Deployment error:', error);
-      setError(error instanceof Error ? error.message : 'Deployment failed');
+      const errorMsg = error instanceof Error ? error.message : 'Deployment failed';
+      setError(errorMsg);
+      toast({
+        title: "Deployment Error",
+        description: errorMsg,
+        variant: "destructive",
+        duration: 6000,
+      });
     } finally {
       setIsDeploying(false);
       setDeploymentProgress(0);
@@ -392,6 +627,18 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
   }
 
   if (deploymentResult) {
+    // Success toast when user copies address
+    const copyButtons = document.querySelectorAll('[title="Copy address"]');
+    copyButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        toast({
+          title: "Address Copied! 📋",
+          description: "Contract address has been copied to your clipboard",
+          duration: 2000,
+        });
+      });
+    });
+    
     return (
       <div className="max-w-2xl mx-auto">
         <Card className="border-green-500/50 bg-green-500/5">
@@ -468,7 +715,14 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
 
             <div className="flex flex-col space-y-3">
               <Button 
-                onClick={() => window.open(deploymentResult.explorerUrl, '_blank')}
+                onClick={() => {
+                  window.open(deploymentResult.explorerUrl, '_blank');
+                  toast({
+                    title: "Opening Explorer",
+                    description: "Viewing your token on the blockchain explorer",
+                    duration: 2000,
+                  });
+                }}
                 className="w-full"
                 variant="outline"
               >
@@ -482,6 +736,11 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
                   onClick={() => {
                     setDeploymentResult(null);
                     setError('');
+                    toast({
+                      title: "Ready for Another Token",
+                      description: "Form has been reset. Create your next token!",
+                      duration: 3000,
+                    });
                   }}
                   variant="outline"
                   className="w-full"
@@ -489,7 +748,16 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
                   Create Another
                 </Button>
                 <Button 
-                  onClick={() => window.location.href = '/dashboard'}
+                  onClick={() => {
+                    toast({
+                      title: "Redirecting to Dashboard",
+                      description: "View and manage all your tokens",
+                      duration: 2000,
+                    });
+                    setTimeout(() => {
+                      window.location.href = '/dashboard';
+                    }, 500);
+                  }}
                   className="w-full bg-red-500 hover:bg-red-600 text-white"
                 >
                   View Dashboard
@@ -544,6 +812,11 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
                 onClick={() => {
                   if (network.available && !network.comingSoon) {
                     updateTokenData('network', network.value);
+                    toast({
+                      title: `${network.label} Selected`,
+                      description: `Token will be deployed to ${network.label}`,
+                      duration: 2000,
+                    });
                     // Update Algorand network if selecting Algorand
                     if (network.value.startsWith('algorand')) {
                       setAlgorandSelectedNetwork(network.value);
@@ -697,6 +970,15 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
                 value={tokenData.description}
                 onChange={(e) => updateTokenData('description', e.target.value)}
                 className="form-input-enhanced min-h-[120px]"
+                onBlur={() => {
+                  if (tokenData.description.length > 0) {
+                    toast({
+                      title: "Description Added ✅",
+                      description: "Token description will help users understand your project",
+                      duration: 2000,
+                    });
+                  }
+                }}
               />
             </div>
 
@@ -713,6 +995,16 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
                   className="form-input-enhanced"
                   min="1"
                   max="18446744073709551615"
+                  onBlur={() => {
+                    const supply = parseFloat(tokenData.totalSupply);
+                    if (supply > 0) {
+                      toast({
+                        title: "Supply Set ✅",
+                        description: `Total supply: ${supply.toLocaleString()} tokens`,
+                        duration: 2000,
+                      });
+                    }
+                  }}
                 />
                 <p className="text-xs text-muted-foreground">
                   Maximum: 18.4 quintillion (Algorand protocol limit)
@@ -774,6 +1066,15 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
                     value={tokenData.logoUrl}
                     onChange={(e) => updateTokenData('logoUrl', e.target.value)}
                     className="form-input-enhanced"
+                    onBlur={() => {
+                      if (tokenData.logoUrl) {
+                        toast({
+                          title: "Logo URL Added ✅",
+                          description: "Logo will be displayed with your token",
+                          duration: 2000,
+                        });
+                      }
+                    }}
                   />
                 </div>
               </div>
@@ -824,7 +1125,14 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
                   </div>
                   <Switch
                     checked={tokenData.mintable}
-                    onCheckedChange={(checked) => updateTokenData('mintable', checked)}
+                    onCheckedChange={(checked) => {
+                      updateTokenData('mintable', checked);
+                      toast({
+                        title: checked ? "Mintable Enabled ✅" : "Mintable Disabled",
+                        description: checked ? "You can create new tokens after deployment" : "Token supply is now fixed",
+                        duration: 2000,
+                      });
+                    }}
                   />
                 </div>
                 
@@ -835,7 +1143,14 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
                   </div>
                   <Switch
                     checked={tokenData.burnable}
-                    onCheckedChange={(checked) => updateTokenData('burnable', checked)}
+                    onCheckedChange={(checked) => {
+                      updateTokenData('burnable', checked);
+                      toast({
+                        title: checked ? "Burnable Enabled ✅" : "Burnable Disabled",
+                        description: checked ? "Tokens can be permanently destroyed" : "Tokens cannot be burned",
+                        duration: 2000,
+                      });
+                    }}
                   />
                 </div>
                 
@@ -846,7 +1161,14 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
                   </div>
                   <Switch
                     checked={tokenData.pausable}
-                    onCheckedChange={(checked) => updateTokenData('pausable', checked)}
+                    onCheckedChange={(checked) => {
+                      updateTokenData('pausable', checked);
+                      toast({
+                        title: checked ? "Pausable Enabled ✅" : "Pausable Disabled",
+                        description: checked ? "Token transfers can be paused in emergencies" : "Token transfers cannot be paused",
+                        duration: 2000,
+                      });
+                    }}
                   />
                 </div>
               </div>
@@ -885,7 +1207,18 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
 
             {/* Deploy Button */}
             <Button
-              onClick={handleDeploy}
+              onClick={() => {
+                if (!canDeploy) {
+                  toast({
+                    title: "Cannot Deploy",
+                    description: "Please connect a wallet for your selected network",
+                    variant: "destructive",
+                    duration: 4000,
+                  });
+                  return;
+                }
+                handleDeploy();
+              }}
               disabled={!canDeploy || isDeploying || (tokenData.network.startsWith('algorand') && algorandWalletStatus && !algorandWalletStatus.canCreateToken)}
               className="w-full bg-red-500 hover:bg-red-600 text-white h-12 text-lg font-semibold"
             >
