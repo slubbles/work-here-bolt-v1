@@ -9,6 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useAlgorandWallet } from '@/components/providers/AlgorandWalletProvider';
@@ -24,7 +25,10 @@ import {
   Loader2,
   Network,
   Zap,
-  Shield
+  Shield,
+  Clock,
+  Send,
+  CheckCircle2
 } from 'lucide-react';
 import { createAlgorandToken } from '@/lib/algorand';
 import { createTokenOnChain } from '@/lib/solana';
@@ -49,6 +53,13 @@ interface TokenFormProps {
   setTokenData: (data: any) => void;
 }
 
+interface DeploymentStep {
+  id: string;
+  title: string;
+  description: string;
+  progress: number;
+}
+
 export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
   const { toast } = useToast();
   
@@ -67,6 +78,76 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
   // Deployment state
   const [isDeploying, setIsDeploying] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [deploymentProgress, setDeploymentProgress] = useState(0);
+  const [deploymentStep, setDeploymentStep] = useState('');
+  const [currentStepIndex, setCurrentStepIndex] = useState(0);
+
+  // Define deployment steps
+  const deploymentSteps: DeploymentStep[] = [
+    {
+      id: 'preparing',
+      title: 'Preparing Transaction',
+      description: 'Validating parameters and preparing token creation transaction...',
+      progress: 10
+    },
+    {
+      id: 'metadata',
+      title: 'Uploading Metadata',
+      description: 'Uploading token metadata and logo to decentralized storage...',
+      progress: 25
+    },
+    {
+      id: 'building',
+      title: 'Building Transaction',
+      description: 'Constructing blockchain transaction with token parameters...',
+      progress: 40
+    },
+    {
+      id: 'signing',
+      title: 'Signing Transaction',
+      description: 'Waiting for wallet signature confirmation...',
+      progress: 55
+    },
+    {
+      id: 'broadcasting',
+      title: 'Broadcasting to Network',
+      description: 'Sending signed transaction to blockchain network...',
+      progress: 70
+    },
+    {
+      id: 'confirming',
+      title: 'Waiting for Confirmation',
+      description: 'Waiting for network confirmation and token creation...',
+      progress: 85
+    },
+    {
+      id: 'finalizing',
+      title: 'Finalizing',
+      description: 'Retrieving token details and completing deployment...',
+      progress: 95
+    },
+    {
+      id: 'complete',
+      title: 'Deployment Complete',
+      description: 'Token successfully created and deployed!',
+      progress: 100
+    }
+  ];
+
+  // Progress update function
+  const updateProgress = (stepId: string, customDescription?: string) => {
+    const step = deploymentSteps.find(s => s.id === stepId);
+    if (step) {
+      const stepIndex = deploymentSteps.findIndex(s => s.id === stepId);
+      setCurrentStepIndex(stepIndex);
+      setDeploymentStep(customDescription || step.description);
+      setDeploymentProgress(step.progress);
+      
+      // Add a small delay to make progress feel natural
+      return new Promise(resolve => setTimeout(resolve, 800));
+    }
+    return Promise.resolve();
+  };
 
   // Validation functions
   const validateName = (value: string): string => {
@@ -226,7 +307,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
     return null;
   };
 
-  // Handle token deployment
+  // Handle token deployment with enhanced progress tracking
   const handleDeploy = async () => {
     // Check wallet connection
     const wallet = getConnectedWallet();
@@ -250,16 +331,36 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
     }
 
     setIsDeploying(true);
+    setDeploymentProgress(0);
+    setCurrentStepIndex(0);
     
     toast({
-      title: "Deploying Token",
-      description: `Creating your ${tokenData.name} token on ${tokenData.network}...`,
+      title: "Starting Deployment",
+      description: `Deploying ${tokenData.name} token on ${tokenData.network}...`,
     });
 
     try {
+      // Step 1: Preparing transaction
+      await updateProgress('preparing');
+
+      // Step 2: Upload metadata if needed
+      await updateProgress('metadata');
+      
+      // Step 3: Building transaction
+      await updateProgress('building');
+
       let result;
 
       if (tokenData.network.startsWith('algorand')) {
+        // Step 4: Signing transaction
+        await updateProgress('signing', 'Requesting Algorand wallet signature...');
+        
+        // Step 5: Broadcasting
+        await updateProgress('broadcasting', 'Sending transaction to Algorand network...');
+        
+        // Step 6: Confirming
+        await updateProgress('confirming', 'Waiting for Algorand network confirmation...');
+
         // Algorand deployment
         result = await createAlgorandToken(
           algorandAddress!,
@@ -282,6 +383,15 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
           tokenData.network
         );
       } else {
+        // Step 4: Signing transaction
+        await updateProgress('signing', 'Requesting Solana wallet signature...');
+        
+        // Step 5: Broadcasting
+        await updateProgress('broadcasting', 'Sending transaction to Solana network...');
+        
+        // Step 6: Confirming
+        await updateProgress('confirming', 'Waiting for Solana network confirmation...');
+
         // Solana deployment
         result = await createTokenOnChain(
           { publicKey: solanaPublicKey },
@@ -303,10 +413,8 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
       }
 
       if (result.success) {
-        toast({
-          title: "🎉 Token Created Successfully!",
-          description: `Your ${tokenData.name} token has been deployed. Transaction: ${result.transactionId || result.signature}`,
-        });
+        // Step 7: Finalizing
+        await updateProgress('finalizing', 'Saving token details and completing deployment...');
 
         // Save to user history if possible
         try {
@@ -332,22 +440,35 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
           console.warn('Could not save to user history:', saveError);
         }
 
-        // Reset form
-        setTokenData({
-          name: '',
-          symbol: '',
-          description: '',
-          totalSupply: '1000000',
-          decimals: '9',
-          logoUrl: '',
-          website: '',
-          github: '',
-          twitter: '',
-          mintable: true,
-          burnable: false,
-          pausable: false,
-          network: tokenData.network,
+        // Step 8: Complete
+        await updateProgress('complete');
+
+        toast({
+          title: "🎉 Token Created Successfully!",
+          description: `Your ${tokenData.name} token has been deployed. Transaction: ${result.transactionId || result.signature}`,
         });
+
+        // Reset form after a short delay
+        setTimeout(() => {
+          setTokenData({
+            name: '',
+            symbol: '',
+            description: '',
+            totalSupply: '1000000',
+            decimals: '9',
+            logoUrl: '',
+            website: '',
+            github: '',
+            twitter: '',
+            mintable: true,
+            burnable: false,
+            pausable: false,
+            network: tokenData.network,
+          });
+          setDeploymentProgress(0);
+          setDeploymentStep('');
+          setCurrentStepIndex(0);
+        }, 3000);
 
       } else {
         throw new Error(result.error || 'Deployment failed');
@@ -360,6 +481,11 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
       if (error instanceof Error) {
         errorMessage = error.message;
       }
+
+      // Reset progress on error
+      setDeploymentProgress(0);
+      setDeploymentStep('');
+      setCurrentStepIndex(0);
 
       toast({
         title: "Deployment Failed",
@@ -420,6 +546,77 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
         </p>
       </div>
 
+      {/* Deployment Progress Indicator */}
+      {isDeploying && (
+        <Card className="glass-card border-red-500/50 bg-red-500/5">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Loader2 className="w-5 h-5 text-red-500 animate-spin" />
+              <span>Deploying Your Token</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Progress Bar */}
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Progress</span>
+                <span className="text-foreground font-semibold">{deploymentProgress}%</span>
+              </div>
+              <Progress value={deploymentProgress} className="h-3" />
+            </div>
+
+            {/* Current Step */}
+            <div className="space-y-3">
+              <div className="flex items-center space-x-3">
+                <div className="w-8 h-8 rounded-full bg-red-500 flex items-center justify-center">
+                  {deploymentProgress === 100 ? (
+                    <CheckCircle2 className="w-4 h-4 text-white" />
+                  ) : (
+                    <Clock className="w-4 h-4 text-white" />
+                  )}
+                </div>
+                <div>
+                  <h4 className="font-semibold text-foreground">
+                    {deploymentSteps[currentStepIndex]?.title || 'Processing...'}
+                  </h4>
+                  <p className="text-sm text-muted-foreground">
+                    {deploymentStep}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Steps Overview */}
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-muted-foreground">Deployment Steps:</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {deploymentSteps.slice(0, -1).map((step, index) => (
+                  <div 
+                    key={step.id} 
+                    className={`flex items-center space-x-2 text-xs p-2 rounded ${
+                      index < currentStepIndex 
+                        ? 'bg-green-500/20 text-green-400' 
+                        : index === currentStepIndex
+                        ? 'bg-red-500/20 text-red-400'
+                        : 'bg-muted/50 text-muted-foreground'
+                    }`}
+                  >
+                    {index < currentStepIndex ? (
+                      <CheckCircle className="w-3 h-3" />
+                    ) : index === currentStepIndex ? (
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <Clock className="w-3 h-3" />
+                    )}
+                    <span>{step.title}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Network Selection */}
       <Card className="glass-card">
         <CardHeader>
@@ -476,6 +673,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
                 value={tokenData.name}
                 onChange={handleNameChange}
                 className={`form-input ${nameError ? 'border-red-500' : ''}`}
+                disabled={isDeploying}
               />
               {nameError && (
                 <div className="flex items-center space-x-1 text-red-500 text-sm">
@@ -500,6 +698,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
                 onChange={handleSymbolChange}
                 className={`form-input ${symbolError ? 'border-red-500' : ''}`}
                 maxLength={10}
+                disabled={isDeploying}
               />
               {symbolError && (
                 <div className="flex items-center space-x-1 text-red-500 text-sm">
@@ -525,6 +724,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
                   value={tokenData.totalSupply}
                   onChange={handleTotalSupplyChange}
                   className={`form-input ${totalSupplyError ? 'border-red-500' : ''}`}
+                  disabled={isDeploying}
                 />
                 {totalSupplyError && (
                   <div className="flex items-center space-x-1 text-red-500 text-sm">
@@ -536,7 +736,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
 
               <div className="space-y-2">
                 <Label htmlFor="decimals" className="form-label">Decimals *</Label>
-                <Select value={tokenData.decimals} onValueChange={handleDecimalsChange}>
+                <Select value={tokenData.decimals} onValueChange={handleDecimalsChange} disabled={isDeploying}>
                   <SelectTrigger className={`form-input ${decimalsError ? 'border-red-500' : ''}`}>
                     <SelectValue placeholder="Select decimals" />
                   </SelectTrigger>
@@ -565,6 +765,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
                 onChange={(e) => setTokenData({ ...tokenData, description: e.target.value })}
                 className="form-textarea"
                 maxLength={200}
+                disabled={isDeploying}
               />
               <p className="text-xs text-muted-foreground">
                 {tokenData.description.length}/200 characters
@@ -592,7 +793,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
                 accept="image/*"
                 onChange={handleFileUpload}
                 className="form-input"
-                disabled={isUploading}
+                disabled={isUploading || isDeploying}
               />
               {isUploading && <Loader2 className="w-4 h-4 animate-spin text-red-500" />}
             </div>
@@ -619,6 +820,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
               value={tokenData.logoUrl}
               onChange={handleLogoUrlChange}
               className={`form-input ${logoError ? 'border-red-500' : ''}`}
+              disabled={isDeploying}
             />
             {logoError && (
               <div className="flex items-center space-x-1 text-red-500 text-sm">
@@ -651,6 +853,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
               value={tokenData.website}
               onChange={(e) => setTokenData({ ...tokenData, website: e.target.value })}
               className="form-input"
+              disabled={isDeploying}
             />
           </div>
 
@@ -666,6 +869,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
               value={tokenData.github}
               onChange={(e) => setTokenData({ ...tokenData, github: e.target.value })}
               className="form-input"
+              disabled={isDeploying}
             />
           </div>
 
@@ -681,6 +885,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
               value={tokenData.twitter}
               onChange={(e) => setTokenData({ ...tokenData, twitter: e.target.value })}
               className="form-input"
+              disabled={isDeploying}
             />
           </div>
         </CardContent>
@@ -703,6 +908,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
             <Switch
               checked={tokenData.mintable}
               onCheckedChange={(checked) => setTokenData({ ...tokenData, mintable: checked })}
+              disabled={isDeploying}
             />
           </div>
 
@@ -714,6 +920,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
             <Switch
               checked={tokenData.burnable}
               onCheckedChange={(checked) => setTokenData({ ...tokenData, burnable: checked })}
+              disabled={isDeploying}
             />
           </div>
 
@@ -725,6 +932,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
             <Switch
               checked={tokenData.pausable}
               onCheckedChange={(checked) => setTokenData({ ...tokenData, pausable: checked })}
+              disabled={isDeploying}
             />
           </div>
         </CardContent>
@@ -751,13 +959,13 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
           )}
         </Button>
         
-        {!isFormValid && (
+        {!isFormValid && !isDeploying && (
           <p className="text-sm text-muted-foreground mt-3">
             Please fix all validation errors to enable deployment
           </p>
         )}
         
-        {!getConnectedWallet() && (
+        {!getConnectedWallet() && !isDeploying && (
           <p className="text-sm text-yellow-600 mt-3">
             Connect your {tokenData.network.startsWith('algorand') ? 'Algorand' : 'Solana'} wallet to deploy
           </p>
