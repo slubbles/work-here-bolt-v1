@@ -876,3 +876,4 @@ p {
 
 .wallet-adapter-button[data-state="disconnecting"] {
   @apply bg-red-500 hover:bg-red-600;
+}
