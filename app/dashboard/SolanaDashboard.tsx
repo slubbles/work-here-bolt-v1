@@ -512,18 +512,63 @@ export default function SolanaDashboard() {
                     <div className="h-64">
                       <ResponsiveContainer width="100%" height="100%">
                         <LineChart data={chartData}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="currentColor" opacity={0.3} />
-                          <XAxis dataKey="name" stroke="currentColor" opacity={0.7} />
-                          <YAxis stroke="currentColor" opacity={0.7} />
-                          <Tooltip 
-                            contentStyle={{ 
-                              backgroundColor: 'var(--background)', 
-                              border: '1px solid var(--border)',
-                              borderRadius: '8px',
-                              color: 'var(--foreground)'
+                          <CartesianGrid strokeDasharray="3 3" stroke="currentColor" opacity={0.3} strokeWidth={1} />
+                          <XAxis 
+                            dataKey="name" 
+                            stroke="currentColor" 
+                            opacity={0.7}
+                            tick={{ fontSize: 12 }}
+                            tickLine={{ stroke: 'currentColor', opacity: 0.5 }}
+                          />
+                          <YAxis 
+                            stroke="currentColor" 
+                            opacity={0.7}
+                            tick={{ fontSize: 12 }}
+                            tickLine={{ stroke: 'currentColor', opacity: 0.5 }}
+                          />
+                          <Tooltip
+                            wrapperClassName="custom-tooltip"
+                            contentStyle={{}}
+                            content={({ active, payload, label }) => {
+                              if (active && payload && payload.length) {
+                                return (
+                                  <div className="p-4">
+                                    <p className="text-foreground font-semibold mb-2">{`Period: ${label}`}</p>
+                                    <div className="space-y-1">
+                                      {payload.map((entry, index) => (
+                                        <div key={index} className="flex items-center space-x-2">
+                                          <div 
+                                            className="w-3 h-3 rounded-full" 
+                                            style={{ backgroundColor: entry.color }}
+                                          />
+                                          <span className="text-foreground text-sm">
+                                            Value: <span className="font-bold">{entry.value}</span>
+                                          </span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                    <div className="mt-2 pt-2 border-t border-border">
+                                      <p className="text-xs text-muted-foreground">
+                                        Token: {userTokens[selectedToken]?.symbol}
+                                      </p>
+                                    </div>
+                                  </div>
+                                );
+                              }
+                              return null;
                             }}
                           />
-                          <Line type="monotone" dataKey="value" stroke="#EF4444" strokeWidth={2} />
+                          <Line 
+                            type="monotone" 
+                            dataKey="value" 
+                            stroke="#EF4444" 
+                            strokeWidth={3}
+                            dot={{ fill: '#EF4444', strokeWidth: 2, r: 4 }}
+                            activeDot={{ r: 6, fill: '#EF4444', stroke: '#fff', strokeWidth: 2 }}
+                            animationBegin={0}
+                            animationDuration={1500}
+                            animationEasing="ease-out"
+                          />
                         </LineChart>
                       </ResponsiveContainer>
                     </div>
@@ -563,18 +608,60 @@ export default function SolanaDashboard() {
                     <div className="h-64">
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={chartData}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="currentColor" opacity={0.3} />
-                          <XAxis dataKey="name" stroke="currentColor" opacity={0.7} />
-                          <YAxis stroke="currentColor" opacity={0.7} />
-                          <Tooltip 
-                            contentStyle={{ 
-                              backgroundColor: 'var(--background)', 
-                              border: '1px solid var(--border)',
-                              borderRadius: '8px',
-                              color: 'var(--foreground)'
+                          <CartesianGrid strokeDasharray="3 3" stroke="currentColor" opacity={0.3} strokeWidth={1} />
+                          <XAxis 
+                            dataKey="name" 
+                            stroke="currentColor" 
+                            opacity={0.7}
+                            tick={{ fontSize: 12 }}
+                            tickLine={{ stroke: 'currentColor', opacity: 0.5 }}
+                          />
+                          <YAxis 
+                            stroke="currentColor" 
+                            opacity={0.7}
+                            tick={{ fontSize: 12 }}
+                            tickLine={{ stroke: 'currentColor', opacity: 0.5 }}
+                          />
+                          <Tooltip
+                            wrapperClassName="custom-tooltip"
+                            contentStyle={{}}
+                            content={({ active, payload, label }) => {
+                              if (active && payload && payload.length) {
+                                return (
+                                  <div className="p-4">
+                                    <p className="text-foreground font-semibold mb-2">{`Period: ${label}`}</p>
+                                    <div className="space-y-1">
+                                      {payload.map((entry, index) => (
+                                        <div key={index} className="flex items-center space-x-2">
+                                          <div 
+                                            className="w-3 h-3 rounded-sm" 
+                                            style={{ backgroundColor: entry.color }}
+                                          />
+                                          <span className="text-foreground text-sm">
+                                            Holders: <span className="font-bold">{entry.value}</span>
+                                          </span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                    <div className="mt-2 pt-2 border-t border-border">
+                                      <p className="text-xs text-muted-foreground">
+                                        Token: {userTokens[selectedToken]?.symbol}
+                                      </p>
+                                    </div>
+                                  </div>
+                                );
+                              }
+                              return null;
                             }}
                           />
-                          <Bar dataKey="value" fill="#EF4444" />
+                          <Bar 
+                            dataKey="value" 
+                            fill="#EF4444"
+                            radius={[4, 4, 0, 0]}
+                            animationBegin={100}
+                            animationDuration={1200}
+                            animationEasing="ease-out"
+                          />
                         </BarChart>
                       </ResponsiveContainer>
                     </div>
