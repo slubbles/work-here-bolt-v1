@@ -362,9 +362,10 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
     const wallet = getConnectedWallet();
     if (!wallet) {
       toast({
-        title: "Wallet Not Connected",
-        description: `Please connect your ${tokenData.network.startsWith('algorand') ? 'Algorand' : 'Solana'} wallet to deploy your token.`,
+        title: "❌ Wallet Not Connected",
+        description: `To deploy your token, you need to connect your ${tokenData.network.startsWith('algorand') ? 'Algorand' : 'Solana'} wallet first. Click the "Connect Wallet" button in the top right corner.`,
         variant: "destructive",
+        duration: 6000,
       });
       return;
     }
@@ -372,9 +373,10 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
     // Final validation check
     if (!isFormValid) {
       toast({
-        title: "Form Validation Error",
-        description: "Please fix all validation errors before deploying your token.",
+        title: "❌ Form Validation Failed",
+        description: "Please review and fix all highlighted validation errors below before deploying your token. Check the red error messages under each field.",
         variant: "destructive",
+        duration: 5000,
       });
       return;
     }
@@ -402,7 +404,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
 
       if (tokenData.network.startsWith('algorand')) {
         // Step 4: Signing transaction
-        await updateProgress('signing', 'Requesting Algorand wallet signature...');
+        await updateProgress('signing', 'Please check your Algorand wallet and approve the transaction...');
         
         // Step 5: Broadcasting
         await updateProgress('broadcasting', 'Sending transaction to Algorand network...');
@@ -433,7 +435,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
         );
       } else {
         // Step 4: Signing transaction
-        await updateProgress('signing', 'Requesting Solana wallet signature...');
+        await updateProgress('signing', 'Please check your Solana wallet and approve the transaction...');
         
         // Step 5: Broadcasting
         await updateProgress('broadcasting', 'Sending transaction to Solana network...');
@@ -493,8 +495,9 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
         await updateProgress('complete');
 
         toast({
-          title: "🎉 Token Created Successfully!",
-          description: `Your ${tokenData.name} token has been deployed. Transaction: ${result.transactionId || result.signature}`,
+          title: "🎉 Token Deployed Successfully!",
+          description: `${tokenData.name} (${tokenData.symbol}) is now live on ${tokenData.network}! You can view it on the blockchain explorer.`,
+          duration: 8000,
         });
 
         // Reset form after a short delay
@@ -526,21 +529,106 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
     } catch (error) {
       console.error('Deployment error:', error);
       
-      let errorMessage = 'An unexpected error occurred during deployment';
+      let errorTitle = '❌ Deployment Failed';
+      let errorMessage = 'An unexpected error occurred during deployment.';
+      let actionableSteps: string[] = [];
+      
       if (error instanceof Error) {
-        errorMessage = error.message;
+        const message = error.message.toLowerCase();
+        
+        // Network-specific errors
+        if (message.includes('insufficient funds') || message.includes('insufficient balance')) {
+          errorTitle = '💰 Insufficient Funds';
+          errorMessage = `You don't have enough ${tokenData.network.startsWith('algorand') ? 'ALGO' : 'SOL'} to pay for transaction fees.`;
+          actionableSteps = [
+            `Add ${tokenData.network.startsWith('algorand') ? 'ALGO' : 'SOL'} to your wallet`,
+            'Transaction fees are typically very low (under $0.01 for Algorand, $2-5 for Solana)',
+            'Try again once you have sufficient balance'
+          ];
+        } else if (message.includes('user rejected') || message.includes('cancelled') || message.includes('denied')) {
+          errorTitle = '🚫 Transaction Cancelled';
+          errorMessage = 'You cancelled the transaction in your wallet.';
+          actionableSteps = [
+            'Click "Deploy Token" again to retry',
+            'Approve the transaction when prompted in your wallet',
+            'Make sure you trust this transaction before approving'
+          ];
+        } else if (message.includes('network') || message.includes('connection')) {
+          errorTitle = '🌐 Network Connection Error';
+          errorMessage = `Failed to connect to the ${tokenData.network} network.`;
+          actionableSteps = [
+            'Check your internet connection',
+            'Try switching to a different RPC endpoint if available',
+            'Wait a moment and try again - networks can be temporarily busy'
+          ];
+        } else if (message.includes('timeout')) {
+          errorTitle = '⏱️ Transaction Timeout';
+          errorMessage = 'The transaction took too long to complete.';
+          actionableSteps = [
+            'The network may be congested - try again in a few minutes',
+            'Your transaction might still be processing - check your wallet',
+            'If the token was created, check the blockchain explorer'
+          ];
+        } else if (message.includes('insufficient funds')) {
+          errorTitle = '💰 Insufficient Balance';
+          errorMessage = `Not enough ${tokenData.network.startsWith('algorand') ? 'ALGO' : 'SOL'} for transaction fees.`;
+          actionableSteps = [
+            'Add funds to your wallet',
+            'Transaction fees are minimal but required',
+            'Try again once your balance is sufficient'
+          ];
+        } else if (message.includes('already initialized') || message.includes('already exists')) {
+          errorTitle = '⚠️ Already Exists';
+          errorMessage = 'A token with similar parameters may already exist.';
+          actionableSteps = [
+            'Try using a different token name or symbol',
+            'Check if you already created this token',
+            'Modify your token parameters and try again'
+          ];
+        } else if (message.includes('unauthorized') || message.includes('access denied')) {
+          errorTitle = '🔒 Unauthorized Access';
+          errorMessage = 'Your wallet doesn\'t have permission for this action.';
+          actionableSteps = [
+            'Make sure you\'re using the correct wallet',
+            'Contact support if you believe this is an error',
+            'Try connecting a different wallet'
+          ];
+        } else {
+          errorMessage = `Error: ${error.message}`;
+          actionableSteps = [
+            'Try deploying your token again',
+            'Check that all form fields are filled correctly',
+            'Contact support if the problem persists'
+          ];
+        }
+      } else {
+        actionableSteps = [
+          'Refresh the page and try again',
+          'Check that your wallet is properly connected',
+          'Contact support if the issue continues'
+        ];
       }
-
+      
       // Reset progress on error
       setDeploymentProgress(0);
       setDeploymentStep('');
       setCurrentStepIndex(0);
 
       toast({
-        title: "Deployment Failed",
-        description: errorMessage,
+        title: errorTitle,
+        description: actionableSteps.length > 0 
+          ? `${errorMessage}\n\nNext steps:\n${actionableSteps.map((step, i) => `${i + 1}. ${step}`).join('\n')}`
+          : errorMessage,
         variant: "destructive",
+        duration: 10000,
       });
+
+      // Show additional help if it's a common error
+      if (actionableSteps.length > 0) {
+        setTimeout(() => {
+          console.log('💡 Deployment Help:', { errorTitle, errorMessage, actionableSteps });
+        }, 1000);
+      }
     } finally {
       setIsDeploying(false);
     }
@@ -1047,14 +1135,34 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
         
         {!isFormValid && !isDeploying && (
           <p className="text-base md:text-sm text-muted-foreground mt-4 md:mt-3 px-4 md:px-0">
-            Please fix all validation errors to enable deployment
+            ⚠️ Please fix the highlighted validation errors above to enable deployment
           </p>
         )}
         
         {!getConnectedWallet() && !isDeploying && (
-          <p className="text-base md:text-sm text-yellow-600 mt-4 md:mt-3 px-4 md:px-0">
-            Connect your {tokenData.network.startsWith('algorand') ? 'Algorand' : 'Solana'} wallet to deploy
-          </p>
+          <div className="mt-4 md:mt-3 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+            <p className="text-yellow-700 font-semibold text-center mb-2">
+              🔗 Wallet Connection Required
+            </p>
+            <p className="text-base md:text-sm text-yellow-600 mt-4 md:mt-3 px-4 md:px-0">
+              To deploy your token, connect your {tokenData.network.startsWith('algorand') ? 'Algorand (Pera Wallet)' : 'Solana (Phantom, Solflare, etc.)'} wallet using the button in the top-right corner.
+            </p>
+          </div>
+        )}
+
+        {/* Additional Help */}
+        {(!isFormValid || !getConnectedWallet()) && !isDeploying && (
+          <div className="mt-6 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+            <p className="text-blue-700 font-semibold text-center mb-2">
+              💡 Need Help?
+            </p>
+            <div className="text-sm text-blue-600 space-y-1">
+              <p>• Make sure all required fields (*) are filled out correctly</p>
+              <p>• Token symbols should be 2-10 characters, letters and numbers only</p>
+              <p>• Connect your wallet before attempting to deploy</p>
+              <p>• Ensure you have enough balance for transaction fees</p>
+            </div>
+          </div>
         )}
       </div>
     </div>

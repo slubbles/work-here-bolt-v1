@@ -9,8 +9,9 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { initializePlatform, getPlatformState, ADMIN_WALLET } from '@/lib/solana';
-import { AlertTriangle, CheckCircle, Settings, Loader2, Shield, Wallet, ArrowLeft } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Settings, Loader2, Shield, Wallet, ArrowLeft, Rocket, BarChart3 } from 'lucide-react';
 import Link from 'next/link';
+import { toast } from '@/hooks/use-toast';
 
 export default function AdminPage() {
   const [creationFee, setCreationFee] = useState('0');
@@ -42,13 +43,29 @@ export default function AdminPage() {
       if (result.success) {
         setStateInfo(result.data);
         setError('');
+        toast({
+          title: "✅ Platform Status Retrieved",
+          description: "Platform is properly initialized and ready for token creation.",
+          duration: 4000,
+        });
       } else {
         setStateInfo(null);
-        setError(result.error || 'Platform state not found - needs initialization');
+        setError(result.error || 'Platform not yet initialized');
+        toast({
+          title: "⚠️ Platform Not Initialized", 
+          description: "The platform needs to be initialized before tokens can be created. Use the form below to initialize it.",
+          variant: "destructive",
+          duration: 6000,
+        });
       }
     } catch (err) {
       setStateInfo(null);
-      setError('Platform state not found - needs initialization');
+      setError('Platform not yet initialized - this is normal for a new deployment');
+      toast({
+        title: "ℹ️ Platform Setup Required",
+        description: "This appears to be a new platform deployment. Initialize it below to enable token creation.",
+        duration: 5000,
+      });
     } finally {
       setIsCheckingState(false);
     }
@@ -62,7 +79,13 @@ export default function AdminPage() {
 
     // Check if user is admin
     if (publicKey.toString() !== ADMIN_WALLET.toString()) {
-      setError(`Only the admin wallet (${ADMIN_WALLET.toString()}) can initialize the platform`);
+      setError(`❌ Admin access required. Only the designated admin wallet can initialize the platform.`);
+      toast({
+        title: "🚫 Unauthorized Action",
+        description: "Platform initialization requires the admin wallet. Please connect the correct wallet.",
+        variant: "destructive",
+        duration: 6000,
+      });
       return;
     }
 
@@ -77,16 +100,39 @@ export default function AdminPage() {
       if (result.success) {
         setInitResult(result);
         setError('');
+        toast({
+          title: "🎉 Platform Initialized Successfully!",
+          description: `Platform is now ready for token creation. Creation fee set to ${creationFee} SOL.`,
+          duration: 6000,
+        });
         // Check state after successful initialization
         setTimeout(() => {
           checkPlatformState();
         }, 2000);
       } else {
-        setError(result.error || 'Failed to initialize platform');
+        const errorMsg = result.error || 'Failed to initialize platform';
+        setError(errorMsg);
+        toast({
+          title: "❌ Initialization Failed",
+          description: errorMsg.includes('insufficient') 
+            ? "Not enough SOL in your wallet. Add SOL and try again."
+            : `${errorMsg}. Please check the error details and try again.`,
+          variant: "destructive",
+          duration: 8000,
+        });
       }
     } catch (err) {
       console.error('Initialization error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to initialize platform');
+      const errorMsg = err instanceof Error ? err.message : 'Failed to initialize platform';
+      setError(errorMsg);
+      toast({
+        title: "❌ Initialization Error",
+        description: errorMsg.includes('insufficient') 
+          ? "Insufficient SOL balance. Please add SOL to your wallet and try again."
+          : `Unexpected error: ${errorMsg}. Please try again or contact support.`,
+        variant: "destructive",
+        duration: 8000,
+      });
     } finally {
       setIsInitializing(false);
     }
@@ -114,44 +160,56 @@ export default function AdminPage() {
             </Link>
           </div>
 
-          <Card className="border-red-500/50 bg-red-500/5">
+          <Card className="border-red-500/50 bg-red-500/5 shadow-xl">
             <CardHeader className="text-center">
               <div className="w-16 h-16 rounded-full bg-red-500/20 flex items-center justify-center mx-auto mb-4">
                 <Shield className="w-8 h-8 text-red-500" />
               </div>
-              <CardTitle className="text-2xl font-bold text-foreground">Access Denied</CardTitle>
+              <CardTitle className="text-3xl font-bold text-red-600">🚫 Admin Access Required</CardTitle>
               <CardDescription className="text-lg">
-                This admin panel is restricted to authorized personnel only.
+                This admin panel requires the designated admin wallet to access.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <Alert>
+              <Alert className="border-red-500/30 bg-red-500/10">
                 <AlertTriangle className="h-4 w-4" />
                 <AlertDescription>
                   <div className="space-y-2">
-                    <p className="font-semibold text-red-600">Unauthorized Wallet Connected</p>
+                    <p className="font-semibold text-red-700">❌ Unauthorized Wallet</p>
                     <p className="text-sm">
-                      Your wallet: <code className="bg-muted px-2 py-1 rounded text-xs">{publicKey.toString()}</code>
+                      <strong>Connected:</strong> <code className="bg-red-100 px-2 py-1 rounded text-xs font-mono">{publicKey.toString()}</code>
                     </p>
                     <p className="text-sm">
-                      Required: <code className="bg-muted px-2 py-1 rounded text-xs">{ADMIN_WALLET.toString()}</code>
+                      <strong>Required:</strong> <code className="bg-green-100 px-2 py-1 rounded text-xs font-mono">{ADMIN_WALLET.toString()}</code>
                     </p>
                   </div>
                 </AlertDescription>
               </Alert>
 
+              <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
+                <h4 className="font-semibold text-blue-700 mb-2">🔧 How to Get Admin Access:</h4>
+                <ol className="text-sm text-blue-600 space-y-1 list-decimal list-inside">
+                  <li>Disconnect your current wallet</li>
+                  <li>Connect the admin wallet address shown above</li>
+                  <li>Refresh this page after connecting</li>
+                  <li>You'll then have full admin access</li>
+                </ol>
+              </div>
+
               <div className="text-center space-y-4">
                 <p className="text-muted-foreground">
-                  If you are an administrator, please connect the correct wallet address.
+                  If you are the platform administrator, please connect the correct admin wallet.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
                   <Link href="/">
-                    <Button variant="outline" className="w-full sm:w-auto">
+                    <Button variant="outline" className="w-full sm:w-auto hover:bg-muted">
+                      <ArrowLeft className="w-4 h-4 mr-2" />
                       Return to Platform
                     </Button>
                   </Link>
                   <Link href="/create">
-                    <Button className="w-full sm:w-auto bg-red-500 hover:bg-red-600 text-white">
+                    <Button className="w-full sm:w-auto bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white">
+                      <Rocket className="w-4 h-4 mr-2" />
                       Create Token
                     </Button>
                   </Link>
@@ -177,48 +235,60 @@ export default function AdminPage() {
             </Link>
           </div>
 
-          <Card>
+          <Card className="shadow-lg">
             <CardHeader className="text-center">
               <div className="w-16 h-16 rounded-full bg-red-500/20 flex items-center justify-center mx-auto mb-4">
                 <Wallet className="w-8 h-8 text-red-500" />
               </div>
-              <CardTitle className="text-2xl font-bold text-foreground">Admin Panel Access</CardTitle>
+              <CardTitle className="text-3xl font-bold text-foreground">🔐 Admin Panel Access</CardTitle>
               <CardDescription className="text-lg">
-                Connect your admin wallet to access platform management tools.
+                Connect the designated admin wallet to access platform management tools.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="text-center">
-                <WalletMultiButton className="!bg-red-500 hover:!bg-red-600 !rounded-xl" />
+                <WalletMultiButton className="!bg-gradient-to-r !from-red-500 !to-red-600 hover:!from-red-600 hover:!to-red-700 !rounded-xl !shadow-lg !min-h-[48px] !px-6 !text-base !font-semibold" />
               </div>
 
-              <Alert>
+              <Alert className="border-orange-500/30 bg-orange-500/10">
                 <Shield className="h-4 w-4" />
                 <AlertDescription>
                   <div className="space-y-2">
-                    <p className="font-semibold">Admin Wallet Required</p>
+                    <p className="font-semibold text-orange-700">🔑 Admin Wallet Required</p>
                     <p className="text-sm">
-                      Only the designated admin wallet can access this panel:
+                      <strong>Only this specific wallet can access admin functions:</strong>
                     </p>
-                    <code className="block bg-muted px-3 py-2 rounded text-xs font-mono break-all">
+                    <code className="block bg-orange-100 px-3 py-2 rounded text-xs font-mono break-all border border-orange-200">
                       {ADMIN_WALLET.toString()}
                     </code>
                   </div>
                 </AlertDescription>
               </Alert>
 
+              <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4">
+                <h4 className="font-semibold text-green-700 mb-2">✅ What You Can Do With Admin Access:</h4>
+                <ul className="text-sm text-green-600 space-y-1 list-disc list-inside">
+                  <li>Initialize the token creation platform</li>
+                  <li>Set token creation fees</li>
+                  <li>Monitor platform statistics</li>
+                  <li>Manage platform configuration</li>
+                </ul>
+              </div>
+
               <div className="text-center">
                 <p className="text-sm text-muted-foreground mb-4">
-                  Don't have admin access? You can still use the platform:
+                  Don't have admin access? The platform is still fully functional:
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
                   <Link href="/create">
-                    <Button className="w-full sm:w-auto bg-red-500 hover:bg-red-600 text-white">
+                    <Button className="w-full sm:w-auto bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white shadow-lg">
+                      <Rocket className="w-4 h-4 mr-2" />
                       Create Token
                     </Button>
                   </Link>
                   <Link href="/dashboard">
-                    <Button variant="outline" className="w-full sm:w-auto">
+                    <Button variant="outline" className="w-full sm:w-auto hover:bg-muted">
+                      <BarChart3 className="w-4 h-4 mr-2" />
                       View Dashboard
                     </Button>
                   </Link>
@@ -332,6 +402,28 @@ export default function AdminPage() {
                 </AlertDescription>
               </Alert>
             )}
+
+            {error && !stateInfo && (
+              <Alert className="border-yellow-500/30 bg-yellow-500/10">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription className="text-red-600">
+                  <div className="space-y-2">
+                    <p className="font-semibold">⚠️ Platform Status:</p>
+                    <p>{error}</p>
+                    {error.includes('not yet initialized') && (
+                      <div className="mt-3 text-sm text-yellow-700">
+                        <p><strong>Next steps:</strong></p>
+                        <ul className="list-disc list-inside mt-1 space-y-1">
+                          <li>Set your desired creation fee below (0 for free)</li>
+                          <li>Click "Initialize Platform" to set up the platform</li>
+                          <li>Once initialized, users can create tokens</li>
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                </AlertDescription>
+              </Alert>
+            )}
           </CardContent>
         </Card>
 
@@ -377,10 +469,23 @@ export default function AdminPage() {
             </Button>
 
             {error && (
-              <Alert>
+              <Alert className="border-red-500/30 bg-red-500/10">
                 <AlertTriangle className="h-4 w-4" />
                 <AlertDescription className="text-red-600">
-                  {error}
+                  <div className="space-y-2">
+                    <p className="font-semibold">❌ Error Details:</p>
+                    <p>{error}</p>
+                    {error.includes('insufficient') && (
+                      <div className="mt-3 p-3 bg-blue-500/10 border border-blue-500/30 rounded">
+                        <p className="text-blue-700 font-semibold">💡 How to fix:</p>
+                        <ul className="text-blue-600 text-sm mt-1 space-y-1 list-disc list-inside">
+                          <li>Add SOL to your admin wallet</li>
+                          <li>Platform initialization requires ~0.01 SOL for fees</li>
+                          <li>Try again once you have sufficient balance</li>
+                        </ul>
+                      </div>
+                    )}
+                  </div>
                 </AlertDescription>
               </Alert>
             )}
@@ -447,21 +552,31 @@ export default function AdminPage() {
               <div>
                 <h4 className="font-semibold mb-2">2. Initialize Platform (if needed)</h4>
                 <p className="text-muted-foreground">
-                  If not initialized, set the creation fee and initialize the platform state.
+                  If the platform shows as "not initialized", set the creation fee and initialize it. This is required only once.
                 </p>
               </div>
               <div>
                 <h4 className="font-semibold mb-2">3. Verify Success</h4>
                 <p className="text-muted-foreground">
-                  After initialization, check the platform state again to confirm success.
+                  After successful initialization, the platform status should show "initialized" with your admin address and creation fee.
                 </p>
               </div>
               <div>
                 <h4 className="font-semibold mb-2">4. Start Creating Tokens</h4>
                 <p className="text-muted-foreground">
-                  Once initialized, users can create tokens through the platform.
+                  Once initialized, any user can create tokens through the Create Token page. They'll pay the fee you set (if any).
                 </p>
               </div>
+            </div>
+            
+            <div className="mt-6 p-4 bg-green-500/10 border border-green-500/30 rounded-lg">
+              <h4 className="font-semibold text-green-700 mb-2">💡 Pro Tips:</h4>
+              <ul className="text-sm text-green-600 space-y-1 list-disc list-inside">
+                <li>Set creation fee to 0 to allow free token creation</li>
+                <li>Higher fees can help prevent spam token creation</li>
+                <li>You can always check platform stats after initialization</li>
+                <li>Platform initialization is a one-time setup process</li>
+              </ul>
             </div>
           </CardContent>
         </Card>
