@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Upload, Loader2, CheckCircle, AlertTriangle, Rocket, Network, Globe, Github, Twitter, Zap, DollarSign, Clock, Shield } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useWallet } from '@solana/wallet-adapter-react';
+import { useMemo } from 'react';
 import { useAlgorandWallet } from '@/components/providers/AlgorandWalletProvider';
 import { createTokenOnChain } from '@/lib/solana';
 import { createAlgorandToken, optInToAsset, checkWalletConnection } from '@/lib/algorand';
@@ -47,6 +48,13 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
   const [algorandWalletStatus, setAlgorandWalletStatus] = useState<any>(null);
   const [deploymentProgress, setDeploymentProgress] = useState(0);
   const [deploymentStep, setDeploymentStep] = useState('');
+  
+  // Real-time validation state
+  const [validationErrors, setValidationErrors] = useState({
+    name: '',
+    symbol: '',
+    totalSupply: '',
+  });
   const { toast } = useToast();
   
   // Supabase token history integration
@@ -158,6 +166,84 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
     setTokenData({ ...tokenData, [field]: value });
   };
 
+  // Individual field validation functions
+  const validateTokenName = (name: string) => {
+    if (!name.trim()) {
+      return 'Token name is required';
+    }
+    if (name.length < 2) {
+      return 'Token name must be at least 2 characters';
+    }
+    if (name.length > 32) {
+      return 'Token name must be 32 characters or less';
+    }
+    if (!/^[a-zA-Z0-9\s-_]+$/.test(name)) {
+      return 'Token name can only contain letters, numbers, spaces, hyphens, and underscores';
+    }
+    return '';
+  };
+
+  const validateTokenSymbol = (symbol: string) => {
+    if (!symbol.trim()) {
+      return 'Token symbol is required';
+    }
+    if (symbol.length < 2) {
+      return 'Token symbol must be at least 2 characters';
+    }
+    if (symbol.length > 10) {
+      return 'Token symbol must be 10 characters or less';
+    }
+    if (!/^[A-Z0-9]+$/.test(symbol.toUpperCase())) {
+      return 'Token symbol can only contain letters and numbers';
+    }
+    return '';
+  };
+
+  const validateTotalSupply = (supply: string) => {
+    if (!supply.trim()) {
+      return 'Total supply is required';
+    }
+    
+    const numSupply = parseFloat(supply);
+    if (isNaN(numSupply)) {
+      return 'Total supply must be a valid number';
+    }
+    if (numSupply <= 0) {
+      return 'Total supply must be greater than 0';
+    }
+    if (numSupply > Number.MAX_SAFE_INTEGER) {
+      return 'Total supply is too large';
+    }
+    
+    // Check if the total with decimals exceeds safe limits
+    const decimalsNum = parseInt(tokenData.decimals);
+    const totalWithDecimals = numSupply * Math.pow(10, decimalsNum);
+    if (!Number.isSafeInteger(totalWithDecimals)) {
+      return `Total supply ${numSupply} with ${decimalsNum} decimals exceeds safe limits`;
+    }
+    
+    return '';
+  };
+
+  // Validate individual field and update error state
+  const validateField = (field: keyof typeof validationErrors, value: string) => {
+    let error = '';
+    
+    switch (field) {
+      case 'name':
+        error = validateTokenName(value);
+        break;
+      case 'symbol':
+        error = validateTokenSymbol(value);
+        break;
+      case 'totalSupply':
+        error = validateTotalSupply(value);
+        break;
+    }
+    
+    setValidationErrors(prev => ({ ...prev, [field]: error }));
+  };
+
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) {
@@ -237,6 +323,34 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
       });
     } finally {
       setUploadingImage(false);
+    }
+  };
+
+  // Check if form is valid (no validation errors and required fields filled)
+  const isFormValid = useMemo(() => {
+    // Check if any validation errors exist
+    const hasErrors = Object.values(validationErrors).some(error => error !== '');
+    if (hasErrors) return false;
+    
+    // Check if required fields are filled
+    if (!tokenData.name.trim()) return false;
+    if (!tokenData.symbol.trim()) return false;
+    if (!tokenData.totalSupply.trim()) return false;
+    
+    // Additional validation for numeric values
+    const supply = parseFloat(tokenData.totalSupply);
+    if (isNaN(supply) || supply <= 0) return false;
+    
+    return true;
+  }, [validationErrors, tokenData.name, tokenData.symbol, tokenData.totalSupply]);
+
+  // Enhanced field update function with validation
+  const updateTokenDataWithValidation = (field: string, value: any) => {
+    updateTokenData(field, value);
+    
+    // Trigger validation for specific fields
+    if (field === 'name' || field === 'symbol' || field === 'totalSupply') {
+      validateField(field as keyof typeof validationErrors, value);
     }
   };
 
@@ -946,9 +1060,26 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
                   id="name"
                   placeholder="My Awesome Token"
                   value={tokenData.name}
-                  onChange={(e) => updateTokenData('name', e.target.value)}
+                  onChange={(e) => updateTokenDataWithValidation('name', e.target.value)}
+                  onBlur={() => validateField('name', tokenData.name)}
                   className="form-input-enhanced"
+                  style={{
+                    borderColor: validationErrors.name ? '#EF4444' : undefined,
+                    boxShadow: validationErrors.name ? '0 0 0 3px rgba(239, 68, 68, 0.1)' : undefined
+                  }}
                 />
+                {validationErrors.name && (
+                  <div className="flex items-center space-x-2 text-red-500 text-sm mt-1">
+                    <AlertTriangle className="w-4 h-4" />
+                    <span>{validationErrors.name}</span>
+                  </div>
+                )}
+                {!validationErrors.name && tokenData.name.trim() && (
+                  <div className="flex items-center space-x-2 text-green-500 text-sm mt-1">
+                    <CheckCircle className="w-4 h-4" />
+                    <span>Valid token name</span>
+                  </div>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="symbol" className="form-label">Token Symbol *</Label>
@@ -956,9 +1087,26 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
                   id="symbol"
                   placeholder="MAT"
                   value={tokenData.symbol}
-                  onChange={(e) => updateTokenData('symbol', e.target.value.toUpperCase())}
+                  onChange={(e) => updateTokenDataWithValidation('symbol', e.target.value.toUpperCase())}
+                  onBlur={() => validateField('symbol', tokenData.symbol)}
                   className="form-input-enhanced"
+                  style={{
+                    borderColor: validationErrors.symbol ? '#EF4444' : undefined,
+                    boxShadow: validationErrors.symbol ? '0 0 0 3px rgba(239, 68, 68, 0.1)' : undefined
+                  }}
                 />
+                {validationErrors.symbol && (
+                  <div className="flex items-center space-x-2 text-red-500 text-sm mt-1">
+                    <AlertTriangle className="w-4 h-4" />
+                    <span>{validationErrors.symbol}</span>
+                  </div>
+                )}
+                {!validationErrors.symbol && tokenData.symbol.trim() && (
+                  <div className="flex items-center space-x-2 text-green-500 text-sm mt-1">
+                    <CheckCircle className="w-4 h-4" />
+                    <span>Valid token symbol</span>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -991,8 +1139,13 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
                   type="number"
                   placeholder="1000000"
                   value={tokenData.totalSupply}
-                  onChange={(e) => updateTokenData('totalSupply', e.target.value)}
+                  onChange={(e) => updateTokenDataWithValidation('totalSupply', e.target.value)}
+                  onBlur={() => validateField('totalSupply', tokenData.totalSupply)}
                   className="form-input-enhanced"
+                  style={{
+                    borderColor: validationErrors.totalSupply ? '#EF4444' : undefined,
+                    boxShadow: validationErrors.totalSupply ? '0 0 0 3px rgba(239, 68, 68, 0.1)' : undefined
+                  }}
                   min="1"
                   max="18446744073709551615"
                   onBlur={() => {
@@ -1009,6 +1162,18 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
                 <p className="text-xs text-muted-foreground">
                   Maximum: 18.4 quintillion (Algorand protocol limit)
                 </p>
+                {validationErrors.totalSupply && (
+                  <div className="flex items-center space-x-2 text-red-500 text-sm mt-1">
+                    <AlertTriangle className="w-4 h-4" />
+                    <span>{validationErrors.totalSupply}</span>
+                  </div>
+                )}
+                {!validationErrors.totalSupply && tokenData.totalSupply.trim() && parseFloat(tokenData.totalSupply) > 0 && (
+                  <div className="flex items-center space-x-2 text-green-500 text-sm mt-1">
+                    <CheckCircle className="w-4 h-4" />
+                    <span>Valid total supply</span>
+                  </div>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="decimals" className="form-label">Decimals</Label>
@@ -1219,7 +1384,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
                 }
                 handleDeploy();
               }}
-              disabled={!canDeploy || isDeploying || (tokenData.network.startsWith('algorand') && algorandWalletStatus && !algorandWalletStatus.canCreateToken)}
+              disabled={!canDeploy || !isFormValid || isDeploying || (tokenData.network.startsWith('algorand') && algorandWalletStatus && !algorandWalletStatus.canCreateToken)}
               className="w-full bg-red-500 hover:bg-red-600 text-white h-12 text-lg font-semibold"
             >
               {isDeploying ? (
@@ -1234,6 +1399,14 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
                 </div>
               )}
             </Button>
+
+            {/* Form Validation Status */}
+            {!isFormValid && Object.values(validationErrors).some(error => error !== '') && (
+              <div className="text-center text-sm text-red-500 space-y-1">
+                <AlertTriangle className="w-4 h-4 mx-auto" />
+                <p>Please fix the validation errors above to continue</p>
+              </div>
+            )}
 
             {selectedNetwork && (
               <div className="text-center text-sm text-muted-foreground">
