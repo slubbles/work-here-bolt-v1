@@ -13,7 +13,7 @@ import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useAlgorandWallet } from '@/components/providers/AlgorandWalletProvider';
-import { useSupabase } from '@/hooks/useSupabase';
+import { useSupabaseAuth } from '@/hooks/useSupabase';
 import { 
   Upload, 
   Rocket, 
@@ -63,7 +63,7 @@ interface DeploymentStep {
 
 export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
   const { toast } = useToast();
-  const { user: supabaseUser } = useSupabase();
+  const { user: supabaseUser } = useSupabaseAuth();
   
   // Wallet connections
   const { connected: solanaConnected, publicKey: solanaPublicKey } = useWallet();
