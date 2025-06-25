@@ -27,6 +27,7 @@ import {
   Network,
   Zap,
   Shield,
+  FileUp,
   Clock,
   Send,
   CheckCircle2
@@ -891,7 +892,6 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="totalSupply" className="form-label">Total Supply *</Label>
-                <div className="relative">
                 <Input
                   id="totalSupply"
                   type="number"
@@ -901,12 +901,6 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
                   className={`form-input-enhanced touch-target ${totalSupplyError ? 'border-red-500' : ''}`}
                   disabled={isDeploying}
                 />
-                  {!tokenData.description && (
-                    <div className="absolute top-3 left-3 pointer-events-none text-xs text-muted-foreground bg-background px-1 rounded">
-                      💡 Tip: A clear description helps users understand your token's purpose
-                    </div>
-                  )}
-                </div>
                 {totalSupplyError && (
                   <div className="flex items-center space-x-1 text-red-500 text-sm">
                     <AlertCircle className="w-4 h-4" />
@@ -951,6 +945,19 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
                 maxLength={200}
                 disabled={isDeploying}
               />
+              {!tokenData.description && (
+                <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 mt-2">
+                  <div className="flex items-start space-x-2">
+                    <div className="w-5 h-5 rounded-full bg-blue-500/20 flex items-center justify-center mt-0.5">
+                      <span className="text-blue-500 text-xs">💡</span>
+                    </div>
+                    <div className="text-sm text-blue-600">
+                      <p className="font-semibold">Tip: Write a clear description</p>
+                      <p className="text-xs mt-1">Help users understand your token's purpose and utility. This appears on blockchain explorers and trading platforms.</p>
+                    </div>
+                  </div>
+                </div>
+              )}
               <p className="text-xs text-muted-foreground">
                 {tokenData.description.length}/200 characters
               </p>
@@ -970,16 +977,40 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="logoFile" className="form-label">Upload Logo</Label>
-            <div className="flex items-center space-x-4">
+            <div className="relative">
+              {/* Hidden file input */}
               <Input
                 id="logoFile"
                 type="file"
                 accept="image/*"
                 onChange={handleFileUpload}
-                className="form-input-enhanced touch-target"
+                className="opacity-0 absolute inset-0 w-full h-full cursor-pointer z-10"
                 disabled={isUploading || isDeploying}
               />
-              {isUploading && <Loader2 className="w-4 h-4 animate-spin text-red-500" />}
+              {/* Custom styled button */}
+              <Label 
+                htmlFor="logoFile" 
+                className="flex items-center justify-center w-full h-14 border-2 border-dashed border-border rounded-lg bg-muted/30 hover:bg-muted/50 transition-all cursor-pointer relative"
+              >
+                <div className="flex items-center space-x-3 text-muted-foreground">
+                  {isUploading ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin text-red-500" />
+                      <span className="font-medium">Uploading...</span>
+                    </>
+                  ) : tokenData.logoUrl ? (
+                    <>
+                      <CheckCircle className="w-5 h-5 text-green-500" />
+                      <span className="font-medium text-green-600">Logo uploaded successfully</span>
+                    </>
+                  ) : (
+                    <>
+                      <FileUp className="w-5 h-5" />
+                      <span className="font-medium">Choose logo file or click to browse</span>
+                    </>
+                  )}
+                </div>
+              </Label>
             </div>
             <p className="text-xs text-muted-foreground">
               Upload PNG, JPG, GIF, SVG, or WebP. Max 5MB.
@@ -1094,14 +1125,26 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
               <h4 className="font-semibold text-foreground text-lg md:text-base">Mintable</h4>
               <p className="text-base md:text-sm text-muted-foreground">Allow creating new tokens after deployment</p>
             </div>
-            <div className="ml-4">
-              <Switch
-                checked={tokenData.mintable}
-                onCheckedChange={(checked) => handleFeatureToggle('mintable', checked)}
+            <Button
+              variant={tokenData.mintable ? "default" : "outline"}
+              size="sm"
+              onClick={() => handleFeatureToggle('mintable', !tokenData.mintable)}
               disabled={isDeploying}
-              className="touch-target-switch"
-              />
-            </div>
+              className={`min-w-[80px] touch-target transition-all duration-300 ${
+                tokenData.mintable 
+                  ? 'bg-green-500 hover:bg-green-600 text-white border-green-500' 
+                  : 'border-border text-muted-foreground hover:bg-muted hover:text-foreground'
+              }`}
+            >
+              {tokenData.mintable ? (
+                <>
+                  <CheckCircle className="w-4 h-4 mr-1" />
+                  Enabled
+                </>
+              ) : (
+                'Enable'
+              )}
+            </Button>
           </div>
 
           <div className={`flex items-center justify-between p-6 md:p-4 bg-muted/30 rounded-lg min-h-[80px] md:min-h-[60px] transition-all duration-300 ${
@@ -1111,14 +1154,26 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
               <h4 className="font-semibold text-foreground text-lg md:text-base">Burnable</h4>
               <p className="text-base md:text-sm text-muted-foreground">Allow permanently destroying tokens</p>
             </div>
-            <div className="ml-4">
-              <Switch
-                checked={tokenData.burnable}
-                onCheckedChange={(checked) => handleFeatureToggle('burnable', checked)}
+            <Button
+              variant={tokenData.burnable ? "default" : "outline"}
+              size="sm"
+              onClick={() => handleFeatureToggle('burnable', !tokenData.burnable)}
               disabled={isDeploying}
-              className="touch-target-switch"
-              />
-            </div>
+              className={`min-w-[80px] touch-target transition-all duration-300 ${
+                tokenData.burnable 
+                  ? 'bg-red-500 hover:bg-red-600 text-white border-red-500' 
+                  : 'border-border text-muted-foreground hover:bg-muted hover:text-foreground'
+              }`}
+            >
+              {tokenData.burnable ? (
+                <>
+                  <CheckCircle className="w-4 h-4 mr-1" />
+                  Enabled
+                </>
+              ) : (
+                'Enable'
+              )}
+            </Button>
           </div>
 
           <div className={`flex items-center justify-between p-6 md:p-4 bg-muted/30 rounded-lg min-h-[80px] md:min-h-[60px] transition-all duration-300 ${
@@ -1128,13 +1183,50 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
               <h4 className="font-semibold text-foreground text-lg md:text-base">Pausable</h4>
               <p className="text-base md:text-sm text-muted-foreground">Allow pausing all token transfers</p>
             </div>
-            <div className="ml-4">
-              <Switch
-                checked={tokenData.pausable}
-                onCheckedChange={(checked) => handleFeatureToggle('pausable', checked)}
+            <Button
+              variant={tokenData.pausable ? "default" : "outline"}
+              size="sm"
+              onClick={() => handleFeatureToggle('pausable', !tokenData.pausable)}
               disabled={isDeploying}
-              className="touch-target-switch"
-              />
+              className={`min-w-[80px] touch-target transition-all duration-300 ${
+                tokenData.pausable 
+                  ? 'bg-yellow-500 hover:bg-yellow-600 text-white border-yellow-500' 
+                  : 'border-border text-muted-foreground hover:bg-muted hover:text-foreground'
+              }`}
+            >
+              {tokenData.pausable ? (
+                <>
+                  <CheckCircle className="w-4 h-4 mr-1" />
+                  Enabled
+                </>
+              ) : (
+                'Enable'
+              )}
+            </Button>
+          </div>
+          
+          {/* Feature Information */}
+          <div className="mt-6 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+            <h5 className="font-semibold text-blue-700 mb-2">💡 Feature Information</h5>
+            <div className="text-sm text-blue-600 space-y-2">
+              <div className="flex items-start space-x-2">
+                <div className="w-1.5 h-1.5 bg-green-500 rounded-full mt-2"></div>
+                <div>
+                  <span className="font-medium">Mintable:</span> You can create additional tokens after deployment. Useful for rewards and airdrops.
+                </div>
+              </div>
+              <div className="flex items-start space-x-2">
+                <div className="w-1.5 h-1.5 bg-red-500 rounded-full mt-2"></div>
+                <div>
+                  <span className="font-medium">Burnable:</span> Token holders can permanently destroy their tokens, reducing total supply.
+                </div>
+              </div>
+              <div className="flex items-start space-x-2">
+                <div className="w-1.5 h-1.5 bg-yellow-500 rounded-full mt-2"></div>
+                <div>
+                  <span className="font-medium">Pausable:</span> Emergency feature to temporarily halt all token transfers when needed.
+                </div>
+              </div>
             </div>
           </div>
         </CardContent>
