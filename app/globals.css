@@ -836,6 +836,236 @@ p {
   background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%) !important;
 }
 
+/* Enhanced input field focus states and animations */
+.form-input-enhanced {
+  @apply input-enhanced transition-all duration-300 focus:ring-4 focus:ring-red-500/30 focus:border-red-500/50;
+  position: relative;
+}
+
+.form-input-enhanced:focus {
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.15), 0 8px 20px rgba(0, 0, 0, 0.12);
+  transform: translateY(-1px);
+  background: rgba(239, 68, 68, 0.02);
+}
+
+.form-input-enhanced:focus::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: linear-gradient(45deg, #EF4444, #DC2626, #B91C1C, #EF4444);
+  border-radius: inherit;
+  z-index: -1;
+  animation: borderGlow 2s linear infinite;
+  background-size: 400% 400%;
+}
+
+@keyframes borderGlow {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+/* Feature toggle success animations */
+.feature-toggle-success {
+  animation: featureUnlock 0.6s ease-out;
+  position: relative;
+}
+
+.feature-toggle-success::after {
+  content: '✓';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #10B981;
+  font-size: 1.5rem;
+  font-weight: bold;
+  opacity: 0;
+  animation: checkmarkAppear 0.8s ease-out;
+  pointer-events: none;
+}
+
+@keyframes featureUnlock {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.05); background-color: rgba(16, 185, 129, 0.1); }
+  60% { transform: scale(1.02); }
+  100% { transform: scale(1); }
+}
+
+@keyframes checkmarkAppear {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+  50% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
+}
+
+/* Success celebration animation */
+.celebration-animation {
+  animation: celebrate 1.5s ease-out;
+  position: relative;
+}
+
+.celebration-animation::before {
+  content: '🎉';
+  position: absolute;
+  top: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 2rem;
+  animation: confettiBurst 1.5s ease-out;
+  pointer-events: none;
+}
+
+@keyframes celebrate {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+  25% { transform: scale(1.05); box-shadow: 0 0 0 20px rgba(239, 68, 68, 0); }
+  50% { transform: scale(1.02); box-shadow: 0 0 0 40px rgba(239, 68, 68, 0); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+
+@keyframes confettiBurst {
+  0% { opacity: 0; transform: translateX(-50%) translateY(0px) scale(0); }
+  20% { opacity: 1; transform: translateX(-50%) translateY(-10px) scale(1); }
+  80% { opacity: 1; transform: translateX(-50%) translateY(-30px) scale(1.2); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-50px) scale(0.5); }
+}
+
+/* Enhanced wallet connection indicator */
+.wallet-status-enhanced {
+  position: relative;
+  overflow: hidden;
+}
+
+.wallet-status-enhanced::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  animation: shimmerWallet 2s infinite;
+}
+
+@keyframes shimmerWallet {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}
+
+.wallet-pulse-indicator {
+  position: relative;
+}
+
+.wallet-pulse-indicator::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 8px;
+  height: 8px;
+  background: #10B981;
+  border-radius: 50%;
+  animation: walletPulse 2s infinite;
+  box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+}
+
+@keyframes walletPulse {
+  0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+  70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+/* Enhanced progress animations */
+.enhanced-progress-bar {
+  position: relative;
+  overflow: hidden;
+}
+
+.enhanced-progress-bar::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 30%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), transparent);
+  animation: progressShimmer 2s infinite;
+}
+
+@keyframes progressShimmer {
+  0% { left: -30%; }
+  100% { left: 100%; }
+}
+
+/* Personalized token glow effects */
+.token-glow-red {
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.3), 0 0 40px rgba(239, 68, 68, 0.1);
+}
+
+.token-glow-blue {
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.3), 0 0 40px rgba(59, 130, 246, 0.1);
+}
+
+.token-glow-green {
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.3), 0 0 40px rgba(16, 185, 129, 0.1);
+}
+
+.token-glow-purple {
+  box-shadow: 0 0 20px rgba(147, 51, 234, 0.3), 0 0 40px rgba(147, 51, 234, 0.1);
+}
+
+.token-glow-yellow {
+  box-shadow: 0 0 20px rgba(245, 158, 11, 0.3), 0 0 40px rgba(245, 158, 11, 0.1);
+}
+
+/* Interactive chart tooltips */
+.custom-tooltip {
+  background: rgba(0, 0, 0, 0.9) !important;
+  border: 1px solid rgba(239, 68, 68, 0.3) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3) !important;
+  backdrop-filter: blur(12px) !important;
+  animation: tooltipFadeIn 0.2s ease-out !important;
+}
+
+[data-theme="light"] .custom-tooltip {
+  background: rgba(255, 255, 255, 0.95) !important;
+  color: #000 !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1) !important;
+}
+
+@keyframes tooltipFadeIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* Touch targets for mobile */
+.touch-target {
+  min-height: 48px;
+  min-width: 48px;
+}
+
+.touch-target-switch {
+  min-height: 48px !important;
+  min-width: 48px !important;
+  transform: scale(1.2);
+}
+
+.mobile-friendly-spacing {
+  padding: 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .mobile-friendly-spacing {
+    padding: 1rem;
+  }
+  
+  .touch-target-switch {
+    transform: scale(1);
+  }
+}
+
 /* Custom wallet button overrides */
 .wallet-adapter-button-trigger .wallet-adapter-button {
   @apply h-12 px-6 text-base;
