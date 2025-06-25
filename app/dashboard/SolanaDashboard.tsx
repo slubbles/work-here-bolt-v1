@@ -334,12 +334,12 @@ export default function SolanaDashboard() {
                   </div>
                 </div>
               </div>
-            <div>
             <div className="text-center">
               <Link href="/" className="text-red-500 hover:text-red-600 text-sm inline-flex items-center">
                 Back to Home
                 <ArrowRight className="w-4 h-4 ml-1" />
               </Link>
+            </div>
             </div>
             </CardContent>
           </Card>
