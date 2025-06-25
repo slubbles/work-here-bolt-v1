@@ -824,13 +824,56 @@ p {
 .wallet-adapter-button {
   @apply font-semibold rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl;
   letter-spacing: -0.01em;
+  background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%) !important;
+  color: white !important;
+  border: none !important;
+  padding: 0.75rem 1.5rem !important;
+  font-weight: 600 !important;
 }
 
 .wallet-adapter-button:not([disabled]):hover {
   transform: translateY(-1px);
+  background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%) !important;
 }
 
 /* Custom wallet button overrides */
 .wallet-adapter-button-trigger .wallet-adapter-button {
   @apply h-12 px-6 text-base;
+}
+/* Wallet adapter modal styling */
+.wallet-adapter-modal {
+  @apply backdrop-blur-xl;
+}
+
+.wallet-adapter-modal .wallet-adapter-modal-container {
+  @apply bg-background border border-border rounded-xl shadow-2xl;
+}
+
+.wallet-adapter-modal .wallet-adapter-modal-title {
+  @apply text-foreground font-bold text-xl;
+}
+
+.wallet-adapter-modal .wallet-adapter-modal-list {
+  @apply space-y-2;
+}
+
+.wallet-adapter-modal .wallet-adapter-modal-list-item {
+  @apply bg-muted hover:bg-muted/80 rounded-lg transition-colors;
+}
+
+.wallet-adapter-modal .wallet-adapter-modal-list-item:hover {
+  @apply bg-red-500/10 border-red-500/30;
+}
+
+/* Wallet connection states */
+.wallet-adapter-button[data-state="connected"] {
+  @apply bg-green-500 hover:bg-green-600;
+}
+
+.wallet-adapter-button[data-state="connecting"] {
+  @apply bg-yellow-500 hover:bg-yellow-600;
+}
+
+.wallet-adapter-button[data-state="disconnecting"] {
+  @apply bg-red-500 hover:bg-red-600;
 }

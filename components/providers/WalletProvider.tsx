@@ -13,8 +13,6 @@ import { clusterApiUrl } from '@solana/web3.js';
 import { NETWORK_ENDPOINT } from '@/lib/solana';
 import { AlgorandWalletProvider } from './AlgorandWalletProvider';
 
-// Import wallet adapter CSS
-import '@solana/wallet-adapter-react-ui/styles.css';
 
 interface WalletContextProviderProps {
   children: React.ReactNode;
