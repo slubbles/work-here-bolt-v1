@@ -4,16 +4,8 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import algosdk from 'algosdk';
 import { getAlgorandNetwork, ALGORAND_NETWORKS } from '@/lib/algorand';
 
-// Define types for Pera Wallet
-interface PeraWalletConnect {
-  connect(): Promise<string[]>;
-  disconnect(): Promise<void>;
-  reconnectSession(): Promise<string[]>;
-  signTransaction(txnGroup: any[]): Promise<Uint8Array[]>;
-  connector?: {
-    on(event: string, callback: () => void): void;
-  };
-}
+// Import the actual PeraWalletConnect type
+import type { PeraWalletConnect } from '@perawallet/connect';
 
 interface AlgorandWalletContextType {
   connected: boolean;
@@ -92,20 +84,23 @@ export function AlgorandWalletProvider({ children }: AlgorandWalletProviderProps
         
         setPeraWallet(wallet);
 
-        // Listen for disconnect events
-        wallet.connector?.on('disconnect', () => {
-          console.log('📱 Pera Wallet disconnected');
-          setConnected(false);
-          setAddress(null);
-          setBalance(null);
-          setError(null);
-        });
+        // Listen for disconnect events - safely check if connector exists and has the 'on' method
+        if (wallet.connector && typeof wallet.connector.on === 'function') {
+          wallet.connector.on('disconnect', () => {
+            console.log('📱 Pera Wallet disconnected');
+            setConnected(false);
+            setAddress(null);
+            setBalance(null);
+            setError(null);
+          });
+        }
 
         // Add a small delay to ensure wallet is fully initialized
         await new Promise(resolve => setTimeout(resolve, 100));
         
         console.log(`✅ Pera Wallet ready for ${selectedNetwork}`);
         setIsPeraWalletReady(true);
+        
         // Try to reconnect to existing session on the new network
         try {
           const accounts = await wallet.reconnectSession();
@@ -266,8 +261,8 @@ export function AlgorandWalletProvider({ children }: AlgorandWalletProviderProps
         signedTxnBytes = firstSignedTxn;
       } else if (Array.isArray(firstSignedTxn)) {
         signedTxnBytes = new Uint8Array(firstSignedTxn);
-      } else if (firstSignedTxn && typeof firstSignedTxn === 'object' && firstSignedTxn.blob) {
-        signedTxnBytes = new Uint8Array(firstSignedTxn.blob);
+      } else if (firstSignedTxn && typeof firstSignedTxn === 'object' && 'blob' in firstSignedTxn) {
+        signedTxnBytes = new Uint8Array((firstSignedTxn as any).blob);
       } else {
         console.error('Unexpected signed transaction format:', firstSignedTxn);
         throw new Error(`Unexpected signed transaction format: ${typeof firstSignedTxn}`);
@@ -305,7 +300,7 @@ export function AlgorandWalletProvider({ children }: AlgorandWalletProviderProps
     }
 
     // Validate network
-    if (!ALGORAND_NETWORKS[newNetwork]) {
+    if (!ALGORAND_NETWORKS[newNetwork as keyof typeof ALGORAND_NETWORKS]) {
       throw new Error(`Unsupported network: ${newNetwork}`);
     }
 
