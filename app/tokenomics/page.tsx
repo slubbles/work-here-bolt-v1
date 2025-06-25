@@ -566,17 +566,41 @@ Visit: https://snarbles.xyz for more information
                       outerRadius={100}
                       dataKey="value"
                       label={({ name, value }) => `${name}: ${value}%`}
+                      animationBegin={0}
+                      animationDuration={1000}
+                      animationEasing="ease-out"
                     >
                       {pieData.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: 'var(--background)', 
-                        border: '1px solid var(--border)',
-                        borderRadius: '8px',
-                        color: 'var(--foreground)'
+                    <Tooltip
+                      wrapperClassName="custom-tooltip"
+                      contentStyle={{}}
+                      content={({ active, payload }) => {
+                        if (active && payload && payload.length) {
+                          const data = payload[0].payload;
+                          return (
+                            <div className="p-4">
+                              <p className="text-foreground font-semibold mb-2">{data.name}</p>
+                              <div className="flex items-center space-x-2">
+                                <div 
+                                  className="w-3 h-3 rounded-full" 
+                                  style={{ backgroundColor: data.color }}
+                                />
+                                <span className="text-foreground text-sm">
+                                  <span className="font-bold">{data.value}%</span> of total supply
+                                </span>
+                              </div>
+                              <div className="mt-2 pt-2 border-t border-border">
+                                <p className="text-xs text-muted-foreground">
+                                  Tokens: {((data.value * parseFloat(totalSupply)) / 100).toLocaleString()}
+                                </p>
+                              </div>
+                            </div>
+                          );
+                        }
+                        return null;
                       }}
                     />
                   </PieChart>

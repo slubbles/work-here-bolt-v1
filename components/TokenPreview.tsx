@@ -29,6 +29,7 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [isImageLoading, setIsImageLoading] = useState(true);
   const [isContentLoading, setIsContentLoading] = useState(true);
+  const [tokenGlowClass, setTokenGlowClass] = useState('');
 
   // Simulate initial loading
   useEffect(() => {
@@ -61,6 +62,16 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
       setIsImageLoading(false);
     }
   }, [tokenData.logoUrl]);
+
+  // Generate personalized glow effect based on token symbol
+  useEffect(() => {
+    if (tokenData.symbol) {
+      const symbolHash = tokenData.symbol.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+      const glowOptions = ['token-glow-red', 'token-glow-blue', 'token-glow-green', 'token-glow-purple', 'token-glow-yellow'];
+      const selectedGlow = glowOptions[symbolHash % glowOptions.length];
+      setTokenGlowClass(selectedGlow);
+    }
+  }, [tokenData.symbol]);
 
   const {
     name,
@@ -166,21 +177,22 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
           
           <div className="flex justify-center relative">
             {logoUrl && !isImageLoading && !isContentLoading ? (
-              <div className="relative">
+              <div className={`relative ${tokenGlowClass}`}>
                 <img
                   src={logoUrl}
                   alt={name}
-                  className="w-40 h-40 rounded-full object-cover border-4 border-red-500/50 shadow-2xl"
+                  className="w-40 h-40 rounded-full object-cover border-4 border-red-500/50 shadow-2xl transition-all duration-500"
                 />
-                <div className="absolute -inset-3 bg-gradient-to-r from-red-500/20 to-red-600/20 rounded-full blur-lg"></div>
+                <div className="absolute -inset-3 bg-gradient-to-r from-red-500/20 to-red-600/20 rounded-full blur-lg animate-pulse"></div>
               </div>
             ) : isImageLoading || isContentLoading ? (
               <div className="w-40 h-40 rounded-full bg-muted animate-pulse flex items-center justify-center border-4 border-muted">
                 <div className="text-muted-foreground text-xs">Loading...</div>
               </div>
             ) : (
-              <div className="token-preview-circle w-40 h-40 text-3xl relative">
+              <div className={`token-preview-circle w-40 h-40 text-3xl relative ${tokenGlowClass} transition-all duration-500`}>
                 {symbol.slice(0, 3).toUpperCase() || 'TKN'}
+                <div className="absolute inset-0 rounded-full border-2 border-current opacity-30 animate-ping"></div>
               </div>
             )}
           </div>

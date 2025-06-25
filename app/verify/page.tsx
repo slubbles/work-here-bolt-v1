@@ -42,6 +42,8 @@ export default function VerifyPage() {
   const [verificationResult, setVerificationResult] = useState<VerificationResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [verificationProgress, setVerificationProgress] = useState(0);
+  const [currentVerificationStep, setCurrentVerificationStep] = useState('');
 
   const networks = [
     { value: 'algorand-mainnet', label: 'Algorand MainNet', available: true },
@@ -64,9 +66,14 @@ export default function VerifyPage() {
 
     setIsLoading(true);
     setError(null);
+    setVerificationProgress(0);
+    setCurrentVerificationStep('Initializing verification process...');
     
     try {
       if (selectedNetwork.startsWith('algorand')) {
+        setVerificationProgress(20);
+        setCurrentVerificationStep('Connecting to Algorand network...');
+        
         // Algorand token verification
         const assetId = parseInt(searchAddress);
         if (isNaN(assetId)) {
@@ -75,8 +82,12 @@ export default function VerifyPage() {
           return;
         }
 
+        setVerificationProgress(40);
+        setCurrentVerificationStep(`Looking up Asset ID ${assetId}...`);
         console.log(`🔍 Verifying Algorand Asset ID ${assetId} on ${selectedNetwork}`);
         
+        setVerificationProgress(60);
+        setCurrentVerificationStep('Fetching asset information...');
         const assetInfoResult = await getAlgorandAssetInfo(assetId, selectedNetwork);
         
         if (!assetInfoResult.success) {
@@ -93,7 +104,13 @@ export default function VerifyPage() {
           return;
         }
         
+        setVerificationProgress(80);
+        setCurrentVerificationStep('Processing asset data...');
+        
         const networkConfig = getAlgorandNetwork(selectedNetwork);
+        
+        setVerificationProgress(90);
+        setCurrentVerificationStep('Generating verification results...');
         
         const result: VerificationResult = {
           assetId: assetId,
@@ -111,6 +128,9 @@ export default function VerifyPage() {
           manager: assetData.manager,
           explorerUrl: `${networkConfig.explorer}/asset/${assetId}`
         };
+        
+        setVerificationProgress(100);
+        setCurrentVerificationStep('Verification complete!');
         
         setVerificationResult(result);
       } else {
@@ -220,7 +240,7 @@ export default function VerifyPage() {
             <Button 
               onClick={handleVerify}
               disabled={isLoading || !networks.find(n => n.value === selectedNetwork)?.available}
-              className="w-full bg-red-500 hover:bg-red-600 text-white"
+              className="w-full bg-red-500 hover:bg-red-600 text-white touch-target"
             >
               {isLoading ? (
                 <>
@@ -242,6 +262,28 @@ export default function VerifyPage() {
               </div>
             )}
           </CardContent>
+            {/* Enhanced Progress Indicator */}
+            {isLoading && (
+              <div className="mt-6 space-y-4">
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Verification Progress</span>
+                    <span className="text-foreground font-semibold">{verificationProgress}%</span>
+                  </div>
+                  <div className="enhanced-progress-bar">
+                    <div 
+                      className="h-2 bg-red-500 rounded-full transition-all duration-500 ease-out"
+                      style={{ width: `${verificationProgress}%` }}
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>{currentVerificationStep}</span>
+                </div>
+              </div>
+            )}
+
         </Card>
 
         {/* Network Info */}

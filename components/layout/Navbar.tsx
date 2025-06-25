@@ -223,8 +223,8 @@ export default function Navbar() {
                 <div className="flex items-center space-x-2">
                   {/* Connected Wallet Display with Copy */}
                   {solanaConnected && solanaPublicKey && (
-                    <div className="flex items-center space-x-2 bg-gradient-to-r from-blue-500/10 to-blue-600/10 border border-blue-500/30 rounded-lg px-3 py-1.5 backdrop-blur-sm group">
-                      <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                    <div className="flex items-center space-x-2 bg-gradient-to-r from-blue-500/10 to-blue-600/10 border border-blue-500/30 rounded-lg px-3 py-1.5 backdrop-blur-sm group wallet-status-enhanced wallet-pulse-indicator">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse relative z-10"></div>
                       <div className="flex items-center space-x-1.5">
                         <div className="w-5 h-5 rounded bg-blue-500/20 flex items-center justify-center">
                           <span className="text-blue-500 font-bold text-xs">S</span>
@@ -248,8 +248,8 @@ export default function Navbar() {
                   )}
                   
                   {algorandConnected && algorandAddress && (
-                    <div className="flex items-center space-x-2 bg-gradient-to-r from-[#76f935]/10 to-[#76f935]/10 border border-[#76f935]/30 rounded-lg px-3 py-1.5 backdrop-blur-sm group">
-                      <div className="w-2 h-2 bg-[#76f935] rounded-full animate-pulse"></div>
+                    <div className="flex items-center space-x-2 bg-gradient-to-r from-[#76f935]/10 to-[#76f935]/10 border border-[#76f935]/30 rounded-lg px-3 py-1.5 backdrop-blur-sm group wallet-status-enhanced">
+                      <div className="w-2 h-2 bg-[#76f935] rounded-full animate-pulse relative z-10"></div>
                       <div className="flex items-center space-x-1.5">
                         <div className="w-6 h-6 rounded-lg bg-[#76f935]/20 flex items-center justify-center">
                           <span className="text-[#76f935] font-bold text-xs">A</span>
