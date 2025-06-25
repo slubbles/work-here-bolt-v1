@@ -340,7 +340,6 @@ export default function SolanaDashboard() {
                 <ArrowRight className="w-4 h-4 ml-1" />
               </Link>
             </div>
-            </div>
             </CardContent>
           </Card>
         </div>
