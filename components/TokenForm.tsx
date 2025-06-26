@@ -13,7 +13,8 @@ import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useAlgorandWallet } from '@/components/providers/AlgorandWalletProvider';
-import { useSupabaseAuth } from '@/hooks/useSupabase';
+import { useSupabaseAuth, useCredits } from '@/hooks/useSupabase';
+import AuthModal from '@/components/auth/AuthModal';
 import { 
   Upload, 
   Rocket, 
@@ -30,7 +31,8 @@ import {
   FileUp,
   Clock,
   Send,
-  CheckCircle2
+  CheckCircle2,
+  AlertTriangle
 } from 'lucide-react';
 import { createAlgorandToken } from '@/lib/algorand';
 import { createTokenOnChain } from '@/lib/solana';
@@ -64,7 +66,9 @@ interface DeploymentStep {
 
 export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
   const { toast } = useToast();
-  const { user: supabaseUser } = useSupabaseAuth();
+  const { user: supabaseUser, isAuthenticated } = useSupabaseAuth();
+  const { creditBalance, useCredits, hasCredits } = useCredits();
+  const [showAuthModal, setShowAuthModal] = useState(false);
   
   // Wallet connections
   const { connected: solanaConnected, publicKey: solanaPublicKey } = useWallet();
@@ -365,6 +369,34 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
 
   // Handle token deployment with enhanced progress tracking
   const handleDeploy = async () => {
+    // Check authentication first
+    if (!isAuthenticated) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to save your token to your account",
+        variant: "destructive",
+        duration: 5000,
+      });
+      setShowAuthModal(true);
+      return;
+    }
+
+    // Check credits for premium features
+    const requiredCredits = tokenData.mintable || tokenData.burnable || tokenData.pausable ? 2 : 1;
+    if (!hasCredits || creditBalance < requiredCredits) {
+      toast({
+        title: "Insufficient Credits",
+        description: `You need ${requiredCredits} credits to create this token. ${
+          tokenData.mintable || tokenData.burnable || tokenData.pausable 
+            ? 'Advanced features require additional credits.' 
+            : ''
+        }`,
+        variant: "destructive",
+        duration: 6000,
+      });
+      return;
+    }
+
     // Check wallet connection
     const wallet = getConnectedWallet();
     if (!wallet) {
@@ -400,6 +432,16 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
     try {
       // Step 1: Preparing transaction
       await updateProgress('preparing');
+
+      // Deduct credits first
+      const creditsResult = await useCredits(
+        requiredCredits, 
+        `Token creation: ${tokenData.name} (${tokenData.symbol})`
+      );
+      
+      if (!creditsResult.success) {
+        throw new Error(creditsResult.error || 'Failed to deduct credits');
+      }
 
       // Step 2: Upload metadata if needed
       await updateProgress('metadata');
@@ -536,11 +578,31 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
         }, 3000);
 
       } else {
+        // Refund credits on failure
+        if (supabaseUser) {
+          await supabaseHelpers.addCreditTransaction({
+            user_id: supabaseUser.id,
+            type: 'refund',
+            amount: requiredCredits,
+            description: `Refund for failed token creation: ${tokenData.name}`
+          });
+        }
+
         throw new Error(result.error || 'Deployment failed');
       }
 
     } catch (error) {
       console.error('Deployment error:', error);
+      
+      // Refund credits on error
+      if (supabaseUser) {
+        await supabaseHelpers.addCreditTransaction({
+          user_id: supabaseUser.id,
+          type: 'refund',
+          amount: requiredCredits,
+          description: `Refund for failed token creation: ${tokenData.name}`
+        });
+      }
       
       let errorTitle = '❌ Deployment Failed';
       let errorMessage = 'An unexpected error occurred during deployment.';
@@ -814,6 +876,61 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Credits and Authentication Info */}
+      {!isAuthenticated && (
+        <Card className="border-orange-500/30 bg-orange-500/5">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2 text-orange-600">
+              <AlertTriangle className="w-5 h-5" />
+              <span>Sign In to Save Your Tokens</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground mb-4">
+              Create an account to save your token history and access advanced features
+            </p>
+            <Button 
+              onClick={() => setShowAuthModal(true)}
+              className="bg-orange-500 hover:bg-orange-600 text-white"
+            >
+              Sign In / Sign Up
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {isAuthenticated && (
+        <Card className="border-green-500/30 bg-green-500/5">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2 text-green-600">
+              <CheckCircle className="w-5 h-5" />
+              <span>Credits Available</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground mb-4">
+              You have {creditBalance} credits remaining
+            </p>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span>Basic Token Creation:</span>
+                <span className="font-semibold">1 credit</span>
+              </div>
+              {(tokenData.mintable || tokenData.burnable || tokenData.pausable) && (
+                <div className="flex justify-between">
+                  <span>Advanced Features:</span>
+                  <span className="font-semibold">+1 credit</span>
+                </div>
+              )}
+              <div className="border-t pt-2 flex justify-between font-semibold">
+                <span>Total Required:</span>
+                <span>{(tokenData.mintable || tokenData.burnable || tokenData.pausable) ? '2' : '1'} credits</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Token Information */}
       <Card className="glass-card">
@@ -1287,6 +1404,13 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
           </div>
         )}
       </div>
+
+      {/* Auth Modal */}
+      <AuthModal 
+        isOpen={showAuthModal} 
+        onClose={() => setShowAuthModal(false)} 
+        defaultTab="signup"
+      />
     </div>
   );
 }

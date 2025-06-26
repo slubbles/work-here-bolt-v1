@@ -46,6 +46,7 @@ import {
   EnhancedTokenInfo,
   TransactionInfo
 } from '@/lib/solana-data';
+import { useSupabaseAuth, useTokenHistory } from '@/hooks/useSupabase';
 
 export default function SolanaDashboard() {
   const [selectedToken, setSelectedToken] = useState(0);
@@ -63,6 +64,10 @@ export default function SolanaDashboard() {
   // Solana wallet integration
   const { connected, publicKey } = useWallet();
   const { toast } = useToast();
+  
+  // Supabase integration
+  const { user, isAuthenticated } = useSupabaseAuth();
+  const { tokens: savedTokens, fetchTokenHistory } = useTokenHistory();
 
   // Fetch real data when wallet connects
   useEffect(() => {
@@ -92,12 +97,19 @@ export default function SolanaDashboard() {
       const walletAddress = publicKey.toString();
       console.log(`📊 Fetching dashboard data for: ${walletAddress}`);
       
-      // Fetch all data in parallel
-      const [tokensResult, transactionsResult, summaryResult] = await Promise.all([
+      // Fetch all data in parallel, including saved token history if authenticated
+      const promises = [
         getEnhancedTokenInfo(walletAddress),
         getWalletTransactionHistory(walletAddress, 20),
         getWalletSummary(walletAddress)
-      ]);
+      ];
+      
+      // Add token history fetch if authenticated
+      if (isAuthenticated && user) {
+        promises.push(fetchTokenHistory());
+      }
+      
+      const [tokensResult, transactionsResult, summaryResult] = await Promise.all(promises);
       
       // Handle tokens data
       if (tokensResult.success && tokensResult.data) {
@@ -415,6 +427,16 @@ export default function SolanaDashboard() {
                 Connected: {publicKey.toBase58().slice(0, 4)}...{publicKey.toBase58().slice(-4)}
               </p>
             )}
+            {isAuthenticated && user && (
+              <p className="text-sm text-green-600 mt-1">
+                ✓ Signed in as {user.email?.split('@')[0]}
+              </p>
+            )}
+            {!isAuthenticated && (
+              <p className="text-sm text-orange-600 mt-1">
+                Sign in to save your token history and access advanced features
+              </p>
+            )}
             {error && (
               <div className="flex items-center space-x-2 mt-2 text-red-500 text-sm">
                 <AlertCircle className="w-4 h-4" />
@@ -456,7 +478,14 @@ export default function SolanaDashboard() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-muted-foreground text-sm">Total Tokens</p>
-                    <p className="text-2xl font-bold text-foreground">{walletSummary?.totalTokens || userTokens.length}</p>
+                    <p className="text-2xl font-bold text-foreground">
+                      {walletSummary?.totalTokens || userTokens.length}
+                      {isAuthenticated && savedTokens && savedTokens.length > 0 && (
+                        <span className="text-sm text-muted-foreground ml-2">
+                          (+{savedTokens.length} saved)
+                        </span>
+                      )}
+                    </p>
                   </div>
                   <Coins className="w-8 h-8 text-red-500" />
                 </div>
@@ -506,13 +535,23 @@ export default function SolanaDashboard() {
               ) : userTokens.length === 0 ? (
                 <div className="text-center py-8">
                   <Coins className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground mb-4">No tokens found in your wallet</p>
+                  <p className="text-muted-foreground mb-4">
+                    {isAuthenticated && savedTokens && savedTokens.length > 0 
+                      ? `No tokens in current wallet (${savedTokens.length} saved tokens in history)`
+                      : 'No tokens found in your wallet'
+                    }
+                  </p>
                   <Link href="/create">
                     <Button className="bg-red-500 hover:bg-red-600 text-white">
                       <Plus className="w-4 h-4 mr-2" />
                       Create Your First Token
                     </Button>
                   </Link>
+                  {!isAuthenticated && (
+                    <p className="text-sm text-muted-foreground mt-4">
+                      Sign in to save your token history across sessions
+                    </p>
+                  )}
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -585,6 +624,11 @@ export default function SolanaDashboard() {
                 <div className="mb-4">
                   <h3 className="text-lg font-semibold text-foreground">Token Management</h3>
                   <p className="text-sm text-muted-foreground">Manage and analyze your token performance</p>
+                  {isAuthenticated && (
+                    <p className="text-sm text-green-600 mt-1">
+                      ✓ History saved to your account
+                    </p>
+                  )}
                 </div>
                 <TabsList className="enhanced-tabs grid w-full grid-cols-4">
                   <TabsTrigger value="overview" className="enhanced-tab-trigger">
@@ -613,7 +657,12 @@ export default function SolanaDashboard() {
                   <div className="glass-card p-6 text-center">
                     <Coins className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                     <h3 className="text-xl font-semibold text-foreground mb-2">No Tokens Found</h3>
-                    <p className="text-muted-foreground mb-6">Connect your wallet and create your first token to get started.</p>
+                    <p className="text-muted-foreground mb-6">
+                      {isAuthenticated 
+                        ? 'Create your first token to get started. It will be saved to your account!'
+                        : 'Connect your wallet and create your first token to get started.'
+                      }
+                    </p>
                     <Link href="/create">
                       <Button className="bg-red-500 hover:bg-red-600 text-white">
                         <Plus className="w-4 h-4 mr-2" />
