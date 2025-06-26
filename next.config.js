@@ -76,7 +76,7 @@ const nextConfig = {
       assert: false,
       os: false,
       path: false,
-      timers: require.resolve('timers-browserify'),
+      timers: false,
       // Additional fallbacks for Algorand SDK
       url: require.resolve('url'),
       querystring: require.resolve('querystring-es3'),
