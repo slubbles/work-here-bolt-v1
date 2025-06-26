@@ -108,6 +108,9 @@ const nextConfig = {
     // Ignore specific modules that cause issues
     config.resolve.alias = {
       ...config.resolve.alias,
+      // Explicit aliases for Node.js built-in modules
+      'buffer': require.resolve('buffer'),
+      'process': require.resolve('process/browser'),
       // Fix for wallet adapter modules
       '@solana/wallet-adapter-base': require.resolve('@solana/wallet-adapter-base'),
       '@solana/wallet-adapter-react': require.resolve('@solana/wallet-adapter-react'),
