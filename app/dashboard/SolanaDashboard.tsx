@@ -25,7 +25,8 @@ import {
   ArrowRight,
   Download,
   FileDown,
-  ChevronDown
+  ChevronDown,
+  RefreshCw
 } from 'lucide-react';
 import { DashboardSkeleton, StatCardSkeleton, TokenCardSkeleton, ChartSkeleton, TransactionItemSkeleton, TokenOverviewSkeleton, ManagementActionsSkeleton } from '@/components/skeletons/DashboardSkeletons';
 import Link from 'next/link';
@@ -38,101 +39,146 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { 
+  getEnhancedTokenInfo, 
+  getWalletTransactionHistory, 
+  getWalletSummary,
+  EnhancedTokenInfo,
+  TransactionInfo
+} from '@/lib/solana-data';
 
 export default function SolanaDashboard() {
   const [selectedToken, setSelectedToken] = useState(0);
   const [transferAmount, setTransferAmount] = useState('');
   const [transferAddress, setTransferAddress] = useState('');
   const [isLoading, setIsLoading] = useState(true);
-  const [isLoadingTokens, setIsLoadingTokens] = useState(true);
-  const [isLoadingChart, setIsLoadingChart] = useState(true);
-  const [isLoadingTransactions, setIsLoadingTransactions] = useState(true);
-  const [isLoadingStats, setIsLoadingStats] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  
+  // Real data states
+  const [userTokens, setUserTokens] = useState<EnhancedTokenInfo[]>([]);
+  const [transactionData, setTransactionData] = useState<TransactionInfo[]>([]);
+  const [walletSummary, setWalletSummary] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
   
   // Solana wallet integration
   const { connected, publicKey } = useWallet();
   const { toast } = useToast();
 
-  // Debug logging to trace connection and loading states
+  // Fetch real data when wallet connects
   useEffect(() => {
-    console.log('🔍 Dashboard State Debug:', {
-      connected,
-      publicKey: publicKey?.toString(),
-      isLoading,
-      isLoadingTokens,
-      isLoadingChart,
-      isLoadingTransactions,
-      isLoadingStats
-    });
-  }, [connected, publicKey, isLoading, isLoadingTokens, isLoadingChart, isLoadingTransactions, isLoadingStats]);
-
-  // Simulate loading states
-  useEffect(() => {
-    console.log('🔄 Wallet connection changed:', connected);
-    if (connected) {
-      console.log('✅ Wallet connected, starting data loading...');
-      // Simulate initial data loading with better state management
-      const timer1 = setTimeout(() => setIsLoading(false), 1500);
-      const timer2 = setTimeout(() => setIsLoadingTokens(false), 2000);
-      const timer3 = setTimeout(() => setIsLoadingChart(false), 2500);
-      const timer4 = setTimeout(() => setIsLoadingTransactions(false), 3000);
-      const timer5 = setTimeout(() => setIsLoadingStats(false), 1200);
-      
-      return () => {
-        clearTimeout(timer1);
-        clearTimeout(timer2);
-        clearTimeout(timer3);
-        clearTimeout(timer4);
-        clearTimeout(timer5);
-      };
+    if (connected && publicKey) {
+      console.log('🔄 Wallet connected, fetching real data...');
+      fetchDashboardData();
     } else {
-      // Reset loading states when wallet disconnects
-      console.log('❌ Wallet disconnected, resetting states...');
+      // Reset states when wallet disconnects
+      console.log('❌ Wallet disconnected, resetting dashboard...');
       setIsLoading(true);
-      setIsLoadingTokens(true);
-      setIsLoadingChart(true);
-      setIsLoadingTransactions(true);
-      setIsLoadingStats(true);
+      setUserTokens([]);
+      setTransactionData([]);
+      setWalletSummary(null);
+      setError(null);
+      setSelectedToken(0);
     }
   }, [connected]);
 
-  const userTokens = [
-    {
-      name: 'Community Rewards Token',
-      symbol: 'CRT',
-      balance: '50,000',
-      value: '$2,500',
-      change: '+12.5%',
-      holders: 1250,
-      totalSupply: '1,000,000',
-      address: '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU'
-    },
-    {
-      name: 'Gaming Token',
-      symbol: 'GAME',
-      balance: '25,000',
-      value: '$1,200',
-      change: '+8.3%',
-      holders: 850,
-      totalSupply: '500,000',
-      address: '9yHXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgBsV'
+  // Fetch all dashboard data
+  const fetchDashboardData = async () => {
+    if (!publicKey) return;
+    
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      const walletAddress = publicKey.toString();
+      console.log(`📊 Fetching dashboard data for: ${walletAddress}`);
+      
+      // Fetch all data in parallel
+      const [tokensResult, transactionsResult, summaryResult] = await Promise.all([
+        getEnhancedTokenInfo(walletAddress),
+        getWalletTransactionHistory(walletAddress, 20),
+        getWalletSummary(walletAddress)
+      ]);
+      
+      // Handle tokens data
+      if (tokensResult.success && tokensResult.data) {
+        setUserTokens(tokensResult.data);
+        console.log(`✅ Loaded ${tokensResult.data.length} tokens`);
+      } else {
+        console.warn('⚠️ Failed to load tokens:', tokensResult.error);
+        setUserTokens([]);
+      }
+      
+      // Handle transactions data
+      if (transactionsResult.success && transactionsResult.data) {
+        setTransactionData(transactionsResult.data);
+        console.log(`✅ Loaded ${transactionsResult.data.length} transactions`);
+      } else {
+        console.warn('⚠️ Failed to load transactions:', transactionsResult.error);
+        setTransactionData([]);
+      }
+      
+      // Handle summary data
+      if (summaryResult.success && summaryResult.data) {
+        setWalletSummary(summaryResult.data);
+        console.log(`✅ Loaded wallet summary`);
+      } else {
+        console.warn('⚠️ Failed to load wallet summary:', summaryResult.error);
+        setWalletSummary(null);
+      }
+      
+      toast({
+        title: "✅ Dashboard Updated",
+        description: "Loaded latest data from Solana blockchain",
+        duration: 3000,
+      });
+      
+    } catch (err) {
+      console.error('❌ Error fetching dashboard data:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load dashboard data';
+      setError(errorMessage);
+      
+      toast({
+        title: "❌ Failed to Load Data",
+        description: errorMessage,
+        variant: "destructive",
+        duration: 5000,
+      });
+    } finally {
+      setIsLoading(false);
     }
-  ];
+  };
+  
+  // Manual refresh function
+  const handleRefresh = async () => {
+    if (!connected || !publicKey || isRefreshing) return;
+    
+    setIsRefreshing(true);
+    await fetchDashboardData();
+    setIsRefreshing(false);
+  };
 
+  // Generate chart data from transaction history
   const chartData = [
-    { name: 'Jan', value: 1000 },
-    { name: 'Feb', value: 1200 },
-    { name: 'Mar', value: 1100 },
-    { name: 'Apr', value: 1400 },
-    { name: 'May', value: 1600 },
-    { name: 'Jun', value: 1800 },
+    { name: 'Week 1', value: transactionData.slice(0, 7).length },
+    { name: 'Week 2', value: transactionData.slice(7, 14).length },
+    { name: 'Week 3', value: transactionData.slice(14, 21).length },
+    { name: 'Week 4', value: transactionData.slice(21, 28).length },
   ];
 
-  const transactionData = [
-    { type: 'Transfer', amount: '1,000 CRT', to: publicKey ? `${publicKey.toBase58().slice(0, 4)}...${publicKey.toBase58().slice(-4)}` : 'Demo_abc...123', time: '2 hours ago', status: 'Completed' },
-    { type: 'Mint', amount: '5,000 CRT', to: 'Community Pool', time: '1 day ago', status: 'Completed' },
-    { type: 'Transfer', amount: '500 CRT', to: 'Demo_xyz...789', time: '2 days ago', status: 'Completed' },
-  ];
+  // Format transaction data for display
+  const formatTransactionForDisplay = (tx: TransactionInfo) => {
+    const timeAgo = new Date(tx.timestamp).toRelativeTimeString 
+      ? new Date(tx.timestamp).toRelativeTimeString()
+      : new Date(tx.timestamp).toLocaleDateString();
+    
+    return {
+      type: tx.type,
+      amount: `${tx.amount} ${tx.token}`,
+      to: tx.to ? `${tx.to.slice(0, 4)}...${tx.to.slice(-4)}` : 'Unknown',
+      time: timeAgo,
+      status: tx.status === 'confirmed' ? 'Completed' : tx.status === 'failed' ? 'Failed' : 'Pending'
+    };
+  };
 
   const handleTransfer = () => {
     if (!transferAmount || !transferAddress) {
@@ -369,18 +415,35 @@ export default function SolanaDashboard() {
                 Connected: {publicKey.toBase58().slice(0, 4)}...{publicKey.toBase58().slice(-4)}
               </p>
             )}
+            {error && (
+              <div className="flex items-center space-x-2 mt-2 text-red-500 text-sm">
+                <AlertCircle className="w-4 h-4" />
+                <span>{error}</span>
+              </div>
+            )}
           </div>
-          <Link href="/create">
-            <Button className="bg-red-500 hover:bg-red-600 text-white">
-              <Plus className="w-4 h-4 mr-2" />
-              Create New Token
+          <div className="flex space-x-3">
+            <Button 
+              variant="outline" 
+              onClick={handleRefresh}
+              disabled={isRefreshing || !connected}
+              className="border-border text-muted-foreground hover:bg-muted"
+            >
+              <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+              {isRefreshing ? 'Refreshing...' : 'Refresh'}
             </Button>
-          </Link>
+            <Link href="/create">
+              <Button className="bg-red-500 hover:bg-red-600 text-white">
+                <Plus className="w-4 h-4 mr-2" />
+                Create New Token
+              </Button>
+            </Link>
+          </div>
         </div>
 
         {/* Stats Overview */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
-          {isLoadingStats ? (
+          {isLoading ? (
             <>
               <StatCardSkeleton />
               <StatCardSkeleton />
@@ -393,7 +456,7 @@ export default function SolanaDashboard() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-muted-foreground text-sm">Total Tokens</p>
-                    <p className="text-2xl font-bold text-foreground">2</p>
+                    <p className="text-2xl font-bold text-foreground">{walletSummary?.totalTokens || userTokens.length}</p>
                   </div>
                   <Coins className="w-8 h-8 text-red-500" />
                 </div>
@@ -402,7 +465,7 @@ export default function SolanaDashboard() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-muted-foreground text-sm">Total Value</p>
-                    <p className="text-2xl font-bold text-foreground">$3,700</p>
+                    <p className="text-2xl font-bold text-foreground">${walletSummary?.totalValue?.toFixed(2) || '0.00'}</p>
                   </div>
                   <DollarSign className="w-8 h-8 text-red-500" />
                 </div>
@@ -410,19 +473,19 @@ export default function SolanaDashboard() {
               <div className="glass-card p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-muted-foreground text-sm">Total Holders</p>
-                    <p className="text-2xl font-bold text-foreground">2,100</p>
+                    <p className="text-muted-foreground text-sm">SOL Balance</p>
+                    <p className="text-2xl font-bold text-foreground">{walletSummary?.solBalance?.toFixed(4) || '0.0000'}</p>
                   </div>
-                  <Users className="w-8 h-8 text-red-500" />
+                  <Wallet className="w-8 h-8 text-red-500" />
                 </div>
               </div>
               <div className="glass-card p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-muted-foreground text-sm">Avg. Growth</p>
-                    <p className="text-2xl font-bold text-foreground">+10.4%</p>
+                    <p className="text-muted-foreground text-sm">Recent Transactions</p>
+                    <p className="text-2xl font-bold text-foreground">{walletSummary?.recentTransactions || transactionData.length}</p>
                   </div>
-                  <TrendingUp className="w-8 h-8 text-red-500" />
+                  <BarChart3 className="w-8 h-8 text-red-500" />
                 </div>
               </div>
             </>
@@ -434,11 +497,22 @@ export default function SolanaDashboard() {
           <div className="lg:col-span-1">
             <div className="glass-card p-6">
               <h2 className="text-xl font-bold text-foreground mb-6">Your Tokens</h2>
-              {isLoadingTokens ? (
+              {isLoading ? (
                 <div className="space-y-4">
                   <TokenCardSkeleton />
                   <TokenCardSkeleton />
                   <TokenCardSkeleton />
+                </div>
+              ) : userTokens.length === 0 ? (
+                <div className="text-center py-8">
+                  <Coins className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground mb-4">No tokens found in your wallet</p>
+                  <Link href="/create">
+                    <Button className="bg-red-500 hover:bg-red-600 text-white">
+                      <Plus className="w-4 h-4 mr-2" />
+                      Create Your First Token
+                    </Button>
+                  </Link>
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -454,7 +528,20 @@ export default function SolanaDashboard() {
                     >
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center space-x-3">
-                          <div className="w-10 h-10 rounded-full bg-red-500 flex items-center justify-center text-white font-bold">
+                          {token.image ? (
+                            <img 
+                              src={token.image} 
+                              alt={token.symbol}
+                              className="w-10 h-10 rounded-full"
+                              onError={(e) => {
+                                // Fallback to symbol if image fails
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                                target.nextElementSibling?.classList.remove('hidden');
+                              }}
+                            />
+                          ) : null}
+                          <div className={`w-10 h-10 rounded-full bg-red-500 flex items-center justify-center text-white font-bold ${token.image ? 'hidden' : ''}`}>
                             {token.symbol.slice(0, 2)}
                           </div>
                           <div>
@@ -462,15 +549,26 @@ export default function SolanaDashboard() {
                             <p className="text-muted-foreground text-sm">{token.symbol}</p>
                           </div>
                         </div>
+                        {token.verified && (
+                          <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs">
+                            Verified
+                          </Badge>
+                        )}
                       </div>
                       <div className="flex justify-between items-center">
                         <div>
-                          <p className="text-foreground font-semibold">{token.balance}</p>
-                          <p className="text-muted-foreground text-sm">{token.value}</p>
+                          <p className="text-foreground font-semibold">{token.uiBalance.toLocaleString()}</p>
+                          <p className="text-muted-foreground text-sm">{token.value || 'N/A'}</p>
                         </div>
-                        <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
-                          {token.change}
-                        </Badge>
+                        {token.change && (
+                          <Badge className={`${
+                            token.change.startsWith('+') 
+                              ? 'bg-green-500/20 text-green-400 border-green-500/30'
+                              : 'bg-red-500/20 text-red-400 border-red-500/30'
+                          }`}>
+                            {token.change}
+                          </Badge>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -509,8 +607,20 @@ export default function SolanaDashboard() {
               </div>
 
               <TabsContent value="overview" className="space-y-6">
-                {isLoadingTokens || isLoadingStats ? (
+                {isLoading ? (
                   <TokenOverviewSkeleton />
+                ) : userTokens.length === 0 ? (
+                  <div className="glass-card p-6 text-center">
+                    <Coins className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-xl font-semibold text-foreground mb-2">No Tokens Found</h3>
+                    <p className="text-muted-foreground mb-6">Connect your wallet and create your first token to get started.</p>
+                    <Link href="/create">
+                      <Button className="bg-red-500 hover:bg-red-600 text-white">
+                        <Plus className="w-4 h-4 mr-2" />
+                        Create Your First Token
+                      </Button>
+                    </Link>
+                  </div>
                 ) : (
                   <div className="glass-card p-6">
                     <div className="flex justify-between items-start mb-6">
@@ -519,10 +629,20 @@ export default function SolanaDashboard() {
                         <p className="text-muted-foreground">{userTokens[selectedToken].symbol}</p>
                       </div>
                       <div className="flex space-x-2">
-                        <Button variant="outline" size="sm" className="border-border text-muted-foreground">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="border-border text-muted-foreground"
+                          onClick={() => navigator.clipboard.writeText(userTokens[selectedToken].mint)}
+                        >
                           <Copy className="w-4 h-4" />
                         </Button>
-                        <Button variant="outline" size="sm" className="border-border text-muted-foreground">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="border-border text-muted-foreground"
+                          onClick={() => window.open(`https://explorer.solana.com/address/${userTokens[selectedToken].mint}`, '_blank')}
+                        >
                           <ExternalLink className="w-4 h-4" />
                         </Button>
                       </div>
@@ -531,31 +651,38 @@ export default function SolanaDashboard() {
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       <div className="bg-muted/50 rounded-lg p-4 text-center">
                         <p className="text-muted-foreground text-sm">Balance</p>
-                        <p className="text-foreground font-bold">{userTokens[selectedToken].balance}</p>
+                        <p className="text-foreground font-bold">{userTokens[selectedToken].uiBalance.toLocaleString()}</p>
                       </div>
                       <div className="bg-muted/50 rounded-lg p-4 text-center">
                         <p className="text-muted-foreground text-sm">Value</p>
-                        <p className="text-foreground font-bold">{userTokens[selectedToken].value}</p>
+                        <p className="text-foreground font-bold">{userTokens[selectedToken].value || 'N/A'}</p>
                       </div>
                       <div className="bg-muted/50 rounded-lg p-4 text-center">
-                        <p className="text-muted-foreground text-sm">Holders</p>
-                        <p className="text-foreground font-bold">{userTokens[selectedToken].holders}</p>
+                        <p className="text-muted-foreground text-sm">Decimals</p>
+                        <p className="text-foreground font-bold">{userTokens[selectedToken].decimals}</p>
                       </div>
                       <div className="bg-muted/50 rounded-lg p-4 text-center">
-                        <p className="text-muted-foreground text-sm">Supply</p>
-                        <p className="text-foreground font-bold">{userTokens[selectedToken].totalSupply}</p>
+                        <p className="text-muted-foreground text-sm">Mint Address</p>
+                        <p className="text-foreground font-bold text-xs">{userTokens[selectedToken].mint.slice(0, 8)}...</p>
                       </div>
                     </div>
+                    
+                    {userTokens[selectedToken].description && (
+                      <div className="mt-6 p-4 bg-muted/30 rounded-lg">
+                        <h4 className="text-sm font-semibold text-foreground mb-2">Description</h4>
+                        <p className="text-muted-foreground text-sm">{userTokens[selectedToken].description}</p>
+                      </div>
+                    )}
                   </div>
                 )}
 
-                {isLoadingChart ? (
+                {isLoading || userTokens.length === 0 ? (
                   <div className="glass-card p-6">
                     <ChartSkeleton />
                   </div>
                 ) : (
                   <div className="glass-card p-6">
-                    <h4 className="text-lg font-semibold text-foreground mb-4">Price Chart</h4>
+                    <h4 className="text-lg font-semibold text-foreground mb-4">Transaction Activity</h4>
                     <div className="h-64">
                       <ResponsiveContainer width="100%" height="100%">
                         <LineChart data={chartData}>
@@ -589,14 +716,14 @@ export default function SolanaDashboard() {
                                             style={{ backgroundColor: entry.color }}
                                           />
                                           <span className="text-foreground text-sm">
-                                            Value: <span className="font-bold">{entry.value}</span>
+                                            Transactions: <span className="font-bold">{entry.value}</span>
                                           </span>
                                         </div>
                                       ))}
                                     </div>
                                     <div className="mt-2 pt-2 border-t border-border">
                                       <p className="text-xs text-muted-foreground">
-                                        Token: {userTokens[selectedToken]?.symbol}
+                                        Recent activity for your wallet
                                       </p>
                                     </div>
                                   </div>
@@ -624,14 +751,14 @@ export default function SolanaDashboard() {
               </TabsContent>
 
               <TabsContent value="analytics" className="space-y-6">
-                {isLoadingChart ? (
+                {isLoading || userTokens.length === 0 ? (
                   <div className="glass-card p-6">
                     <ChartSkeleton />
                   </div>
                 ) : (
                   <div className="glass-card p-6">
                     <div className="flex items-center justify-between mb-4">
-                      <h4 className="text-lg font-semibold text-foreground">Holder Distribution</h4>
+                      <h4 className="text-lg font-semibold text-foreground">Transaction Distribution</h4>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="outline" size="sm" className="gap-2">
@@ -685,14 +812,14 @@ export default function SolanaDashboard() {
                                             style={{ backgroundColor: entry.color }}
                                           />
                                           <span className="text-foreground text-sm">
-                                            Holders: <span className="font-bold">{entry.value}</span>
+                                            Transactions: <span className="font-bold">{entry.value}</span>
                                           </span>
                                         </div>
                                       ))}
                                     </div>
                                     <div className="mt-2 pt-2 border-t border-border">
                                       <p className="text-xs text-muted-foreground">
-                                        Token: {userTokens[selectedToken]?.symbol}
+                                        Your wallet activity
                                       </p>
                                     </div>
                                   </div>
@@ -717,7 +844,7 @@ export default function SolanaDashboard() {
               </TabsContent>
 
               <TabsContent value="transactions" className="space-y-6">
-                {isLoadingTransactions ? (
+                {isLoading ? (
                   <div className="glass-card p-6">
                     <h4 className="text-lg font-semibold text-foreground mb-4">Recent Transactions</h4>
                     <div className="space-y-4">
@@ -754,34 +881,69 @@ export default function SolanaDashboard() {
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
-                    <div className="space-y-4">
-                      {transactionData.map((tx, index) => (
-                        <div key={index} className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
-                          <div className="flex items-center space-x-3">
-                            <div className="w-8 h-8 rounded-full bg-red-500/20 flex items-center justify-center">
-                              <Send className="w-4 h-4 text-red-400" />
+                    {transactionData.length === 0 ? (
+                      <div className="text-center py-8">
+                        <Calendar className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                        <p className="text-muted-foreground">No recent transactions found</p>
+                        <p className="text-sm text-muted-foreground mt-2">Transactions will appear here as you use your wallet</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {transactionData.map((tx, index) => {
+                          const displayTx = formatTransactionForDisplay(tx);
+                          return (
+                            <div key={index} className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+                              <div className="flex items-center space-x-3">
+                                <div className="w-8 h-8 rounded-full bg-red-500/20 flex items-center justify-center">
+                                  <Send className="w-4 h-4 text-red-400" />
+                                </div>
+                                <div>
+                                  <p className="text-foreground font-medium">{displayTx.type}</p>
+                                  <p className="text-muted-foreground text-sm">{displayTx.amount} to {displayTx.to}</p>
+                                  <button
+                                    onClick={() => window.open(`https://explorer.solana.com/tx/${tx.signature}`, '_blank')}
+                                    className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+                                  >
+                                    View on Explorer
+                                  </button>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-muted-foreground text-sm">{displayTx.time}</p>
+                                <Badge className={`${
+                                  displayTx.status === 'Completed' 
+                                    ? 'bg-green-500/20 text-green-400 border-green-500/30'
+                                    : displayTx.status === 'Failed'
+                                    ? 'bg-red-500/20 text-red-400 border-red-500/30'
+                                    : 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
+                                }`}>
+                                  {displayTx.status}
+                                </Badge>
+                              </div>
                             </div>
-                            <div>
-                              <p className="text-foreground font-medium">{tx.type}</p>
-                              <p className="text-muted-foreground text-sm">{tx.amount} to {tx.to}</p>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-muted-foreground text-sm">{tx.time}</p>
-                            <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
-                              {tx.status}
-                            </Badge>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 )}
               </TabsContent>
 
               <TabsContent value="manage" className="space-y-6">
-                {isLoadingTokens ? (
+                {isLoading ? (
                   <ManagementActionsSkeleton />
+                ) : userTokens.length === 0 ? (
+                  <div className="glass-card p-6 text-center">
+                    <Settings className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-xl font-semibold text-foreground mb-2">No Tokens to Manage</h3>
+                    <p className="text-muted-foreground mb-6">Create a token first to access management features.</p>
+                    <Link href="/create">
+                      <Button className="bg-red-500 hover:bg-red-600 text-white">
+                        <Plus className="w-4 h-4 mr-2" />
+                        Create Token
+                      </Button>
+                    </Link>
+                  </div>
                 ) : (
                   <>
                     {/* Token Transfer */}
@@ -846,6 +1008,14 @@ export default function SolanaDashboard() {
                         >
                           <Download className="w-4 h-4" />
                           Export All Data
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          onClick={() => window.open(`https://explorer.solana.com/address/${userTokens[selectedToken].mint}`, '_blank')}
+                          className="border-border text-muted-foreground hover:bg-muted h-12 gap-2"
+                        >
+                          <ExternalLink className="w-4 h-4" />
+                          View on Explorer
                         </Button>
                       </div>
                     </div>
