@@ -8,7 +8,6 @@ import {
   PhantomWalletAdapter,
   SolflareWalletAdapter,
 } from '@solana/wallet-adapter-wallets';
-import { BackpackWalletAdapter } from '@solana/wallet-adapter-backpack';
 import { clusterApiUrl } from '@solana/web3.js';
 import { NETWORK_ENDPOINT } from '@/lib/solana';
 import { AlgorandWalletProvider } from './AlgorandWalletProvider';
@@ -27,7 +26,6 @@ export default function WalletContextProvider({ children }: WalletContextProvide
     () => [
       new PhantomWalletAdapter(),
       new SolflareWalletAdapter(),
-      new BackpackWalletAdapter(),
     ],
     []
   );
