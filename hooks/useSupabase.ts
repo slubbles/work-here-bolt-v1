@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase, supabaseHelpers, authHelpers, UserProfile } from '@/lib/supabase';
 
@@ -21,6 +22,13 @@ export function useSupabaseAuth() {
           const profileResult = await supabaseHelpers.getUserProfile(session.user.id);
           if (profileResult.success) {
             setUserProfile(profileResult.data);
+          } else {
+            // Create profile if it doesn't exist
+            await supabaseHelpers.createUserProfile(session.user.id, session.user.email);
+            const newProfileResult = await supabaseHelpers.getUserProfile(session.user.id);
+            if (newProfileResult.success) {
+              setUserProfile(newProfileResult.data);
+            }
           }
         }
       } catch (err) {
@@ -43,6 +51,13 @@ export function useSupabaseAuth() {
         const profileResult = await supabaseHelpers.getUserProfile(session.user.id);
         if (profileResult.success) {
           setUserProfile(profileResult.data);
+        } else {
+          // Create profile if it doesn't exist
+          await supabaseHelpers.createUserProfile(session.user.id, session.user.email);
+          const newProfileResult = await supabaseHelpers.getUserProfile(session.user.id);
+          if (newProfileResult.success) {
+            setUserProfile(newProfileResult.data);
+          }
         }
       } else {
         setUserProfile(null);

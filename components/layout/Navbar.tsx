@@ -10,6 +10,7 @@ import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { useAlgorandWallet } from '@/components/providers/AlgorandWalletProvider';
 import { useToast } from '@/hooks/use-toast';
 import { ADMIN_WALLET } from '@/lib/solana';
+import UserMenu from '@/components/auth/UserMenu';
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -216,6 +217,9 @@ export default function Navbar() {
             >
               {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
             </Button>
+            
+            {/* User Authentication */}
+            <UserMenu />
             
             {/* Enhanced Multi-Wallet Connection */}
             <div className="relative">
@@ -555,6 +559,11 @@ export default function Navbar() {
                 >
                   {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
                 </Button>
+              </div>
+              
+              {/* User Authentication */}
+              <div className="border-t border-border pt-4">
+                <UserMenu />
               </div>
               
               {/* Enhanced Mobile Wallet Connections */}
