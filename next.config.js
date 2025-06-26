@@ -51,6 +51,9 @@ const nextConfig = {
       resolve: {
         fullySpecified: false,
       },
+      parser: {
+        importMeta: true,
+      },
     });
 
     // Don't externalize wallet adapter modules on client side
@@ -90,16 +93,6 @@ const nextConfig = {
       })
     );
 
-    // Handle import.meta for wallet adapters
-    config.plugins.push(
-      new webpack.DefinePlugin({
-        'import.meta': {
-          env: JSON.stringify(process.env),
-          webpackHot: 'undefined',
-        },
-      })
-    );
-    
     // Optimize for better performance
     config.optimization = {
       ...config.optimization,
