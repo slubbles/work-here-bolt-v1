@@ -80,8 +80,8 @@ const nextConfig = {
       os: false,
       path: false,
       timers: false,
-      // Additional fallbacks for Algorand SDK
       url: require.resolve('url'),
+      // Additional fallbacks for Algorand SDK
       querystring: require.resolve('querystring-es3'),
     };
 

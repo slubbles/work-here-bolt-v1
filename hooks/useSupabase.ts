@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { User } from '@supabase/supabase-js';
 import { supabase, supabaseHelpers, authHelpers, UserProfile } from '@/lib/supabase';
 
 // Custom hook for Supabase authentication
