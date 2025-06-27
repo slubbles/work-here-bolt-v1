@@ -18,7 +18,10 @@ import {
   CheckCircle, 
   AlertTriangle, 
   Upload,
-  X
+  X,
+  Coins,
+  Settings,
+  Wallet
 } from 'lucide-react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useAlgorandWallet } from '@/components/providers/AlgorandWalletProvider';
