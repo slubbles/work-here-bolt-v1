@@ -235,16 +235,17 @@ Visit: https://snarbles.xyz for more information
         return generateDetailedReport(); // Fallback to text report
       }
 
-      // Use require instead of dynamic import for better compatibility
-      const jsPDF = require('jspdf').default;
+      // Dynamic import with proper error handling
+      const { jsPDF } = await import('jspdf');
       
       const doc = new jsPDF();
       const pageWidth = doc.internal.pageSize.width;
+      const pageHeight = doc.internal.pageSize.height;
       const margin = 20;
       let yPosition = margin;
 
       // Helper function to add text with word wrapping
-      const addText = (text: string, fontSize = 12, isBold = false) => {
+      const addText = (text: string, fontSize = 12, isBold = false, align = 'left') => {
         doc.setFontSize(fontSize);
         if (isBold) {
           doc.setFont('helvetica', 'bold');
@@ -253,11 +254,17 @@ Visit: https://snarbles.xyz for more information
         }
         
         const lines = doc.splitTextToSize(text, pageWidth - 2 * margin);
-        doc.text(lines, margin, yPosition);
+        
+        if (align === 'center') {
+          doc.text(lines, pageWidth / 2, yPosition, { align: 'center' });
+        } else {
+          doc.text(lines, margin, yPosition);
+        }
+        
         yPosition += lines.length * (fontSize * 0.5) + 5;
         
         // Add new page if needed
-        if (yPosition > doc.internal.pageSize.height - margin) {
+        if (yPosition > pageHeight - margin) {
           doc.addPage();
           yPosition = margin;
         }
@@ -408,6 +415,9 @@ Visit: https://snarbles.xyz for more information
 
       // Save the PDF
       doc.save(`tokenomics-report-${new Date().toISOString().split('T')[0]}.pdf`);
+      
+      // Show success message
+      alert('PDF report generated successfully!');
     } catch (error) {
       console.error('Error generating PDF:', error);
       // Fallback to text report
@@ -771,33 +781,6 @@ Visit: https://snarbles.xyz for more information
           </div>
         </div>
 
-        {/* Apply CTA */}
-        <div className="text-center mt-16">
-          <div className="glass-card p-8 max-w-2xl mx-auto">
-            <h3 className="text-2xl font-bold text-foreground mb-4">Ready to Apply This Tokenomics?</h3>
-            <p className="text-muted-foreground mb-6">
-              Save this configuration and use it when creating your token.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button 
-                size="lg" 
-                onClick={applyTokenomics}
-                className="bg-red-500 hover:bg-red-600 text-white px-8 py-4"
-              >
-                Apply to Token Creation
-              </Button>
-              <Link href="/create">
-                <Button 
-                  size="lg" 
-                  variant="outline"
-                  className="border-border text-foreground hover:bg-muted px-8 py-4"
-                >
-                  Create Token Manually
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );

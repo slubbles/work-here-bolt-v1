@@ -60,6 +60,13 @@ export default function SolanaDashboard() {
   
   // Solana wallet integration
   const { connected, publicKey } = useWallet();
+  
+  // Add mounted state for hydration
+  const [mounted, setMounted] = useState(false);
+  
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Fetch real data when wallet connects
   useEffect(() => {
@@ -93,69 +100,56 @@ export default function SolanaDashboard() {
       setTransactionData([]);
       setWalletSummary(null);
       
-      // Add timeout to prevent hanging
-      const timeout = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Request timeout - Please try again')), 15000)
-      );
-      
-      // Fetch data with staggered loading for better UX
-      try {
-        // First, get basic wallet summary quickly
-        const summaryResult = await Promise.race([
-          getWalletSummary(walletAddress),
-          timeout
-        ]);
-        
-        if (summaryResult.success && summaryResult.data) {
-          setWalletSummary(summaryResult.data);
-          console.log('✅ Wallet summary loaded');
-        }
-      } catch (summaryError) {
-        console.warn('⚠️ Summary fetch failed, continuing with other data...');
-      }
-      
-      // Fetch all data in parallel
-      const [tokensResult, transactionsResult] = await Promise.race([
-        Promise.all([
-          getEnhancedTokenInfo(walletAddress),
-          getWalletTransactionHistory(walletAddress, 10) // Reduced for faster loading
-        ]),
-        timeout
-      ]) as any;
+      // Simplified data fetching with better error handling
+      const [tokensResult, transactionsResult, summaryResult] = await Promise.allSettled([
+        getEnhancedTokenInfo(walletAddress),
+        getWalletTransactionHistory(walletAddress, 10),
+        getWalletSummary(walletAddress)
+      ]);
       
       // Handle tokens data
-      if (tokensResult.success && tokensResult.data) {
-        setUserTokens(tokensResult.data);
-        console.log(`✅ Loaded ${tokensResult.data.length} tokens`);
+      if (tokensResult.status === 'fulfilled' && tokensResult.value.success && tokensResult.value.data) {
+        setUserTokens(tokensResult.value.data);
+        console.log(`✅ Loaded ${tokensResult.value.data.length} tokens`);
       } else {
-        console.warn('⚠️ Failed to load tokens:', tokensResult.error);
+        console.warn('⚠️ Failed to load tokens');
         setUserTokens([]);
       }
       
       // Handle transactions data
-      if (transactionsResult.success && transactionsResult.data) {
-        setTransactionData(transactionsResult.data);
-        console.log(`✅ Loaded ${transactionsResult.data.length} transactions`);
+      if (transactionsResult.status === 'fulfilled' && transactionsResult.value.success && transactionsResult.value.data) {
+        setTransactionData(transactionsResult.value.data);
+        console.log(`✅ Loaded ${transactionsResult.value.data.length} transactions`);
       } else {
-        console.warn('⚠️ Failed to load transactions:', transactionsResult.error);
+        console.warn('⚠️ Failed to load transactions');
         setTransactionData([]);
+      }
+      
+      // Handle summary data
+      if (summaryResult.status === 'fulfilled' && summaryResult.value.success && summaryResult.value.data) {
+        setWalletSummary(summaryResult.value.data);
+        console.log('✅ Wallet summary loaded');
+      } else {
+        console.warn('⚠️ Failed to load wallet summary');
+        setWalletSummary({
+          totalTokens: 0,
+          totalValue: 0,
+          solBalance: 0,
+          recentTransactions: 0
+        });
       }
       
     } catch (err) {
       console.error('❌ Error fetching dashboard data:', err);
-      let errorMessage = 'Failed to load dashboard data';
-      if (err instanceof Error) {
-        if (err.message.includes('timeout')) {
-          errorMessage = 'Request timed out. Please check your connection and try again.';
-        } else if (err.message.includes('network')) {
-          errorMessage = 'Network error. Please check your connection.';
-        } else if (err.message.includes('rate limit')) {
-          errorMessage = 'Too many requests. Please wait a moment and try again.';
-        } else {
-          errorMessage = err.message;
-        }
-      }
-      setError(errorMessage);
+      setError('Failed to load some dashboard data. Some features may be limited.');
+      
+      // Set default values even on error
+      setWalletSummary({
+        totalTokens: 0,
+        totalValue: 0,
+        solBalance: 0,
+        recentTransactions: 0
+      });
     } finally {
       setIsLoading(false);
     }
@@ -235,8 +229,8 @@ export default function SolanaDashboard() {
     alert(`${type} data exported successfully`);
   };
 
-  // Show loading state
-  if (isLoading) {
+  // Don't render until mounted
+  if (!mounted) {
     return (
       <div className="min-h-screen app-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -289,6 +283,20 @@ export default function SolanaDashboard() {
             </div>
             </CardContent>
           </Card>
+        </div>
+      </div>
+    );
+  }
+  
+  // Show loading state after wallet is connected
+  if (isLoading) {
+    return (
+      <div className="min-h-screen app-background">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500 mx-auto"></div>
+            <p className="mt-4 text-muted-foreground">Loading your tokens and transaction data...</p>
+          </div>
         </div>
       </div>
     );
