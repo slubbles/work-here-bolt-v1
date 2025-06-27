@@ -10,11 +10,20 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { 
   Loader2, 
   Rocket, 
-  Plus, 
-  Flame, 
-  Pause, 
+  Plus,
+  Flame,
+  Pause,
   CheckCircle, 
   AlertTriangle, 
   Upload,
@@ -55,6 +64,12 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState('');
+  
+  // Dialog states
+  const [showResultDialog, setShowResultDialog] = useState(false);
+  const [dialogTitle, setDialogTitle] = useState('');
+  const [dialogMessage, setDialogMessage] = useState('');
+  const [dialogType, setDialogType] = useState<'success' | 'error'>('success');
 
   // Wallet connections
   const { connected: solanaConnected, publicKey: solanaPublicKey, wallet: solanaWallet } = useWallet();
@@ -64,6 +79,14 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
     signTransaction: algorandSignTransaction,
     selectedNetwork: algorandNetwork 
   } = useAlgorandWallet();
+
+  // Show result dialog helper
+  const showDialog = (title: string, message: string, type: 'success' | 'error') => {
+    setDialogTitle(title);
+    setDialogMessage(message);
+    setDialogType(type);
+    setShowResultDialog(true);
+  };
 
   // Form validation
   const validateForm = (): boolean => {
@@ -106,6 +129,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
   
   // URL validation helper
   const isValidUrl = (string: string): boolean => {
+    if (!string) return true; // Empty URLs are valid (optional)
     try {
       new URL(string);
       return true;
@@ -116,18 +140,18 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
 
   // Check wallet connection based on selected network
   const isWalletConnected = () => {
-    if (tokenData.network.startsWith('algorand')) {
+    if (tokenData.network === 'algorand') {
       return algorandConnected && algorandAddress;
-    } else if (tokenData.network.startsWith('solana')) {
+    } else if (tokenData.network === 'solana') {
       return solanaConnected && solanaPublicKey;
     }
     return false;
   };
 
   const getConnectedAddress = () => {
-    if (tokenData.network.startsWith('algorand')) {
+    if (tokenData.network === 'algorand') {
       return algorandAddress;
-    } else if (tokenData.network.startsWith('solana')) {
+    } else if (tokenData.network === 'solana') {
       return solanaPublicKey?.toString();
     }
     return null;
@@ -141,11 +165,13 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
     // Validate file type and size
     if (!file.type.startsWith('image/')) {
       setError('Please upload an image file (PNG, JPG, GIF, etc.)');
+      setTimeout(() => setError(''), 5000);
       return;
     }
 
     if (file.size > 5 * 1024 * 1024) { // 5MB limit
       setError('Please upload an image smaller than 5MB');
+      setTimeout(() => setError(''), 5000);
       return;
     }
 
@@ -198,6 +224,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
     } catch (error) {
       console.error('Upload error:', error);
       setError('Failed to upload logo. Please try again.');
+      setTimeout(() => setError(''), 5000);
     } finally {
       setIsUploading(false);
     }
@@ -210,12 +237,14 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
     // Validate form first
     if (!validateForm()) {
       setError('Please fix the form errors before proceeding');
+      setTimeout(() => setError(''), 5000);
       return;
     }
 
     // Check wallet connection
     if (!isWalletConnected()) {
-      setError(`Please connect your ${tokenData.network.includes('algorand') ? 'Algorand' : 'Solana'} wallet first`);
+      setError(`Please connect your ${tokenData.network === 'algorand' ? 'Algorand' : 'Solana'} wallet first`);
+      setTimeout(() => setError(''), 5000);
       return;
     }
 
@@ -227,7 +256,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
     try {
       let result;
 
-      if (tokenData.network.startsWith('algorand')) {
+      if (tokenData.network === 'algorand') {
         // Algorand token creation
         setDeploymentStep('Creating Algorand Standard Asset...');
         
@@ -256,7 +285,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
           algorandNetwork
         );
 
-      } else if (tokenData.network.startsWith('solana')) {
+      } else if (tokenData.network === 'solana') {
         // Solana token creation
         setDeploymentStep('Creating Solana token...');
         
@@ -287,12 +316,12 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
         setDeploymentStep('Token created successfully!');
         setDeploymentResult(result);
         
-        // Show success message
-        setTimeout(() => {
-          alert(`🎉 Token "${tokenData.name}" created successfully!\n\n${
-            result.assetId ? `Asset ID: ${result.assetId}` : `Mint Address: ${result.mintAddress}`
-          }\n\nTransaction: ${result.transactionId}`);
-        }, 1000);
+        // Show success dialog
+        const successMessage = `Token "${tokenData.name}" has been successfully created and deployed to the blockchain!\n\n${
+          result.assetId ? `Asset ID: ${result.assetId}` : `Mint Address: ${result.mintAddress || result.tokenAddress}`
+        }\n\nTransaction ID: ${result.transactionId}`;
+        
+        showDialog('🎉 Token Created Successfully!', successMessage, 'success');
 
         console.log('✅ Token creation completed:', result);
 
@@ -307,19 +336,8 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
       setDeploymentStep(`Failed: ${errorMessage}`);
       setError(errorMessage);
       
-      // Enhanced error messages
-      let userFriendlyMessage = errorMessage;
-      if (errorMessage.includes('insufficient')) {
-        userFriendlyMessage = 'Insufficient balance for transaction fees. Please add funds to your wallet.';
-      } else if (errorMessage.includes('rejected')) {
-        userFriendlyMessage = 'Transaction was rejected by user.';
-      } else if (errorMessage.includes('network')) {
-        userFriendlyMessage = 'Network error. Please check your connection and try again.';
-      }
-      
-      setTimeout(() => {
-        alert(`❌ Token creation failed: ${userFriendlyMessage}`);
-      }, 500);
+      // Show error dialog
+      showDialog('❌ Token Creation Failed', errorMessage, 'error');
     } finally {
       setIsDeploying(false);
     }
@@ -327,29 +345,36 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
 
   // Get network display info
   const getNetworkInfo = () => {
-    const networks = {
-      'algorand-testnet': { 
-        name: 'Algorand TestNet', 
-        color: 'bg-[#76f935]/20 text-[#76f935] border-[#76f935]/30',
-        cost: '~$0.001'
-      },
-      'algorand-mainnet': { 
-        name: 'Algorand MainNet', 
-        color: 'bg-[#00d4aa]/20 text-[#00d4aa] border-[#00d4aa]/30',
-        cost: '~$0.002'
-      },
-      'solana-devnet': { 
+    if (tokenData.network === 'algorand') {
+      // Use the network selected in the Algorand wallet provider
+      return algorandNetwork === 'algorand-mainnet' 
+        ? { 
+            name: 'Algorand MainNet', 
+            color: 'bg-[#00d4aa]/20 text-[#00d4aa] border-[#00d4aa]/30',
+            cost: '~$0.002'
+          }
+        : { 
+            name: 'Algorand TestNet', 
+            color: 'bg-[#76f935]/20 text-[#76f935] border-[#76f935]/30',
+            cost: '~$0.001'
+          };
+    } else if (tokenData.network === 'solana') {
+      return { 
         name: 'Solana Devnet', 
         color: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
         cost: 'Free'
-      },
-      'solana-mainnet': { 
-        name: 'Solana Mainnet', 
-        color: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
-        cost: '~$2-5'
+      };
+    }
+    
+    // Fallback
+    const networks = {
+      'solana': { 
+        name: 'Solana Devnet', 
+        color: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+        cost: 'Free'
       }
     };
-    return networks[tokenData.network as keyof typeof networks] || networks['solana-devnet'];
+    return networks[tokenData.network as keyof typeof networks] || networks['solana'];
   };
 
   const networkInfo = getNetworkInfo();
@@ -399,10 +424,10 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div 
-              className={`network-card flex flex-col justify-center items-center p-6 transition-all duration-300 ${
-                tokenData.network.startsWith('algorand') ? 'active algorand-card shadow-lg transform -translate-y-1' : ''
+              className={`network-card flex flex-col justify-center items-center p-6 transition-all duration-300 cursor-pointer ${
+                tokenData.network === 'algorand' ? 'active algorand-card shadow-lg transform -translate-y-1' : ''
               } cursor-pointer`}
-              onClick={() => setTokenData({ ...tokenData, network: 'algorand-testnet' })}
+              onClick={() => setTokenData({ ...tokenData, network: 'algorand' })}
             >
               <div className="w-12 h-12 bg-[#76f935]/20 rounded-full flex items-center justify-center mb-3 shadow-md">
                 <span className="text-xl font-bold text-[#76f935]">A</span>
@@ -413,10 +438,10 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
             </div>
             
             <div 
-              className={`network-card flex flex-col justify-center items-center p-6 transition-all duration-300 ${
-                tokenData.network.startsWith('solana') ? 'active shadow-lg transform -translate-y-1' : ''
+              className={`network-card flex flex-col justify-center items-center p-6 transition-all duration-300 cursor-pointer ${
+                tokenData.network === 'solana' ? 'active shadow-lg transform -translate-y-1' : ''
               } cursor-pointer`}
-              onClick={() => setTokenData({ ...tokenData, network: 'solana-devnet' })}
+              onClick={() => setTokenData({ ...tokenData, network: 'solana' })}
             >
               <div className="w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center mb-3 shadow-md">
                 <span className="text-xl font-bold text-blue-500">S</span>
@@ -438,7 +463,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
               </Badge>
             </div>
             
-            {tokenData.network.includes('testnet') && (
+            {algorandNetwork === 'algorand-testnet' && tokenData.network === 'algorand' && (
               <div className="mt-3 flex items-start gap-2 text-sm text-amber-500">
                 <Info className="w-4 h-4 mt-0.5 flex-shrink-0" />
                 <p>Using testnet for development. Tokens are not tradable on mainnet.</p>
@@ -719,63 +744,57 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div 
-              className={`feature-card ${tokenData.mintable ? 'active transform scale-105' : ''} transition-all duration-300`}
-              onClick={() => setTokenData({ ...tokenData, mintable: !tokenData.mintable })}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <Plus className="w-5 h-5 text-green-500" />
-                  <div className="flex-1">
-                    <p className="font-medium text-foreground">Mintable Token</p>
-                    <p className="text-sm text-muted-foreground">Allows you to create additional tokens later</p>
+            {/* Mintable Feature */}
+            <div className="feature-card p-6 border rounded-xl cursor-pointer transition-all duration-300 hover:shadow-lg">
+              <div className="text-center space-y-4">
+                <div 
+                  className="feature-toggle-button mx-auto"
+                  onClick={() => setTokenData({ ...tokenData, mintable: !tokenData.mintable })}
+                >
+                  <div className={`feature-toggle-button-inner ${tokenData.mintable ? 'active' : ''}`}>
+                    <Plus className="w-4 h-4" />
                   </div>
                 </div>
-                <Switch
-                  checked={tokenData.mintable}
-                  onCheckedChange={(checked) => setTokenData({ ...tokenData, mintable: checked })}
-                  className="touch-target-switch"
-                />
+                <div>
+                  <h3 className="font-bold text-foreground">Mintable Token</h3>
+                  <p className="text-sm text-muted-foreground mt-1">Allows you to create additional tokens later</p>
+                </div>
               </div>
             </div>
 
-            <div 
-              className={`feature-card ${tokenData.burnable ? 'active transform scale-105' : ''} transition-all duration-300`}
-              onClick={() => setTokenData({ ...tokenData, burnable: !tokenData.burnable })}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <Flame className="w-5 h-5 text-red-500" />
-                  <div className="flex-1">
-                    <p className="font-medium text-foreground">Burnable Token</p>
-                    <p className="text-sm text-muted-foreground">Allows permanent destruction of tokens</p>
+            {/* Burnable Feature */}
+            <div className="feature-card p-6 border rounded-xl cursor-pointer transition-all duration-300 hover:shadow-lg">
+              <div className="text-center space-y-4">
+                <div 
+                  className="feature-toggle-button mx-auto"
+                  onClick={() => setTokenData({ ...tokenData, burnable: !tokenData.burnable })}
+                >
+                  <div className={`feature-toggle-button-inner ${tokenData.burnable ? 'active' : ''}`}>
+                    <Flame className="w-4 h-4" />
                   </div>
                 </div>
-                <Switch
-                  checked={tokenData.burnable}
-                  onCheckedChange={(checked) => setTokenData({ ...tokenData, burnable: checked })}
-                  className="touch-target-switch"
-                />
+                <div>
+                  <h3 className="font-bold text-foreground">Burnable Token</h3>
+                  <p className="text-sm text-muted-foreground mt-1">Allows permanent destruction of tokens</p>
+                </div>
               </div>
             </div>
 
-            <div 
-              className={`feature-card ${tokenData.pausable ? 'active transform scale-105' : ''} transition-all duration-300`}
-              onClick={() => setTokenData({ ...tokenData, pausable: !tokenData.pausable })}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <Pause className="w-5 h-5 text-yellow-500" />
-                  <div className="flex-1">
-                    <p className="font-medium text-foreground">Pausable Token</p>
-                    <p className="text-sm text-muted-foreground">Ability to freeze all transfers in emergencies</p>
+            {/* Pausable Feature */}
+            <div className="feature-card p-6 border rounded-xl cursor-pointer transition-all duration-300 hover:shadow-lg">
+              <div className="text-center space-y-4">
+                <div 
+                  className="feature-toggle-button mx-auto"
+                  onClick={() => setTokenData({ ...tokenData, pausable: !tokenData.pausable })}
+                >
+                  <div className={`feature-toggle-button-inner ${tokenData.pausable ? 'active' : ''}`}>
+                    <Pause className="w-4 h-4" />
                   </div>
                 </div>
-                <Switch
-                  checked={tokenData.pausable}
-                  onCheckedChange={(checked) => setTokenData({ ...tokenData, pausable: checked })}
-                  className="touch-target-switch"
-                />
+                <div>
+                  <h3 className="font-bold text-foreground">Pausable Token</h3>
+                  <p className="text-sm text-muted-foreground mt-1">Ability to freeze all transfers in emergencies</p>
+                </div>
               </div>
             </div>
           </div>
@@ -837,7 +856,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
             {!isWalletConnected() && (
               <div className="mt-3 text-sm text-red-600 flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4" />
-                <span>Please connect your wallet in the top navigation bar first</span>
+                <span>Please connect your {tokenData.network === 'algorand' ? 'Algorand' : 'Solana'} wallet in the top navigation bar first</span>
               </div>
             )}
           </div>
@@ -911,7 +930,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
             ) : !isWalletConnected() ? (
               <div className="flex items-center justify-center">
                 <Wallet className="w-5 h-5 mr-3" />
-                Connect Wallet First
+                Connect {tokenData.network === 'algorand' ? 'Algorand' : 'Solana'} Wallet First
               </div>
             ) : validationErrors.length > 0 ? (
               <div className="flex items-center justify-center">
@@ -935,6 +954,31 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
           </div>
         </CardContent>
       </Card>
+      
+      {/* Result Dialog */}
+      <AlertDialog open={showResultDialog} onOpenChange={setShowResultDialog}>
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className={`text-center ${dialogType === 'success' ? 'text-green-600' : 'text-red-600'}`}>
+              {dialogTitle}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-center whitespace-pre-line">
+              {dialogMessage}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex justify-center">
+            <AlertDialogAction 
+              onClick={() => setShowResultDialog(false)}
+              className={`w-full ${dialogType === 'success' 
+                ? 'bg-green-600 hover:bg-green-700' 
+                : 'bg-red-600 hover:bg-red-700'
+              } text-white`}
+            >
+              {dialogType === 'success' ? 'Awesome!' : 'Try Again'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

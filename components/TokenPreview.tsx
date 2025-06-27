@@ -78,17 +78,23 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
   };
 
   const getNetworkInfo = (networkValue: string) => {
-    const networks = {
-      'solana-devnet': {
+    if (networkValue === 'algorand') {
+      // Use the current Algorand network from the provider
+      return {
+        name: 'Algorand Network',
+        color: 'bg-[#76f935]/20 text-[#76f935] border-[#76f935]/30',
+        description: 'Ultra Low Cost - ~$0.001'
+      };
+    } else if (networkValue === 'solana') {
+      return {
         name: 'Solana Devnet',
-        color: 'bg-green-500/20 text-green-400 border-green-500/30',
-        description: 'Testing Environment - Free'
-      },
-      'solana-mainnet': {
-        name: 'Solana Mainnet',
         color: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-        description: 'Production Network - ~$2-5'
-      },
+        description: 'Testing Environment - Free'
+      };
+    }
+    
+    // Legacy fallback
+    const networks = {
       'algorand-testnet': { 
         name: 'Algorand TestNet',
         color: 'bg-[#76f935]/20 text-[#76f935] border-[#76f935]/30',
@@ -105,7 +111,11 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
         description: 'Next-gen Blockchain - Coming Soon'
       }
     };
-    return networks[networkValue as keyof typeof networks] || networks['solana-devnet'];
+    return networks[networkValue as keyof typeof networks] || {
+      name: 'Solana Devnet',
+      color: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+      description: 'Testing Environment - Free'
+    };
   };
 
   const networkInfo = getNetworkInfo(network);
@@ -131,10 +141,10 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
 
   // Enhanced header text based on network
   const getHeaderText = () => {
-    if (network.includes('algorand')) {
-      return `Algorand ${network.includes('testnet') ? 'TestNet' : 'MainNet'} Preview`;
-    } else if (network.includes('solana')) {
-      return `Solana ${network.includes('devnet') ? 'Devnet' : 'Mainnet'} Preview`;
+    if (network === 'algorand') {
+      return 'Algorand Network Preview';
+    } else if (network === 'solana') {
+      return 'Solana Network Preview';
     }
     return 'Live Preview';
   };
@@ -281,7 +291,7 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
               Ready to deploy on {networkInfo.name}
               {network.includes('algorand') && (
                 <span className="ml-1 text-xs opacity-85">
-                  ({network === 'algorand-mainnet' ? 'Mainnet' : 'Testnet'})
+                  (Network Ready)
                 </span>
               )}
             </p>
@@ -306,7 +316,7 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
               </Badge>
               {network.includes('algorand') && (
                 <span className="text-xs text-muted-foreground">
-                  ({network === 'algorand-mainnet' ? 'Production' : 'Testing'})
+                  (Ready for Deployment)
                 </span>
               )}
             </div>
