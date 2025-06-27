@@ -68,6 +68,18 @@ export default function Navbar() {
   // Check if user is admin
   const isAdmin = solanaConnected && solanaPublicKey && solanaPublicKey.toString() === ADMIN_WALLET.toString();
 
+  // Handle navigation with loading state
+  const handleNavigation = (href: string) => {
+    // Show loading indicator for dashboard
+    if (href === '/dashboard') {
+      setIsMenuOpen(false); // Close mobile menu immediately
+      // Add loading class to show immediate feedback
+      document.body.classList.add('dashboard-loading');
+      setTimeout(() => {
+        document.body.classList.remove('dashboard-loading');
+      }, 3000);
+    }
+  };
   const handleAlgorandConnect = async () => {
     try {
       await connectAlgorand();
@@ -153,6 +165,7 @@ export default function Navbar() {
               <Link
                 key={link.name}
                 href={link.href}
+                onClick={() => handleNavigation(link.href)}
                 className={`text-muted-foreground hover:text-foreground transition-all duration-200 font-medium relative group ${
                   pathname === link.href ? 'text-red-500' : ''
                 }`}
@@ -487,6 +500,7 @@ export default function Navbar() {
               <Link
                 key={link.name}
                 href={link.href}
+                onClick={() => handleNavigation(link.href)}
                 className={`block text-muted-foreground hover:text-foreground transition-colors duration-200 py-2 text-lg font-medium ${
                   pathname === link.href ? 'text-red-500' : ''
                 }`}

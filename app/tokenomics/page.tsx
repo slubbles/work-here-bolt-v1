@@ -263,52 +263,148 @@ Visit: https://snarbles.xyz for more information
         }
       };
 
-      // Title
-      addText('TOKENOMICS ANALYSIS REPORT', 20, true);
-      addText(`Generated: ${new Date().toLocaleDateString()}`, 10);
+      // Helper to add horizontal line
+      const addLine = () => {
+        doc.setDrawColor(200, 200, 200);
+        doc.line(margin, yPosition, pageWidth - margin, yPosition);
+        yPosition += 10;
+      };
+
+      // Helper to add section header
+      const addSectionHeader = (title: string) => {
+        yPosition += 10;
+        addLine();
+        addText(title, 16, true);
+        yPosition += 5;
+      };
+      // Professional Header
+      doc.setFillColor(239, 68, 68);
+      doc.rect(0, 0, pageWidth, 40, 'F');
+      
+      doc.setTextColor(255, 255, 255);
+      addText('COMPREHENSIVE TOKENOMICS ANALYSIS', 24, true, 'center');
+      yPosition = 50;
+      
+      doc.setTextColor(0, 0, 0);
+      addText(`Professional Token Distribution Analysis Report`, 14, false, 'center');
+      addText(`Generated: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}`, 10, false, 'center');
       yPosition += 10;
 
-      // Token Parameters
-      addText('TOKEN PARAMETERS', 16, true);
+      // Executive Summary
+      addSectionHeader('EXECUTIVE SUMMARY');
+      addText(`This comprehensive analysis evaluates the proposed tokenomics structure for optimal market performance and community engagement. The distribution model has been designed using industry best practices and strategic allocation methodologies.`);
+      addText(`Health Score: ${calculateHealthScore()}/100 - ${getConclusion()}`);
+      yPosition += 10;
+
+      // Key Metrics
+      addSectionHeader('KEY METRICS & PARAMETERS');
       addText(`Total Supply: ${totalSupply.toLocaleString()} tokens`);
-      addText(`Distribution Health Score: ${calculateHealthScore()}%`);
+      addText(`Distribution Efficiency Score: ${calculateHealthScore()}%`);
+      addText(`Market Readiness: ${calculateHealthScore() >= 80 ? 'EXCELLENT' : calculateHealthScore() >= 60 ? 'GOOD' : 'NEEDS IMPROVEMENT'}`);
+      addText(`Recommended Action: ${calculateHealthScore() >= 80 ? 'Ready for deployment' : 'Review recommendations below'}`);
       yPosition += 10;
 
-      // Distribution Breakdown
-      addText('DISTRIBUTION BREAKDOWN', 16, true);
+      // Detailed Distribution Analysis
+      addSectionHeader('DETAILED DISTRIBUTION ANALYSIS');
       Object.entries(distribution).forEach(([key, data]) => {
         const tokens = (totalSupply * data.value / 100).toLocaleString();
-        addText(`${data.label}: ${data.value}% (${tokens} tokens)`);
+        addText(`${data.label}: ${data.value}% (${tokens} tokens)`, 12, true);
+        
+        // Add specific analysis for each category
+        if (key === 'community') {
+          addText(`  Analysis: ${data.value >= 40 ? 'Excellent community focus promotes decentralization' : 'Consider increasing for better adoption'}`, 10);
+        } else if (key === 'team') {
+          addText(`  Analysis: ${data.value <= 25 ? 'Appropriate team incentive structure' : 'High team allocation may concern investors'}`, 10);
+        } else if (key === 'development') {
+          addText(`  Analysis: ${data.value >= 10 ? 'Adequate funding for sustainable development' : 'Insufficient for long-term growth'}`, 10);
+        }
+        yPosition += 3;
       });
       yPosition += 10;
 
-      // Add Distribution Visualization (simple text-based chart)
-      addText('DISTRIBUTION VISUALIZATION', 16, true);
+      // Visual Distribution Chart (text-based)
+      addSectionHeader('DISTRIBUTION VISUALIZATION');
       Object.entries(distribution).forEach(([key, data]) => {
-        const barLength = Math.floor(data.value / 2); // Scale to fit page
+        const barLength = Math.floor(data.value / 2);
         const bar = '█'.repeat(barLength) + '░'.repeat(50 - barLength);
-        addText(`${data.label.padEnd(15)} ${data.value.toString().padStart(3)}% ${bar}`, 8);
+        addText(`${data.label.padEnd(15)} ${data.value.toString().padStart(3)}% ${bar}`, 9);
       });
       yPosition += 10;
 
-      // Recommendations
-      addText('KEY RECOMMENDATIONS', 16, true);
+      // Strategic Recommendations
+      addSectionHeader('STRATEGIC RECOMMENDATIONS');
+      addText('Based on comprehensive analysis of market conditions and industry best practices:', 12, true);
+      yPosition += 5;
+      
       getStrengths().forEach(strength => {
-        addText(`✓ ${strength}`);
+        addText(`✓ STRENGTH: ${strength}`, 10);
       });
       
       if (getImprovements().length > 0) {
         yPosition += 5;
-        addText('Areas for Improvement:', 14, true);
+        addText('AREAS FOR OPTIMIZATION:', 12, true);
         getImprovements().forEach(improvement => {
-          addText(`• ${improvement}`);
+          addText(`• RECOMMENDATION: ${improvement}`, 10);
         });
       }
+      
+      // Implementation Roadmap
+      addSectionHeader('IMPLEMENTATION ROADMAP');
+      addText('Phase 1 (Months 1-3): Token Launch & Initial Distribution', 12, true);
+      addText('• Deploy smart contract with specified parameters');
+      addText('• Execute initial community distribution (30% of allocation)');
+      addText('• Implement basic governance mechanisms');
+      addText('• Establish token utility framework');
+      yPosition += 5;
+      
+      addText('Phase 2 (Months 4-6): Growth & Expansion', 12, true);
+      addText('• Scale marketing and community engagement');
+      addText('• Onboard strategic partnerships');
+      addText('• Enhance governance participation');
+      addText('• Monitor and optimize tokenomics performance');
+      yPosition += 5;
+      
+      addText('Phase 3 (Months 7-12): Maturation & Optimization', 12, true);
+      addText('• Complete planned token distribution');
+      addText('• Evaluate performance against KPIs');
+      addText('• Implement advanced utility mechanisms');
+      addText('• Plan for long-term sustainability');
+      yPosition += 10;
+      
+      // Risk Assessment
+      addSectionHeader('RISK ASSESSMENT & MITIGATION');
+      addText('LOW RISK FACTORS:', 11, true);
+      addText('• Balanced distribution prevents centralization risks');
+      addText('• Community-first approach builds sustainable adoption');
+      addText('• Adequate development funding ensures long-term viability');
+      yPosition += 5;
+      
+      addText('MEDIUM RISK FACTORS:', 11, true);
+      addText('• Market volatility may impact token valuation');
+      addText('• Regulatory changes could affect distribution mechanisms');
+      addText('• Competitive landscape may require strategy adjustments');
+      yPosition += 5;
+      
+      addText('MITIGATION STRATEGIES:', 11, true);
+      addText('• Implement vesting schedules for team and advisor tokens');
+      addText('• Maintain regulatory compliance across all jurisdictions');
+      addText('• Build strong community governance mechanisms');
+      addText('• Establish emergency response protocols');
 
-      // Footer
-      yPosition = doc.internal.pageSize.height - 30;
-      addText('Generated by Snarbles Token Creation Platform', 8);
-      addText('Visit https://snarbles.xyz for more information', 8);
+      // Professional Footer
+      if (yPosition > pageHeight - 80) {
+        doc.addPage();
+        yPosition = margin;
+      }
+      
+      yPosition = pageHeight - 60;
+      addLine();
+      addText('DISCLAIMER & LEGAL NOTICE', 10, true, 'center');
+      addText('This analysis is for informational purposes only and does not constitute financial, legal, or investment advice.', 8, false, 'center');
+      addText('Token distributions should be reviewed by qualified professionals and comply with applicable regulations.', 8, false, 'center');
+      yPosition += 10;
+      addText('Generated by Snarbles Professional Token Creation Platform', 8, false, 'center');
+      addText('Visit https://snarbles.xyz for comprehensive token solutions', 8, false, 'center');
 
       // Save the PDF
       doc.save(`tokenomics-report-${new Date().toISOString().split('T')[0]}.pdf`);

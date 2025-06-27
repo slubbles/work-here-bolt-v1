@@ -1165,6 +1165,25 @@ p {
   }
 }
 
+/* Dashboard loading indicator */
+.dashboard-loading::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #EF4444, #DC2626, #B91C1C);
+  z-index: 9999;
+  animation: dashboardProgress 2s ease-out;
+}
+
+@keyframes dashboardProgress {
+  0% { transform: scaleX(0); transform-origin: left; }
+  50% { transform: scaleX(0.7); transform-origin: left; }
+  100% { transform: scaleX(1); transform-origin: left; }
+}
+
 /* Custom Feature Toggle Buttons */
 .feature-toggle-button {
   width: 60px;

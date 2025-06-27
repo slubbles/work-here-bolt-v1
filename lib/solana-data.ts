@@ -63,13 +63,21 @@ export async function getUserTokenAccounts(walletAddress: string): Promise<{ suc
     
     const walletPubkey = new PublicKey(walletAddress);
     
-    // Get all token accounts owned by the wallet
-    const tokenAccounts = await connection.getParsedTokenAccountsByOwner(
-      walletPubkey,
-      {
-        programId: TOKEN_PROGRAM_ID,
-      }
+    // Add timeout for the request
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Request timeout')), 10000)
     );
+    
+    // Get all token accounts owned by the wallet
+    const tokenAccounts = await Promise.race([
+      connection.getParsedTokenAccountsByOwner(
+        walletPubkey,
+        {
+          programId: TOKEN_PROGRAM_ID,
+        }
+      ),
+      timeoutPromise
+    ]) as any;
 
     const tokenAccountInfos: TokenAccountInfo[] = tokenAccounts.value
       .filter(account => {
@@ -101,9 +109,13 @@ export async function getUserTokenAccounts(walletAddress: string): Promise<{ suc
     };
   } catch (error) {
     console.error('❌ Error fetching token accounts:', error);
+    let errorMessage = 'Failed to fetch token accounts';
+    if (error instanceof Error && error.message.includes('timeout')) {
+      errorMessage = 'Request timed out. Please try again.';
+    }
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to fetch token accounts'
+      error: errorMessage
     };
   }
 }
