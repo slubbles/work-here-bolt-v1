@@ -65,63 +65,57 @@ export default function AdminPage() {
     if (!connected || !publicKey || !wallet) {
       setError('Please connect your wallet first');
       return;
-      
-      // Additional validation
-      if (feeInLamports < 0 || feeInLamports > 1000000000000) { // Max 1000 SOL
-        setError('Creation fee must be between 0 and 1000 SOL');
-        return;
-      }
+    }
+
+    // Additional validation
+    if (feeInLamports < 0 || feeInLamports > 1000000000000) { // Max 1000 SOL
+      setError('Creation fee must be between 0 and 1000 SOL');
+      return;
     }
 
     // Check if user is admin
     if (publicKey.toString() !== ADMIN_WALLET.toString()) {
       setError(`❌ Admin access required. Only the designated admin wallet can initialize the platform.`);
       alert("Platform initialization requires the admin wallet. Please connect the correct wallet.");
-        console.log(`🚀 Initializing platform with fee: ${creationFee} SOL (${feeInLamports} lamports)`);
-        
+      return;
     }
 
     setIsInitializing(true);
     setError('');
     setInitResult(null);
-          console.log('✅ Platform initialization successful:', result);
-          
-          // Enhanced success feedback
-          setTimeout(() => {
-            alert(`🎉 Platform initialized successfully!\n\nCreation fee: ${creationFee} SOL\nState address: ${result.stateAddress}\nTransaction: ${result.signature}`);
-          }, 1000);
-          
+
     try {
       const feeInLamports = parseFloat(creationFee) * 1000000000; // Convert SOL to lamports
+      console.log(`🚀 Initializing platform with fee: ${creationFee} SOL (${feeInLamports} lamports)`);
+      
       const result = await initializePlatform(wallet.adapter, feeInLamports);
       
       if (result.success) {
         setInitResult(result);
         setError('');
+        console.log('✅ Platform initialization successful:', result);
           
-          // Enhanced error feedback
-          let userMessage = errorMsg;
-          if (errorMsg.includes('insufficient')) {
-            userMessage = "❌ Insufficient SOL balance. Please add SOL to your wallet and try again.";
-          } else if (errorMsg.includes('already initialized')) {
-            userMessage = "ℹ️ Platform is already initialized. No action needed.";
-          } else if (errorMsg.includes('access violation')) {
-            userMessage = "❌ Smart contract error. Please contact support or try again later.";
-          }
-          
-          setTimeout(() => {
-            alert(userMessage);
-          }, 500);
+        // Enhanced success feedback
+        setTimeout(() => {
+          alert(`🎉 Platform initialized successfully!\n\nCreation fee: ${creationFee} SOL\nState address: ${result.stateAddress}\nTransaction: ${result.signature}`);
           checkPlatformState();
         }, 2000);
       } else {
         const errorMsg = result.error || 'Failed to initialize platform';
         setError(errorMsg);
         
+        // Enhanced error feedback
+        let userMessage = errorMsg;
+        if (errorMsg.includes('insufficient')) {
+          userMessage = "❌ Insufficient SOL balance. Please add SOL to your wallet and try again.";
+        } else if (errorMsg.includes('already initialized')) {
+          userMessage = "ℹ️ Platform is already initialized. No action needed.";
+        } else if (errorMsg.includes('access violation')) {
+          userMessage = "❌ Smart contract error. Please contact support or try again later.";
+        }
+        
         setTimeout(() => {
-          alert(errorMsg.includes('insufficient') 
-            ? "❌ Insufficient SOL balance. Please add SOL to your wallet and try again."
-            : `❌ Unexpected error: ${errorMsg}. Please try again or contact support.`);
+          alert(userMessage);
         }, 500);
       }
     } catch (err) {
