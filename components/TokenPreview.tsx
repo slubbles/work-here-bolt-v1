@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Send, Plus, Flame, BarChart3, Network, Sparkles, TrendingUp, Pause } from 'lucide-react';
+import { Send, Plus, Flame, BarChart3, Network, Sparkles, TrendingUp, Pause, Wallet, Check } from 'lucide-react';
 
 interface TokenPreviewProps {
   tokenData: {
@@ -133,11 +133,12 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
     <div className="xl:sticky xl:top-24 space-y-6">
       <div className="text-center space-y-4">
         <div className="flex items-center justify-center space-x-2">
-          <Sparkles className="w-5 h-5 text-red-500" />
-          <h2 className="text-4xl font-bold text-foreground">Live Preview</h2>
-          <Sparkles className="w-5 h-5 text-red-500" />
+          <div className="w-10 h-10 bg-red-500/10 rounded-full flex items-center justify-center">
+            <Sparkles className="w-6 h-6 text-red-500" />
+          </div>
+          <h2 className="text-3xl font-bold text-foreground">Live Preview</h2>
         </div>
-        <p className="text-muted-foreground text-xl">
+        <p className="text-muted-foreground text-lg">
           This is how your token will appear after creation
         </p>
       </div>
@@ -151,8 +152,14 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
       </div>
 
       <div className="glass-card p-10 space-y-8 relative overflow-hidden">
-        <div className="text-center space-y-8 relative z-10">
-          <div className="text-base text-muted-foreground uppercase tracking-wide font-bold">Token Details</div>
+        {/* "Looking good" floating banner */}
+        <div className="absolute top-4 right-4 bg-green-500/90 text-white px-3 py-1 rounded-full text-sm font-medium flex items-center">
+          <Check className="w-3 h-3 mr-1" /> 
+          Looking Good!
+        </div>
+      
+        <div className="text-center space-y-6 relative z-10">
+          <div className="text-base text-foreground uppercase tracking-wide font-bold border-b border-border pb-2">TOKEN DETAILS</div>
           
           <div className="flex justify-center relative">
             {logoUrl && !isImageLoading ? (
@@ -178,7 +185,7 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
 
           <div className="space-y-2">
             {name ? (
-              <h3 className="text-4xl font-bold text-foreground">{name}</h3>
+              <h3 className="text-3xl font-bold text-foreground">{name}</h3>
             ) : (
               <div className="w-48 h-10 bg-muted animate-pulse rounded mx-auto"></div>
             )}
@@ -199,14 +206,14 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
         </div>
 
         <div className="text-base text-muted-foreground uppercase tracking-wide text-center font-bold">
-          Available Actions
+          TOKEN ACTIONS
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-3">
           <Button 
             variant="outline" 
             size="sm" 
-            className="border-border text-muted-foreground hover:bg-muted hover:text-foreground h-14 rounded-xl text-base font-semibold"
+            className="border-border text-muted-foreground hover:bg-muted hover:text-foreground h-12 rounded-xl text-sm font-semibold"
           >
             <Send className="w-4 h-4 mr-2" />
             Transfer
@@ -215,8 +222,8 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
           {mintable && (
             <Button 
               variant="outline" 
-              size="sm" 
-              className="border-border text-muted-foreground hover:bg-muted hover:text-foreground h-14 rounded-xl text-base font-semibold"
+              size="sm"
+              className="border-border text-muted-foreground hover:bg-muted hover:text-foreground h-12 rounded-xl text-sm font-semibold"
             >
               <Plus className="w-4 h-4 mr-2" />
               Mint
@@ -227,7 +234,7 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
             <Button 
               variant="outline" 
               size="sm" 
-              className="border-border text-muted-foreground hover:bg-muted hover:text-foreground h-14 rounded-xl text-base font-semibold"
+              className="border-border text-muted-foreground hover:bg-muted hover:text-foreground h-12 rounded-xl text-sm font-semibold"
             >
               <Flame className="w-4 h-4 mr-2" />
               Burn
@@ -238,7 +245,7 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
             <Button 
               variant="outline" 
               size="sm" 
-              className="border-border text-muted-foreground hover:bg-muted hover:text-foreground h-14 rounded-xl text-base font-semibold"
+              className="border-border text-muted-foreground hover:bg-muted hover:text-foreground h-12 rounded-xl text-sm font-semibold"
             >
               <Pause className="w-4 h-4 mr-2" />
               Pause
@@ -248,7 +255,7 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
           <Button 
             variant="outline" 
             size="sm" 
-            className="border-border text-muted-foreground hover:bg-muted hover:text-foreground h-14 rounded-xl text-base font-semibold col-span-2"
+            className="border-border text-muted-foreground hover:bg-muted hover:text-foreground h-12 rounded-xl text-sm font-semibold col-span-2"
           >
             <BarChart3 className="w-4 h-4 mr-2" />
             Analytics
@@ -256,13 +263,15 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
         </div>
 
         <div className="pt-8 border-t border-border text-center">
-          <div className="flex items-center justify-center space-x-2 text-green-500">
-            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-            <p className="text-base font-bold">
-              Ready for deployment to {networkInfo.name}
+          <div className="p-2 bg-green-500/10 border border-green-500/30 rounded-lg inline-flex items-center space-x-2">
+            <div className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
+              <Check className="w-3 h-3 text-white" />
+            </div>
+            <p className="text-sm font-medium text-green-600">
+              Ready to deploy on {networkInfo.name}
               {network.includes('algorand') && (
-                <span className="ml-2 text-sm opacity-75">
-                  ({network === 'algorand-mainnet' ? 'Production' : 'Testing'})
+                <span className="ml-1 text-xs opacity-85">
+                  ({network === 'algorand-mainnet' ? 'Mainnet' : 'Testnet'})
                 </span>
               )}
             </p>
@@ -272,12 +281,14 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
 
       <div className="glass-card p-8 space-y-6">
         <div className="flex items-center space-x-2">
-          <TrendingUp className="w-5 h-5 text-red-500" />
-          <h4 className="text-foreground font-bold text-2xl">Deployment Details</h4>
+          <div className="w-8 h-8 bg-red-500/10 rounded-full flex items-center justify-center">
+            <TrendingUp className="w-5 h-5 text-red-500" />
+          </div>
+          <h4 className="text-foreground font-bold text-xl">Token Summary</h4>
         </div>
         
         <div className="space-y-4">
-          <div className="flex justify-between items-center p-4 bg-muted/30 rounded-xl">
+          <div className="flex justify-between items-center p-4 bg-muted/20 rounded-lg">
             <span className="text-muted-foreground font-semibold text-base">Network:</span>
             <div className="flex items-center space-x-2">
               <Badge className={`${networkInfo.color} text-xs px-3 py-1 rounded-lg font-semibold`}>
@@ -291,17 +302,17 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
             </div>
           </div>
           
-          <div className="flex justify-between items-center p-4 bg-muted/30 rounded-xl">
+          <div className="flex justify-between items-center p-4 bg-muted/20 rounded-lg">
             <span className="text-muted-foreground font-semibold text-base">Symbol:</span>
             <span className="text-foreground font-bold text-lg">{symbol.toUpperCase() || 'TKN'}</span>
           </div>
           
-          <div className="flex justify-between items-center p-4 bg-muted/30 rounded-xl">
+          <div className="flex justify-between items-center p-4 bg-muted/20 rounded-lg">
             <span className="text-muted-foreground font-semibold text-base">Supply:</span>
             <span className="text-foreground font-bold text-lg">{formatSupply(totalSupply) || '0'}</span>
           </div>
           
-          <div className="flex justify-between items-center p-4 bg-muted/30 rounded-xl">
+          <div className="flex justify-between items-center p-4 bg-muted/20 rounded-lg">
             <span className="text-muted-foreground font-semibold text-base">Decimals:</span>
             <span className="text-foreground font-bold text-lg">{decimals || '9'}</span>
           </div>
@@ -311,27 +322,36 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
           <div className="pt-6 border-t border-border">
             <p className="text-muted-foreground font-bold mb-4 text-lg">Smart Contract Features</p>
             <div className="flex flex-wrap gap-3">
-              {mintable && (
-                <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-base px-4 py-2 rounded-xl font-bold">
-                  <Plus className="w-3 h-3 mr-1" />
-                  Mintable
-                </Badge>
-              )}
-              {burnable && (
-                <Badge className="bg-red-500/20 text-red-400 border-red-500/30 text-base px-4 py-2 rounded-xl font-bold">
-                  <Flame className="w-3 h-3 mr-1" />
-                  Burnable
-                </Badge>
-              )}
-              {pausable && (
-                <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30 text-base px-4 py-2 rounded-xl font-bold">
-                  <Pause className="w-3 h-3 mr-1" />
-                  Pausable
-                </Badge>
-              )}
+              <Badge className={`text-base px-4 py-2 rounded-lg font-bold ${mintable 
+                ? 'bg-green-500/20 text-green-400 border-green-500/30' 
+                : 'bg-muted/50 text-muted-foreground border-muted/80'}`}>
+                <Plus className="w-3 h-3 mr-1" />
+                Mintable {mintable ? '✓' : '✗'}
+              </Badge>
+              
+              <Badge className={`text-base px-4 py-2 rounded-lg font-bold ${burnable 
+                ? 'bg-red-500/20 text-red-400 border-red-500/30' 
+                : 'bg-muted/50 text-muted-foreground border-muted/80'}`}>
+                <Flame className="w-3 h-3 mr-1" />
+                Burnable {burnable ? '✓' : '✗'}
+              </Badge>
+              
+              <Badge className={`text-base px-4 py-2 rounded-lg font-bold ${pausable 
+                ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' 
+                : 'bg-muted/50 text-muted-foreground border-muted/80'}`}>
+                <Pause className="w-3 h-3 mr-1" />
+                Pausable {pausable ? '✓' : '✗'}
+              </Badge>
             </div>
           </div>
         )}
+        
+        <div className="pt-4 flex justify-center">
+          <div className="flex items-center space-x-2 p-2 bg-muted/30 rounded-lg text-sm text-muted-foreground">
+            <Wallet className="w-4 h-4" />
+            <span>Managed with your blockchain wallet</span>
+          </div>
+        </div>
       </div>
     </div>
   );

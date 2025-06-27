@@ -25,6 +25,7 @@ import { useAlgorandWallet } from '@/components/providers/AlgorandWalletProvider
 import { createTokenOnChain } from '@/lib/solana';
 import { createAlgorandToken } from '@/lib/algorand';
 import { supabaseHelpers } from '@/lib/supabase';
+import { HelpCircle, Info, Link2 } from 'lucide-react';
 
 interface TokenFormProps {
   tokenData: {
@@ -302,20 +303,64 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
       {/* Network Selection Card */}
       <Card className="glass-card">
         <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Rocket className="w-5 h-5 text-red-500" />
-            <span>Network Selection</span>
+          <CardTitle className="text-2xl flex items-center space-x-3">
+            <div className="w-10 h-10 bg-red-500/10 rounded-full flex items-center justify-center">
+              <Rocket className="w-6 h-6 text-red-500" />
+            </div>
+            <span>Step 1: Choose Network</span>
           </CardTitle>
-          <CardDescription>
-            Choose the blockchain network for your token deployment
+          <CardDescription className="text-base mt-2">
+            Select the blockchain network where your token will be deployed
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="text-center mb-4">
-            <Badge className={`${networkInfo.color} text-base px-6 py-3 rounded-xl font-bold shadow-md`}>
-              {networkInfo.name}
-            </Badge>
-            <p className="text-sm text-muted-foreground mt-2">Deployment cost: {networkInfo.cost}</p>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div 
+              className={`network-card flex flex-col justify-center items-center p-6 ${
+                tokenData.network.startsWith('algorand') ? 'active algorand-card' : ''
+              } cursor-pointer`}
+              onClick={() => setTokenData({ ...tokenData, network: 'algorand-testnet' })}
+            >
+              <div className="w-12 h-12 bg-[#76f935]/20 rounded-full flex items-center justify-center mb-3">
+                <span className="text-xl font-bold text-[#76f935]">A</span>
+              </div>
+              <h3 className="font-semibold text-lg mb-1">Algorand</h3>
+              <Badge className="algorand-badge">Ultra Low Cost</Badge>
+              <p className="text-sm text-muted-foreground mt-2 text-center">Perfect for cost-sensitive projects</p>
+            </div>
+            
+            <div 
+              className={`network-card flex flex-col justify-center items-center p-6 ${
+                tokenData.network.startsWith('solana') ? 'active' : ''
+              } cursor-pointer`}
+              onClick={() => setTokenData({ ...tokenData, network: 'solana-devnet' })}
+            >
+              <div className="w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center mb-3">
+                <span className="text-xl font-bold text-blue-500">S</span>
+              </div>
+              <h3 className="font-semibold text-lg mb-1">Solana</h3>
+              <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">Fast & Reliable</Badge>
+              <p className="text-sm text-muted-foreground mt-2 text-center">Best for high-performance projects</p>
+            </div>
+          </div>
+          
+          <div className="mt-4 p-4 rounded-lg border border-border bg-muted/30">
+            <div className="flex justify-between items-center">
+              <div>
+                <h4 className="font-semibold text-foreground">Selected Network</h4>
+                <p className="text-sm text-muted-foreground">Deployment cost: {networkInfo.cost}</p>
+              </div>
+              <Badge className={`${networkInfo.color} px-3 py-1 text-sm`}>
+                {networkInfo.name}
+              </Badge>
+            </div>
+            
+            {tokenData.network.includes('testnet') && (
+              <div className="mt-3 flex items-start gap-2 text-sm text-amber-500">
+                <Info className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                <p>Using testnet for development. Tokens are not tradable on mainnet.</p>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -323,15 +368,23 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
       {/* Token Information */}
       <Card className="glass-card">
         <CardHeader>
-          <CardTitle>Token Information</CardTitle>
-          <CardDescription>
-            Basic information about your token
+          <CardTitle className="text-2xl flex items-center space-x-3">
+            <div className="w-10 h-10 bg-red-500/10 rounded-full flex items-center justify-center">
+              <Coins className="w-6 h-6 text-red-500" />
+            </div>
+            <span>Step 2: Define Your Token</span>
+          </CardTitle>
+          <CardDescription className="text-base mt-2">
+            Set the core properties that define your token's identity
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <Label htmlFor="name" className="text-foreground font-medium">Token Name *</Label>
+              <div className="flex justify-between">
+                <Label htmlFor="name" className="text-foreground font-medium">Token Name <span className="text-red-500">*</span></Label>
+                <span className="text-xs text-muted-foreground">Required</span>
+              </div>
               <Input
                 id="name"
                 placeholder="e.g., My Awesome Token"
@@ -340,10 +393,14 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
                 className="input-enhanced h-12 text-base"
                 required
               />
+              <p className="text-xs text-muted-foreground">The full name of your token (max 32 characters)</p>
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="symbol" className="text-foreground font-medium">Token Symbol *</Label>
+              <div className="flex justify-between">
+                <Label htmlFor="symbol" className="text-foreground font-medium">Token Symbol <span className="text-red-500">*</span></Label>
+                <span className="text-xs text-muted-foreground">Required</span>
+              </div>
               <Input
                 id="symbol"
                 placeholder="e.g., MAT"
@@ -353,6 +410,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
                 maxLength={10}
                 required
               />
+              <p className="text-xs text-muted-foreground">Short ticker symbol for exchanges (2-10 characters)</p>
             </div>
           </div>
 
@@ -372,8 +430,11 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <Label htmlFor="totalSupply" className="text-foreground font-medium">Total Supply *</Label>
+            <div className="space-y-3">
+              <div className="flex justify-between">
+                <Label htmlFor="totalSupply" className="text-foreground font-medium">Total Supply <span className="text-red-500">*</span></Label>
+                <span className="text-xs text-muted-foreground">Required</span>
+              </div>
               <Input
                 id="totalSupply"
                 type="number"
@@ -384,10 +445,17 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
                 required
                 min="1"
               />
+              <div className="flex items-center text-xs text-muted-foreground space-x-1">
+                <Info className="w-4 h-4" />
+                <span>Total number of tokens that will be created</span>
+              </div>
             </div>
             
-            <div className="space-y-2">
-              <Label htmlFor="decimals" className="text-foreground font-medium">Decimals</Label>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="decimals" className="text-foreground font-medium">Decimals</Label>
+                <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">Recommended: 9</span>
+              </div>
               <Input
                 id="decimals"
                 type="number"
@@ -397,6 +465,21 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
                 min="0"
                 max="18"
               />
+              <p className="text-xs text-muted-foreground">Divisibility of your token (0-18)</p>
+            </div>
+          </div>
+          
+          <div className="mt-2 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+            <div className="flex items-start gap-3">
+              <HelpCircle className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
+              <div>
+                <h4 className="font-medium text-blue-600">Quick Tips</h4>
+                <ul className="mt-1 text-sm text-blue-600 space-y-1">
+                  <li>• Choose a clear, memorable name and symbol</li>
+                  <li>• Set supply based on your tokenomics strategy</li>
+                  <li>• Higher decimals (9) allow for smaller fractional amounts</li>
+                </ul>
+              </div>
             </div>
           </div>
         </CardContent>
@@ -405,9 +488,14 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
       {/* Token Logo */}
       <Card className="glass-card">
         <CardHeader>
-          <CardTitle>Token Logo</CardTitle>
-          <CardDescription>
-            Upload a logo for your token (optional but recommended)
+          <CardTitle className="text-2xl flex items-center space-x-3">
+            <div className="w-10 h-10 bg-red-500/10 rounded-full flex items-center justify-center">
+              <Upload className="w-6 h-6 text-red-500" />
+            </div>
+            <span>Step 3: Add Logo</span>
+          </CardTitle>
+          <CardDescription className="text-base mt-2">
+            Add visual identity to your token (optional but recommended)
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -435,9 +523,11 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
             ) : (
               <div className="border-2 border-dashed border-border rounded-lg p-8 text-center">
                 <Upload className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                <div className="space-y-2">
-                  <p className="text-foreground font-medium">Upload token logo</p>
-                  <p className="text-sm text-muted-foreground">PNG, JPG, GIF up to 5MB</p>
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-foreground font-medium text-lg">Upload token logo</p>
+                    <p className="text-sm text-muted-foreground">PNG, JPG, GIF up to 5MB</p>
+                  </div>
                   <input
                     type="file"
                     accept="image/*"
@@ -449,23 +539,20 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
                   <label htmlFor="logo-upload">
                     <Button variant="outline" disabled={isUploading} asChild>
                       <span>
-                        {isUploading ? (
-                          <>
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            Uploading...
-                          </>
-                        ) : (
-                          <>
-                            <Upload className="w-4 h-4 mr-2" />
-                            Choose File
-                          </>
-                        )}
+                        {isUploading 
+                          ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Uploading...</>
+                          : <><Upload className="w-4 h-4 mr-2" />Choose File</>
+                        }
                       </span>
                     </Button>
                   </label>
                 </div>
               </div>
             )}
+            
+            <div className="mt-4 text-sm text-muted-foreground">
+              <p className="flex items-center"><Info className="w-4 h-4 mr-2" /> A well-designed logo increases recognition and trust in your token</p>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -473,9 +560,14 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
       {/* Social Links */}
       <Card className="glass-card">
         <CardHeader>
-          <CardTitle>Social Links</CardTitle>
-          <CardDescription>
-            Add social media and website links (optional)
+          <CardTitle className="text-2xl flex items-center space-x-3">
+            <div className="w-10 h-10 bg-red-500/10 rounded-full flex items-center justify-center">
+              <Link2 className="w-6 h-6 text-red-500" />
+            </div>
+            <span>Step 4: Add Links</span>
+          </CardTitle>
+          <CardDescription className="text-base mt-2">
+            Enhance your token with official links (optional)
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -520,9 +612,14 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
       {/* Token Features */}
       <Card className="glass-card">
         <CardHeader>
-          <CardTitle>Token Features</CardTitle>
-          <CardDescription>
-            Configure advanced token capabilities
+          <CardTitle className="text-2xl flex items-center space-x-3">
+            <div className="w-10 h-10 bg-red-500/10 rounded-full flex items-center justify-center">
+              <Settings className="w-6 h-6 text-red-500" />
+            </div>
+            <span>Step 5: Add Features</span>
+          </CardTitle>
+          <CardDescription className="text-base mt-2">
+            Choose advanced smart contract capabilities for your token
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -531,9 +628,9 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
                   <Plus className="w-5 h-5 text-green-500" />
-                  <div>
-                    <p className="font-medium text-foreground">Mintable</p>
-                    <p className="text-sm text-muted-foreground">Create new tokens</p>
+                  <div className="flex-1">
+                    <p className="font-medium text-foreground">Mintable Token</p>
+                    <p className="text-sm text-muted-foreground">Allows you to create additional tokens later</p>
                   </div>
                 </div>
                 <Switch
@@ -548,9 +645,9 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
                   <Flame className="w-5 h-5 text-red-500" />
-                  <div>
-                    <p className="font-medium text-foreground">Burnable</p>
-                    <p className="text-sm text-muted-foreground">Destroy tokens</p>
+                  <div className="flex-1">
+                    <p className="font-medium text-foreground">Burnable Token</p>
+                    <p className="text-sm text-muted-foreground">Allows permanent destruction of tokens</p>
                   </div>
                 </div>
                 <Switch
@@ -565,9 +662,9 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
                   <Pause className="w-5 h-5 text-yellow-500" />
-                  <div>
-                    <p className="font-medium text-foreground">Pausable</p>
-                    <p className="text-sm text-muted-foreground">Pause transfers</p>
+                  <div className="flex-1">
+                    <p className="font-medium text-foreground">Pausable Token</p>
+                    <p className="text-sm text-muted-foreground">Ability to freeze all transfers in emergencies</p>
                   </div>
                 </div>
                 <Switch
@@ -578,49 +675,74 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
               </div>
             </div>
           </div>
+          
+          <div className="mt-4 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
+              <div className="text-sm text-yellow-600">
+                <h4 className="font-medium">Important Security Note</h4>
+                <p className="mt-1">These features give you (the creator) special privileges over the token. Choose carefully based on your project's needs and security considerations.</p>
+              </div>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
       {/* Deployment Section */}
       <Card className="glass-card">
         <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Rocket className="w-5 h-5 text-red-500" />
-            <span>Deploy Token</span>
+          <CardTitle className="text-2xl flex items-center space-x-3">
+            <div className="w-10 h-10 bg-red-500/10 rounded-full flex items-center justify-center">
+              <Rocket className="w-6 h-6 text-red-500" />
+            </div>
+            <span>Step 6: Deploy Token</span>
           </CardTitle>
-          <CardDescription>
-            Deploy your token to the {networkInfo.name}
+          <CardDescription className="text-base mt-2">
+            Launch your token to the {networkInfo.name} blockchain
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Wallet Connection Status */}
-          <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg">
-            <div className="flex items-center space-x-3">
-              <div className={`w-3 h-3 rounded-full ${isWalletConnected() ? 'bg-green-500' : 'bg-red-500'}`}></div>
-              <span className="text-foreground font-medium">
-                {tokenData.network.includes('algorand') ? 'Algorand' : 'Solana'} Wallet
+          <div className={`p-5 rounded-lg border ${isWalletConnected() ? 'bg-green-500/10 border-green-500/30' : 'bg-red-500/10 border-red-500/30'}`}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className={`w-3 h-3 rounded-full ${isWalletConnected() ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                <div>
+                  <span className="text-foreground font-medium">
+                    {tokenData.network.includes('algorand') ? 'Algorand' : 'Solana'} Wallet
+                  </span>
+                  {isWalletConnected() && (
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {getConnectedAddress()?.slice(0, 8)}...{getConnectedAddress()?.slice(-8)}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <span className={`text-sm font-semibold px-3 py-1 rounded-full ${isWalletConnected() 
+                ? 'text-green-500 bg-green-500/10' 
+                : 'text-red-500 bg-red-500/10'}`}
+              >
+                {isWalletConnected() ? 'Connected ✓' : 'Not Connected'}
               </span>
             </div>
-            <span className={`text-sm font-semibold ${isWalletConnected() ? 'text-green-500' : 'text-red-500'}`}>
-              {isWalletConnected() ? 'Connected' : 'Not Connected'}
-            </span>
+            
+            {!isWalletConnected() && (
+              <div className="mt-3 text-sm text-red-600 flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4" />
+                <span>Please connect your wallet in the top navigation bar first</span>
+              </div>
+            )}
           </div>
-
-          {isWalletConnected() && (
-            <div className="text-sm text-muted-foreground">
-              <p>Connected to: {getConnectedAddress()?.slice(0, 8)}...{getConnectedAddress()?.slice(-8)}</p>
-            </div>
-          )}
 
           {/* Deployment Progress */}
           {isDeploying && (
-            <div className="space-y-4">
-              <div className="flex items-center space-x-3">
+            <div className="p-5 bg-blue-500/10 border border-blue-500/30 rounded-lg space-y-4">
+              <div className="flex items-center space-x-3 text-blue-600">
                 <Loader2 className="w-5 h-5 animate-spin text-red-500" />
-                <span className="text-foreground font-medium">{deploymentStep}</span>
+                <span className="font-medium">{deploymentStep}</span>
               </div>
               <div className="w-full bg-muted rounded-full h-2">
-                <div className="bg-red-500 h-2 rounded-full animate-pulse" style={{ width: '70%' }}></div>
+                <div className="bg-blue-500 h-2 rounded-full animate-pulse" style={{ width: '70%' }}></div>
               </div>
             </div>
           )}
@@ -666,27 +788,38 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
           {/* Deploy Button */}
           <Button
             onClick={handleCreateToken}
-            disabled={isDeploying || !isWalletConnected()}
-            className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white h-14 text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
+            disabled={isDeploying || !isWalletConnected() || validationErrors.length > 0}
+            className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white h-14 text-lg font-bold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
           >
             {isDeploying ? (
-              <>
+              <div className="flex items-center justify-center">
                 <Loader2 className="w-5 h-5 mr-3 animate-spin" />
                 Creating Token...
-              </>
+              </div>
             ) : !isWalletConnected() ? (
-              `Connect ${tokenData.network.includes('algorand') ? 'Algorand' : 'Solana'} Wallet`
+              <div className="flex items-center justify-center">
+                <Wallet className="w-5 h-5 mr-3" />
+                Connect Wallet First
+              </div>
+            ) : validationErrors.length > 0 ? (
+              <div className="flex items-center justify-center">
+                <AlertTriangle className="w-5 h-5 mr-3" />
+                Fix Form Errors First
+              </div>
             ) : (
-              <>
+              <div className="flex items-center justify-center">
                 <Rocket className="w-5 h-5 mr-3" />
-                Deploy Token to {networkInfo.name}
-              </>
+                Launch Token on {networkInfo.name}
+              </div>
             )}
           </Button>
 
-          <div className="text-center text-sm text-muted-foreground">
-            <p>Deployment cost: {networkInfo.cost}</p>
-            <p className="mt-1">Your token will be created and managed using your connected wallet</p>
+          <div className="p-4 bg-muted/30 border border-border rounded-lg">
+            <div className="text-center space-y-2">
+              <p className="text-foreground"><span className="font-medium">Network Fee:</span> {networkInfo.cost}</p>
+              <p className="text-sm text-muted-foreground">Your token will be created and managed using your connected wallet</p>
+              <p className="text-xs text-muted-foreground italic">Tokens are created directly on the blockchain, no account required</p>
+            </div>
           </div>
         </CardContent>
       </Card>
