@@ -22,6 +22,11 @@ export interface DialogTitleProps {
   children: React.ReactNode;
 }
 
+export interface DialogDescriptionProps {
+  className?: string;
+  children: React.ReactNode;
+}
+
 const Dialog: React.FC<DialogProps> = ({ open, onOpenChange, children }) => {
   if (!open) return null;
 
@@ -66,4 +71,10 @@ const DialogTitle: React.FC<DialogTitleProps> = ({ className, children }) => (
   </h3>
 );
 
-export { Dialog, DialogContent, DialogHeader, DialogTitle };
+const DialogDescription: React.FC<DialogDescriptionProps> = ({ className, children }) => (
+  <p className={cn("text-sm text-muted-foreground", className)}>
+    {children}
+  </p>
+);
+
+export { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription };

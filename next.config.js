@@ -18,6 +18,8 @@ const nextConfig = {
   transpilePackages: [
     'algosdk', 
     '@perawallet/connect',
+    '@supabase/supabase-js',
+    '@supabase/realtime-js',
     '@solana/wallet-adapter-base',
     '@solana/wallet-adapter-react',
     '@solana/wallet-adapter-react-ui',
