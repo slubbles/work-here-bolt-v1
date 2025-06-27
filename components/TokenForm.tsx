@@ -73,6 +73,9 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
     if (!tokenData.totalSupply || parseFloat(tokenData.totalSupply) <= 0) {
       errors.push('Total supply must be greater than 0');
     }
+    if (parseFloat(tokenData.totalSupply) > 1e15) {
+      errors.push('Total supply is too large. Please use a smaller number.');
+    }
     
     // Network-specific validations
     if (tokenData.network.startsWith('algorand')) {
@@ -84,9 +87,30 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
       if (tokenData.symbol.length > 10) errors.push('Token symbol must be 10 characters or less for Solana');
       if (tokenData.description.length > 200) errors.push('Description must be 200 characters or less for Solana');
     }
+    
+    // URL validation
+    if (tokenData.website && !isValidUrl(tokenData.website)) {
+      errors.push('Please enter a valid website URL');
+    }
+    if (tokenData.twitter && !isValidUrl(tokenData.twitter)) {
+      errors.push('Please enter a valid Twitter URL');
+    }
+    if (tokenData.github && !isValidUrl(tokenData.github)) {
+      errors.push('Please enter a valid GitHub URL');
+    }
 
     setValidationErrors(errors);
     return errors.length === 0;
+  };
+  
+  // URL validation helper
+  const isValidUrl = (string: string): boolean => {
+    try {
+      new URL(string);
+      return true;
+    } catch (_) {
+      return false;
+    }
   };
 
   // Check wallet connection based on selected network
@@ -115,16 +139,17 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
 
     // Validate file type and size
     if (!file.type.startsWith('image/')) {
-      alert('Please upload an image file (PNG, JPG, GIF, etc.)');
+      setError('Please upload an image file (PNG, JPG, GIF, etc.)');
       return;
     }
 
     if (file.size > 5 * 1024 * 1024) { // 5MB limit
-      alert('Please upload an image smaller than 5MB');
+      setError('Please upload an image smaller than 5MB');
       return;
     }
 
     setIsUploading(true);
+    setError('');
 
     try {
       // Try Supabase upload first, fall back to other methods
@@ -137,17 +162,41 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
       if (uploadResult.success && uploadResult.url) {
         setTokenData({ ...tokenData, logoUrl: uploadResult.url });
       } else {
-        // Fallback: Create a data URL for the image
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const result = e.target?.result as string;
-          setTokenData({ ...tokenData, logoUrl: result });
+        // Enhanced fallback: Create optimized data URL
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const img = new Image();
+        
+        img.onload = () => {
+          // Resize image to max 400x400 for better performance
+          const maxSize = 400;
+          let { width, height } = img;
+          
+          if (width > height) {
+            if (width > maxSize) {
+              height = (height * maxSize) / width;
+              width = maxSize;
+            }
+          } else {
+            if (height > maxSize) {
+              width = (width * maxSize) / height;
+              height = maxSize;
+            }
+          }
+          
+          canvas.width = width;
+          canvas.height = height;
+          
+          ctx?.drawImage(img, 0, 0, width, height);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+          setTokenData({ ...tokenData, logoUrl: dataUrl });
         };
-        reader.readAsDataURL(file);
+        
+        img.src = URL.createObjectURL(file);
       }
     } catch (error) {
       console.error('Upload error:', error);
-      alert('Failed to upload logo. Please try again.');
+      setError('Failed to upload logo. Please try again.');
     } finally {
       setIsUploading(false);
     }
@@ -159,19 +208,20 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
 
     // Validate form first
     if (!validateForm()) {
-      alert('Please fix the form errors before proceeding');
+      setError('Please fix the form errors before proceeding');
       return;
     }
 
     // Check wallet connection
     if (!isWalletConnected()) {
-      alert(`Please connect your ${tokenData.network.includes('algorand') ? 'Algorand' : 'Solana'} wallet first`);
+      setError(`Please connect your ${tokenData.network.includes('algorand') ? 'Algorand' : 'Solana'} wallet first`);
       return;
     }
 
     setIsDeploying(true);
     setDeploymentStep('Preparing token creation...');
     setDeploymentResult(null);
+    setError('');
 
     try {
       let result;
@@ -235,6 +285,13 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
       if (result.success) {
         setDeploymentStep('Token created successfully!');
         setDeploymentResult(result);
+        
+        // Show success message
+        setTimeout(() => {
+          alert(`🎉 Token "${tokenData.name}" created successfully!\n\n${
+            result.assetId ? `Asset ID: ${result.assetId}` : `Mint Address: ${result.mintAddress}`
+          }\n\nTransaction: ${result.transactionId}`);
+        }, 1000);
 
         console.log('✅ Token creation completed:', result);
 
@@ -247,8 +304,21 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
       
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       setDeploymentStep(`Failed: ${errorMessage}`);
+      setError(errorMessage);
       
-      alert(`Token creation failed: ${errorMessage}`);
+      // Enhanced error messages
+      let userFriendlyMessage = errorMessage;
+      if (errorMessage.includes('insufficient')) {
+        userFriendlyMessage = 'Insufficient balance for transaction fees. Please add funds to your wallet.';
+      } else if (errorMessage.includes('rejected')) {
+        userFriendlyMessage = 'Transaction was rejected by user.';
+      } else if (errorMessage.includes('network')) {
+        userFriendlyMessage = 'Network error. Please check your connection and try again.';
+      }
+      
+      setTimeout(() => {
+        alert(`❌ Token creation failed: ${userFriendlyMessage}`);
+      }, 500);
     } finally {
       setIsDeploying(false);
     }
