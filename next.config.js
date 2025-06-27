@@ -14,22 +14,6 @@ const nextConfig = {
     dangerouslyAllowSVG: true,
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
-  // Fix for Solana wallet adapters
-  transpilePackages: [
-    'algosdk', 
-    '@perawallet/connect',
-    '@supabase/supabase-js',
-    '@solana/wallet-adapter-base',
-    '@solana/wallet-adapter-react',
-    '@solana/wallet-adapter-react-ui',
-    '@solana/wallet-adapter-wallets',
-    '@solana/wallet-adapter-phantom',
-    '@solana/wallet-adapter-solflare',
-    '@solana/wallet-adapter-backpack',
-    '@solana/web3.js',
-    '@solana/spl-token',
-    '@coral-xyz/anchor'
-  ],
   eslint: {
     ignoreDuringBuilds: true,
   },

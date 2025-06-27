@@ -278,14 +278,8 @@ export default function UnifiedDashboard() {
     const selectedTokenData = userTokens[selectedToken];
     if (!selectedTokenData) return;
 
-    let tokenSymbol = 'TOKEN';
-    if ('symbol' in selectedTokenData) {
-      tokenSymbol = selectedTokenData.symbol;
-    } else if ('assetId' in selectedTokenData && selectedTokenData.symbol) {
-      // For Algorand assets, use the symbol property from AlgorandTokenInfo
-      const algoToken = selectedTokenData as AlgorandTokenInfo;
-      tokenSymbol = algoToken.symbol || 'ASA';
-    }
+    // Both EnhancedTokenInfo and AlgorandTokenInfo have symbol property
+    const tokenSymbol = selectedTokenData.symbol || ('assetId' in selectedTokenData ? 'ASA' : 'TOKEN');
     
     alert(`Successfully transferred ${transferAmount} ${tokenSymbol} to ${transferAddress}`);
     setTransferAmount('');
