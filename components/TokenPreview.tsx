@@ -129,17 +129,27 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
     );
   }
 
+  // Enhanced header text based on network
+  const getHeaderText = () => {
+    if (network.includes('algorand')) {
+      return `Algorand ${network.includes('testnet') ? 'TestNet' : 'MainNet'} Preview`;
+    } else if (network.includes('solana')) {
+      return `Solana ${network.includes('devnet') ? 'Devnet' : 'Mainnet'} Preview`;
+    }
+    return 'Live Preview';
+  };
+
   return (
-    <div className="xl:sticky xl:top-24 space-y-6">
+    <div className="xl:sticky xl:top-24 space-y-6 pb-4">
       <div className="text-center space-y-4">
-        <div className="flex items-center justify-center space-x-2">
-          <div className="w-10 h-10 bg-red-500/10 rounded-full flex items-center justify-center">
-            <Sparkles className="w-6 h-6 text-red-500" />
+        <div className="flex items-center justify-center space-x-3">
+          <div className="w-12 h-12 bg-red-500/10 rounded-full flex items-center justify-center">
+            <Sparkles className="w-7 h-7 text-red-500" />
           </div>
-          <h2 className="text-3xl font-bold text-foreground">Live Preview</h2>
+          <h2 className="text-3xl font-bold text-foreground">{getHeaderText()}</h2>
         </div>
-        <p className="text-muted-foreground text-lg">
-          This is how your token will appear after creation
+        <p className="text-muted-foreground text-lg max-w-md mx-auto">
+          Your token will look exactly like this when deployed to the blockchain
         </p>
       </div>
 
@@ -151,11 +161,11 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
         <p className="text-sm text-muted-foreground mt-3">{networkInfo.description}</p>
       </div>
 
-      <div className="glass-card p-10 space-y-8 relative overflow-hidden">
+      <div className="glass-card p-10 space-y-8 relative overflow-hidden border-2 border-red-500/30 shadow-xl">
         {/* "Looking good" floating banner */}
-        <div className="absolute top-4 right-4 bg-green-500/90 text-white px-3 py-1 rounded-full text-sm font-medium flex items-center">
-          <Check className="w-3 h-3 mr-1" /> 
-          Looking Good!
+        <div className="absolute top-4 right-4 bg-green-500/90 text-white px-4 py-2 rounded-full text-sm font-bold flex items-center shadow-lg">
+          <Check className="w-4 h-4 mr-2" /> 
+          Ready to Deploy!
         </div>
       
         <div className="text-center space-y-6 relative z-10">
@@ -213,7 +223,7 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
           <Button 
             variant="outline" 
             size="sm" 
-            className="border-border text-muted-foreground hover:bg-muted hover:text-foreground h-12 rounded-xl text-sm font-semibold"
+            className="border-border text-muted-foreground hover:bg-muted hover:text-foreground h-12 rounded-xl text-sm font-semibold hover:border-red-500/30 hover:shadow-md transition-all"
           >
             <Send className="w-4 h-4 mr-2" />
             Transfer
@@ -223,7 +233,7 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
             <Button 
               variant="outline" 
               size="sm"
-              className="border-border text-muted-foreground hover:bg-muted hover:text-foreground h-12 rounded-xl text-sm font-semibold"
+              className="border-border text-muted-foreground hover:bg-muted hover:text-foreground h-12 rounded-xl text-sm font-semibold hover:border-green-500/30 hover:shadow-md transition-all"
             >
               <Plus className="w-4 h-4 mr-2" />
               Mint
@@ -234,7 +244,7 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
             <Button 
               variant="outline" 
               size="sm" 
-              className="border-border text-muted-foreground hover:bg-muted hover:text-foreground h-12 rounded-xl text-sm font-semibold"
+              className="border-border text-muted-foreground hover:bg-muted hover:text-foreground h-12 rounded-xl text-sm font-semibold hover:border-red-500/30 hover:shadow-md transition-all"
             >
               <Flame className="w-4 h-4 mr-2" />
               Burn
@@ -245,7 +255,7 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
             <Button 
               variant="outline" 
               size="sm" 
-              className="border-border text-muted-foreground hover:bg-muted hover:text-foreground h-12 rounded-xl text-sm font-semibold"
+              className="border-border text-muted-foreground hover:bg-muted hover:text-foreground h-12 rounded-xl text-sm font-semibold hover:border-yellow-500/30 hover:shadow-md transition-all"
             >
               <Pause className="w-4 h-4 mr-2" />
               Pause
@@ -255,19 +265,19 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
           <Button 
             variant="outline" 
             size="sm" 
-            className="border-border text-muted-foreground hover:bg-muted hover:text-foreground h-12 rounded-xl text-sm font-semibold col-span-2"
+            className="border-border text-muted-foreground hover:bg-muted hover:text-foreground h-12 rounded-xl text-sm font-semibold col-span-2 hover:border-blue-500/30 hover:shadow-md transition-all"
           >
             <BarChart3 className="w-4 h-4 mr-2" />
             Analytics
           </Button>
         </div>
 
-        <div className="pt-8 border-t border-border text-center">
-          <div className="p-2 bg-green-500/10 border border-green-500/30 rounded-lg inline-flex items-center space-x-2">
-            <div className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
-              <Check className="w-3 h-3 text-white" />
+        <div className="pt-8 border-t border-border text-center relative">
+          <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-lg inline-flex items-center space-x-3 hover:bg-green-500/20 hover:border-green-500/50 transition-all shadow-sm">
+            <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center shadow-sm">
+              <Check className="w-3 h-3 text-white animate-pulse" />
             </div>
-            <p className="text-sm font-medium text-green-600">
+            <p className="text-base font-medium text-green-600">
               Ready to deploy on {networkInfo.name}
               {network.includes('algorand') && (
                 <span className="ml-1 text-xs opacity-85">
@@ -279,7 +289,7 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
         </div>
       </div>
 
-      <div className="glass-card p-8 space-y-6">
+      <div className="glass-card p-8 space-y-6 shadow-lg">
         <div className="flex items-center space-x-2">
           <div className="w-8 h-8 bg-red-500/10 rounded-full flex items-center justify-center">
             <TrendingUp className="w-5 h-5 text-red-500" />
@@ -288,7 +298,7 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
         </div>
         
         <div className="space-y-4">
-          <div className="flex justify-between items-center p-4 bg-muted/20 rounded-lg">
+          <div className="flex justify-between items-center p-4 bg-muted/20 rounded-lg hover:bg-muted/30 transition-all">
             <span className="text-muted-foreground font-semibold text-base">Network:</span>
             <div className="flex items-center space-x-2">
               <Badge className={`${networkInfo.color} text-xs px-3 py-1 rounded-lg font-semibold`}>
@@ -302,17 +312,17 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
             </div>
           </div>
           
-          <div className="flex justify-between items-center p-4 bg-muted/20 rounded-lg">
+          <div className="flex justify-between items-center p-4 bg-muted/20 rounded-lg hover:bg-muted/30 transition-all">
             <span className="text-muted-foreground font-semibold text-base">Symbol:</span>
             <span className="text-foreground font-bold text-lg">{symbol.toUpperCase() || 'TKN'}</span>
           </div>
           
-          <div className="flex justify-between items-center p-4 bg-muted/20 rounded-lg">
+          <div className="flex justify-between items-center p-4 bg-muted/20 rounded-lg hover:bg-muted/30 transition-all">
             <span className="text-muted-foreground font-semibold text-base">Supply:</span>
             <span className="text-foreground font-bold text-lg">{formatSupply(totalSupply) || '0'}</span>
           </div>
           
-          <div className="flex justify-between items-center p-4 bg-muted/20 rounded-lg">
+          <div className="flex justify-between items-center p-4 bg-muted/20 rounded-lg hover:bg-muted/30 transition-all">
             <span className="text-muted-foreground font-semibold text-base">Decimals:</span>
             <span className="text-foreground font-bold text-lg">{decimals || '9'}</span>
           </div>
@@ -322,22 +332,22 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
           <div className="pt-6 border-t border-border">
             <p className="text-muted-foreground font-bold mb-4 text-lg">Smart Contract Features</p>
             <div className="flex flex-wrap gap-3">
-              <Badge className={`text-base px-4 py-2 rounded-lg font-bold ${mintable 
-                ? 'bg-green-500/20 text-green-400 border-green-500/30' 
+              <Badge className={`text-base px-4 py-2 rounded-lg font-bold transition-all ${mintable 
+                ? 'bg-green-500/20 text-green-400 border-green-500/30 hover:bg-green-500/30' 
                 : 'bg-muted/50 text-muted-foreground border-muted/80'}`}>
                 <Plus className="w-3 h-3 mr-1" />
                 Mintable {mintable ? '✓' : '✗'}
               </Badge>
               
-              <Badge className={`text-base px-4 py-2 rounded-lg font-bold ${burnable 
-                ? 'bg-red-500/20 text-red-400 border-red-500/30' 
+              <Badge className={`text-base px-4 py-2 rounded-lg font-bold transition-all ${burnable 
+                ? 'bg-red-500/20 text-red-400 border-red-500/30 hover:bg-red-500/30' 
                 : 'bg-muted/50 text-muted-foreground border-muted/80'}`}>
                 <Flame className="w-3 h-3 mr-1" />
                 Burnable {burnable ? '✓' : '✗'}
               </Badge>
               
-              <Badge className={`text-base px-4 py-2 rounded-lg font-bold ${pausable 
-                ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' 
+              <Badge className={`text-base px-4 py-2 rounded-lg font-bold transition-all ${pausable 
+                ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30 hover:bg-yellow-500/30' 
                 : 'bg-muted/50 text-muted-foreground border-muted/80'}`}>
                 <Pause className="w-3 h-3 mr-1" />
                 Pausable {pausable ? '✓' : '✗'}
@@ -347,9 +357,9 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
         )}
         
         <div className="pt-4 flex justify-center">
-          <div className="flex items-center space-x-2 p-2 bg-muted/30 rounded-lg text-sm text-muted-foreground">
+          <div className="flex items-center space-x-2 p-3 bg-muted/30 rounded-lg text-sm text-muted-foreground border border-muted">
             <Wallet className="w-4 h-4" />
-            <span>Managed with your blockchain wallet</span>
+            <span>Fully decentralized - managed with your blockchain wallet</span>
           </div>
         </div>
       </div>

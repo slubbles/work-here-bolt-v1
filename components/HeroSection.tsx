@@ -64,7 +64,7 @@ export default function HeroSection() {
             </div>
             
             {/* Subheadline */}
-            <p className="text-xl lg:text-2xl text-muted-foreground leading-relaxed max-w-2xl">
+            <p className="text-xl lg:text-2xl text-muted-foreground leading-relaxed max-w-3xl">
               Join thousands of creators who've already launched successful tokens. 
               <span className="text-foreground font-semibold"> No coding, no complexity</span>—just your vision brought to life.
             </p>
@@ -94,7 +94,7 @@ export default function HeroSection() {
                   className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-8 py-4 text-lg font-semibold w-full sm:w-auto shadow-xl hover:shadow-2xl group rounded-xl button-enhanced transform hover:scale-105 transition-all duration-300 relative z-10"
                   style={{
                     background: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
-                    boxShadow: '0 10px 30px rgba(239, 68, 68, 0.4), 0 0 0 1px rgba(239, 68, 68, 0.1)',
+                    boxShadow: '0 10px 30px rgba(239, 68, 68, 0.4), 0 0 0 1px rgba(239, 68, 68, 0.2)',
                     border: '1px solid rgba(239, 68, 68, 0.3)'
                   }}
                 >

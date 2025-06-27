@@ -38,32 +38,34 @@ export default function CreateTokenPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Page Header */}
         <div className="text-center mb-8">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4">Create Your Token</h1>
+          <h1 className="text-4xl md:text-5xl font-bold mb-4">
+            Create Your Token <span className="text-red-500">Instantly</span>
+          </h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Design and deploy your cryptocurrency token in minutes
+            Design and deploy your cryptocurrency token in just minutes - no coding required
           </p>
         </div>
         
         {showTips && (
-          <div className="mb-8 glass-card p-4 border-blue-500/30">
-            <div className="flex items-center space-x-3">
-              <div className="flex-shrink-0 w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center">
-                <Zap className="w-6 h-6 text-blue-500" />
+          <div className="mb-8 glass-card p-6 border-blue-500/30 hover:border-blue-500/50 transition-all">
+            <div className="flex items-center space-x-4">
+              <div className="flex-shrink-0 w-14 h-14 bg-blue-500/20 rounded-full flex items-center justify-center">
+                <Zap className="w-7 h-7 text-blue-500" />
               </div>
               <div className="flex-1">
-                <h3 className="font-semibold text-lg">Quick Tips</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-2">
+                <h3 className="font-semibold text-xl mb-2">Quick Tips for Success</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-3">
                   <div className="flex items-start space-x-2">
                     <CheckCircle className="w-4 h-4 text-green-500 mt-0.5" />
-                    <span className="text-sm text-muted-foreground">Complete each step in order</span>
+                    <span className="text-base text-muted-foreground">Complete each step in order</span>
                   </div>
                   <div className="flex items-start space-x-2">
                     <CheckCircle className="w-4 h-4 text-green-500 mt-0.5" />
-                    <span className="text-sm text-muted-foreground">Preview updates in real-time</span>
+                    <span className="text-base text-muted-foreground">Preview updates in real-time</span>
                   </div>
                   <div className="flex items-start space-x-2">
                     <CheckCircle className="w-4 h-4 text-green-500 mt-0.5" />
-                    <span className="text-sm text-muted-foreground">Connect wallet before deploying</span>
+                    <span className="text-base text-muted-foreground">Connect wallet before deploying</span>
                   </div>
                 </div>
               </div>
@@ -71,14 +73,14 @@ export default function CreateTokenPage() {
           </div>
         )}
         
-        <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 lg:gap-12">
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 lg:gap-16">
           <div className="order-2 xl:order-1">
-            <div className="xl:col-span-7">
+            <div className="xl:col-span-7 xl:pr-4">
               <TokenForm tokenData={tokenData} setTokenData={setTokenData} />
             </div>
           </div>
           <div className="order-1 xl:order-2">
-            <div className="xl:col-span-5">
+            <div className="xl:col-span-5 xl:pl-4">
               <TokenPreview tokenData={tokenData} />
             </div>
           </div>
