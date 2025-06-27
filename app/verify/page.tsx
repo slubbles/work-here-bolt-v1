@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   Search,
@@ -199,103 +199,104 @@ export default function VerifyPage() {
         {/* Search Section */}
         <div className="max-w-2xl mx-auto mb-12">
           <Card className="glass-card shadow-2xl border-2 border-red-500/20">
-          <CardHeader>
-            <CardTitle className="flex items-center justify-center space-x-3 text-2xl">
-              <div className="w-12 h-12 bg-red-500/10 rounded-full flex items-center justify-center">
-                <Search className="w-6 h-6 text-red-500" />
+            <CardHeader>
+              <CardTitle className="flex items-center justify-center space-x-3 text-2xl">
+                <div className="w-12 h-12 bg-red-500/10 rounded-full flex items-center justify-center">
+                  <Search className="w-6 h-6 text-red-500" />
+                </div>
+                <span>Verify Token Security</span>
+              </CardTitle>
+              <CardDescription className="text-center text-lg">
+                Enter a token address or Asset ID to verify its authenticity and security status
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-8">
+              {/* Network Selection */}
+              <div className="space-y-2">
+                <Label className="text-base font-semibold">Select Network</Label>
+                <Select value={selectedNetwork} onValueChange={setSelectedNetwork}>
+                  <SelectTrigger className="input-enhanced h-14 text-lg">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {networks.map((network) => (
+                      <SelectItem 
+                        key={network.value} 
+                        value={network.value}
+                        disabled={!network.available}
+                      >
+                        <div className="flex items-center justify-between w-full">
+                          <span>{network.label}</span>
+                          {network.comingSoon && (
+                            <Badge className="ml-2 bg-yellow-500/20 text-yellow-600 border-yellow-500/30 text-xs">
+                              Coming Soon
+                            </Badge>
+                          )}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-              <span>Verify Token Security</span>
-            </CardTitle>
-            <CardDescription className="text-center text-lg">
-              Enter a token address or Asset ID to verify its authenticity and security status
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-8">
-            {/* Network Selection */}
-            <div className="space-y-2">
-              <Label className="text-base font-semibold">Select Network</Label>
-              <Select value={selectedNetwork} onValueChange={setSelectedNetwork}>
-                <SelectTrigger className="input-enhanced h-14 text-lg">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {networks.map((network) => (
-                    <SelectItem 
-                      key={network.value} 
-                      value={network.value}
-                      disabled={!network.available}
-                    >
-                      <div className="flex items-center justify-between w-full">
-                        <span>{network.label}</span>
-                        {network.comingSoon && (
-                          <Badge className="ml-2 bg-yellow-500/20 text-yellow-600 border-yellow-500/30 text-xs">
-                            Coming Soon
-                          </Badge>
-                        )}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
 
-            {/* Address Input */}
-            <div className="space-y-2">
-              <Label htmlFor="tokenAddress" className="text-base font-semibold">
-                {selectedNetwork.startsWith('algorand') ? 'Asset ID' : 'Token Address'}
-              </Label>
-              <Input
-                id="tokenAddress"
-                placeholder={
-                  selectedNetwork.startsWith('algorand') 
-                    ? "Enter Algorand Asset ID (e.g., 31566704)"
-                    : "Enter token mint address"
-                }
-                value={searchAddress}
-                onChange={(e) => setSearchAddress(e.target.value)}
-                className="input-enhanced h-14 text-lg"
-              />
-              <p className="text-xs text-muted-foreground">
-                {selectedNetwork.startsWith('algorand') 
-                  ? "Asset ID is a number that uniquely identifies an Algorand Standard Asset"
-                  : "Token mint address is the unique identifier for a Solana token"
-                }
-              </p>
-            </div>
+              {/* Address Input */}
+              <div className="space-y-2">
+                <Label htmlFor="tokenAddress" className="text-base font-semibold">
+                  {selectedNetwork.startsWith('algorand') ? 'Asset ID' : 'Token Address'}
+                </Label>
+                <Input
+                  id="tokenAddress"
+                  placeholder={
+                    selectedNetwork.startsWith('algorand') 
+                      ? "Enter Algorand Asset ID (e.g., 31566704)"
+                      : "Enter token mint address"
+                  }
+                  value={searchAddress}
+                  onChange={(e) => setSearchAddress(e.target.value)}
+                  className="input-enhanced h-14 text-lg"
+                />
+                <p className="text-xs text-muted-foreground">
+                  {selectedNetwork.startsWith('algorand') 
+                    ? "Asset ID is a number that uniquely identifies an Algorand Standard Asset"
+                    : "Token mint address is the unique identifier for a Solana token"
+                  }
+                </p>
+              </div>
 
-            <Button 
-              onClick={handleVerify}
-              disabled={isLoading || !networks.find(n => n.value === selectedNetwork)?.available}
-              className="w-full bg-red-500 hover:bg-red-600 text-white h-16 text-lg font-bold shadow-xl hover:shadow-2xl transition-all transform hover:scale-105"
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Verifying on {networks.find(n => n.value === selectedNetwork)?.label}...
-                </>
-              ) : (
-                <>
-                  <Search className="w-4 h-4 mr-2" />
-                  Verify Token
-                </>
+              <Button 
+                onClick={handleVerify}
+                disabled={isLoading || !networks.find(n => n.value === selectedNetwork)?.available}
+                className="w-full bg-red-500 hover:bg-red-600 text-white h-16 text-lg font-bold shadow-xl hover:shadow-2xl transition-all transform hover:scale-105"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Verifying on {networks.find(n => n.value === selectedNetwork)?.label}...
+                  </>
+                ) : (
+                  <>
+                    <Search className="w-4 h-4 mr-2" />
+                    Verify Token
+                  </>
+                )}
+              </Button>
+
+              {error && (
+                <div className="flex items-start space-x-2 p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
+                  <AlertTriangle className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
+                  <span className="text-red-600 text-sm">{error}</span>
+                </div>
               )}
-            </Button>
-
-            {error && (
-              <div className="flex items-start space-x-2 p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
-                <AlertTriangle className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
-                <span className="text-red-600 text-sm">{error}</span>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
         </div>
-            {/* Enhanced Progress Indicator */}
-            {isLoading && (
-              <div className="max-w-2xl mx-auto mb-8">
-                <Card className="glass-card">
-                  <CardContent className="p-6">
-                <div className="space-y-2">
+
+        {/* Enhanced Progress Indicator */}
+        {isLoading && (
+          <div className="max-w-2xl mx-auto mb-8">
+            <Card className="glass-card">
+              <CardContent className="p-6">
+                <div className="space-y-4">
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Verification Progress</span>
                     <span className="text-foreground font-semibold">{verificationProgress}%</span>
@@ -306,188 +307,186 @@ export default function VerifyPage() {
                       style={{ width: `${verificationProgress}%` }}
                     />
                   </div>
+                  <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>{currentVerificationStep}</span>
+                  </div>
                 </div>
-                <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>{currentVerificationStep}</span>
-                </div>
-              </div>
-                  </CardContent>
-                </Card>
-              </div>
-            )}
-
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         {/* Network Info */}
         <div className="max-w-4xl mx-auto mb-12">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {networks.map((network) => (
-            <Card 
-              key={network.value}
-              className={`glass-card transition-all duration-300 ${
-                selectedNetwork === network.value ? 'ring-2 ring-red-500/50' : ''
-              } ${!network.available ? 'opacity-60' : 'hover:scale-105 cursor-pointer'}`}
-              onClick={() => network.available && setSelectedNetwork(network.value)}
-            >
-              <CardContent className="p-6 text-center">
-                <h3 className="font-semibold text-foreground mb-2">{network.label}</h3>
-                {network.available ? (
-                  <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
-                    Available
-                  </Badge>
-                ) : (
-                  <Badge className="bg-yellow-500/20 text-yellow-600 border-yellow-500/30">
-                    Coming Soon
-                  </Badge>
-                )}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+            {networks.map((network) => (
+              <Card 
+                key={network.value}
+                className={`glass-card transition-all duration-300 ${
+                  selectedNetwork === network.value ? 'ring-2 ring-red-500/50' : ''
+                } ${!network.available ? 'opacity-60' : 'hover:scale-105 cursor-pointer'}`}
+                onClick={() => network.available && setSelectedNetwork(network.value)}
+              >
+                <CardContent className="p-6 text-center">
+                  <h3 className="font-semibold text-foreground mb-2">{network.label}</h3>
+                  {network.available ? (
+                    <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
+                      Available
+                    </Badge>
+                  ) : (
+                    <Badge className="bg-yellow-500/20 text-yellow-600 border-yellow-500/30">
+                      Coming Soon
+                    </Badge>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </div>
 
         {/* Verification Results */}
         {verificationResult && (
           <div className="max-w-4xl mx-auto mb-12">
-          <Card className="glass-card">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center space-x-2">
-                  {verificationResult.verified ? (
-                    <CheckCircle className="w-6 h-6 text-green-500" />
-                  ) : (
-                    <AlertTriangle className="w-6 h-6 text-yellow-500" />
-                  )}
-                  <span>Verification Results</span>
-                </CardTitle>
-                <div className="flex space-x-2">
-                  <Badge className={`${
-                    verificationResult.securityScore >= 80 
-                      ? 'bg-green-500/20 text-green-400 border-green-500/30'
-                      : verificationResult.securityScore >= 60
-                      ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
-                      : 'bg-red-500/20 text-red-400 border-red-500/30'
-                  }`}>
-                    Security Score: {verificationResult.securityScore}
-                  </Badge>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => window.open(verificationResult.explorerUrl, '_blank')}
-                  >
-                    <ExternalLink className="w-4 h-4 mr-2" />
-                    View on Explorer
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={shareVerification}
-                  >
-                    <Share2 className="w-4 h-4 mr-2" />
-                    Share
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                {/* Basic Token Info */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-sm font-medium text-muted-foreground">Token Name</Label>
-                    <p className="text-foreground font-semibold text-lg">{verificationResult.name}</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium text-muted-foreground">Symbol</Label>
-                    <p className="text-foreground font-semibold text-lg">{verificationResult.symbol}</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium text-muted-foreground">Network</Label>
-                    <Badge className={
-                      verificationResult.network === 'algorand-mainnet'
-                        ? 'bg-[#00d4aa]/20 text-[#00d4aa] border-[#00d4aa]/30'
-                        : 'bg-[#76f935]/20 text-[#76f935] border-[#76f935]/30'
-                    }>
-                      {verificationResult.network === 'algorand-mainnet' ? 'Algorand MainNet' : 'Algorand TestNet'}
+            <Card className="glass-card">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center space-x-2">
+                    {verificationResult.verified ? (
+                      <CheckCircle className="w-6 h-6 text-green-500" />
+                    ) : (
+                      <AlertTriangle className="w-6 h-6 text-yellow-500" />
+                    )}
+                    <span>Verification Results</span>
+                  </CardTitle>
+                  <div className="flex space-x-2">
+                    <Badge className={`${
+                      verificationResult.securityScore >= 80 
+                        ? 'bg-green-500/20 text-green-400 border-green-500/30'
+                        : verificationResult.securityScore >= 60
+                        ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
+                        : 'bg-red-500/20 text-red-400 border-red-500/30'
+                    }`}>
+                      Security Score: {verificationResult.securityScore}
                     </Badge>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium text-muted-foreground">
-                      {verificationResult.assetId ? 'Asset ID' : 'Address'}
-                    </Label>
-                    <p className="text-foreground font-mono text-sm">
-                      {verificationResult.assetId || verificationResult.mintAddress}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Token Metrics */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="text-center p-4 bg-muted/30 rounded-lg">
-                    <Label className="text-sm font-medium text-muted-foreground">Total Supply</Label>
-                    <p className="text-foreground font-bold text-xl">{verificationResult.totalSupply}</p>
-                  </div>
-                  <div className="text-center p-4 bg-muted/30 rounded-lg">
-                    <Label className="text-sm font-medium text-muted-foreground">Holders</Label>
-                    <p className="text-foreground font-bold text-xl">{verificationResult.holders.toLocaleString()}</p>
-                  </div>
-                  <div className="text-center p-4 bg-muted/30 rounded-lg">
-                    <Label className="text-sm font-medium text-muted-foreground">Decimals</Label>
-                    <p className="text-foreground font-bold text-xl">{verificationResult.decimals}</p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => window.open(verificationResult.explorerUrl, '_blank')}
+                    >
+                      <ExternalLink className="w-4 h-4 mr-2" />
+                      View on Explorer
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={shareVerification}
+                    >
+                      <Share2 className="w-4 h-4 mr-2" />
+                      Share
+                    </Button>
                   </div>
                 </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  {/* Basic Token Info */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-sm font-medium text-muted-foreground">Token Name</Label>
+                      <p className="text-foreground font-semibold text-lg">{verificationResult.name}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-muted-foreground">Symbol</Label>
+                      <p className="text-foreground font-semibold text-lg">{verificationResult.symbol}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-muted-foreground">Network</Label>
+                      <Badge className={
+                        verificationResult.network === 'algorand-mainnet'
+                          ? 'bg-[#00d4aa]/20 text-[#00d4aa] border-[#00d4aa]/30'
+                          : 'bg-[#76f935]/20 text-[#76f935] border-[#76f935]/30'
+                      }>
+                        {verificationResult.network === 'algorand-mainnet' ? 'Algorand MainNet' : 'Algorand TestNet'}
+                      </Badge>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-muted-foreground">
+                        {verificationResult.assetId ? 'Asset ID' : 'Address'}
+                      </Label>
+                      <p className="text-foreground font-mono text-sm">
+                        {verificationResult.assetId || verificationResult.mintAddress}
+                      </p>
+                    </div>
+                  </div>
 
-                {/* Algorand Specific Info */}
-                {verificationResult.network.startsWith('algorand') && (
-                  <div className="space-y-4">
-                    <h4 className="text-lg font-semibold text-foreground">Algorand Asset Details</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {verificationResult.creator && (
-                        <div>
-                          <Label className="text-sm font-medium text-muted-foreground">Creator</Label>
-                          <p className="text-foreground font-mono text-sm break-all">
-                            {verificationResult.creator}
+                  {/* Token Metrics */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="text-center p-4 bg-muted/30 rounded-lg">
+                      <Label className="text-sm font-medium text-muted-foreground">Total Supply</Label>
+                      <p className="text-foreground font-bold text-xl">{verificationResult.totalSupply}</p>
+                    </div>
+                    <div className="text-center p-4 bg-muted/30 rounded-lg">
+                      <Label className="text-sm font-medium text-muted-foreground">Holders</Label>
+                      <p className="text-foreground font-bold text-xl">{verificationResult.holders.toLocaleString()}</p>
+                    </div>
+                    <div className="text-center p-4 bg-muted/30 rounded-lg">
+                      <Label className="text-sm font-medium text-muted-foreground">Decimals</Label>
+                      <p className="text-foreground font-bold text-xl">{verificationResult.decimals}</p>
+                    </div>
+                  </div>
+
+                  {/* Algorand Specific Info */}
+                  {verificationResult.network.startsWith('algorand') && (
+                    <div className="space-y-4">
+                      <h4 className="text-lg font-semibold text-foreground">Algorand Asset Details</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {verificationResult.creator && (
+                          <div>
+                            <Label className="text-sm font-medium text-muted-foreground">Creator</Label>
+                            <p className="text-foreground font-mono text-sm break-all">
+                              {verificationResult.creator}
+                            </p>
+                          </div>
+                        )}
+                        {verificationResult.manager && (
+                          <div>
+                            <Label className="text-sm font-medium text-muted-foreground">Manager</Label>
+                            <p className="text-foreground font-mono text-sm break-all">
+                              {verificationResult.manager}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Verification Status */}
+                  <div className="border-t border-border pt-4">
+                    <Label className="text-sm font-medium text-muted-foreground">Verification Status</Label>
+                    <div className="flex items-center space-x-2 mt-2">
+                      {verificationResult.verified ? (
+                        <>
+                          <CheckCircle className="w-5 h-5 text-green-500" />
+                          <span className="text-green-500 font-medium">Verified Token</span>
+                          <p className="text-muted-foreground text-sm ml-2">
+                            This token was found on the blockchain and appears to be legitimate.
                           </p>
-                        </div>
-                      )}
-                      {verificationResult.manager && (
-                        <div>
-                          <Label className="text-sm font-medium text-muted-foreground">Manager</Label>
-                          <p className="text-foreground font-mono text-sm break-all">
-                            {verificationResult.manager}
+                        </>
+                      ) : (
+                        <>
+                          <AlertTriangle className="w-5 h-5 text-yellow-500" />
+                          <span className="text-yellow-500 font-medium">Unverified Token</span>
+                          <p className="text-muted-foreground text-sm ml-2">
+                            This token could not be verified. Exercise caution.
                           </p>
-                        </div>
+                        </>
                       )}
                     </div>
                   </div>
-                )}
-                
-                {/* Verification Status */}
-                <div className="border-t border-border pt-4">
-                  <Label className="text-sm font-medium text-muted-foreground">Verification Status</Label>
-                  <div className="flex items-center space-x-2 mt-2">
-                    {verificationResult.verified ? (
-                      <>
-                        <CheckCircle className="w-5 h-5 text-green-500" />
-                        <span className="text-green-500 font-medium">Verified Token</span>
-                        <p className="text-muted-foreground text-sm ml-2">
-                          This token was found on the blockchain and appears to be legitimate.
-                        </p>
-                      </>
-                    ) : (
-                      <>
-                        <AlertTriangle className="w-5 h-5 text-yellow-500" />
-                        <span className="text-yellow-500 font-medium">Unverified Token</span>
-                        <p className="text-muted-foreground text-sm ml-2">
-                          This token could not be verified. Exercise caution.
-                        </p>
-                      </>
-                    )}
-                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
           </div>
         )}
 
