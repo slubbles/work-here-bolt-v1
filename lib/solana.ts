@@ -456,7 +456,11 @@ export const IDL: Idl = {
 };
 
 // Connection instance
-export const connection = new Connection(NETWORK_ENDPOINT, 'confirmed');
+export const connection = new Connection(NETWORK_ENDPOINT, {
+  commitment: 'confirmed',
+  disableRetryOnRateLimit: false,
+  confirmTransactionInitialTimeout: 60000 // 60 seconds
+});
 
 // Get program instance
 export function getProgram(wallet: any) {
@@ -713,30 +717,30 @@ export async function initializePlatform(wallet: any, creationFee: number = 0) {
 // Token creation function with improved error handling
 export async function createTokenOnChain(
   wallet: any,
-  tokenData: {
-    name: string;
-    symbol: string;
-    description: string;
-    decimals: number;
-    totalSupply: number;
-    logoUrl: string;
-    website?: string;
-    github?: string;
-    twitter?: string;
-    mintable: boolean;
-    burnable: boolean;
-    pausable: boolean;
-  }
+  tokenData: any
 ) {
+  console.log('🚀 Starting Solana token creation with wallet:', wallet?.publicKey?.toString());
+  console.log('Token data:', tokenData);
+
   try {
     // First check if platform is initialized
     const platformState = await getPlatformState();
     if (!platformState.success) {
+      console.error('Platform not initialized:', platformState.error);
       return {
         success: false,
         error: 'Platform not initialized. Please contact the administrator to initialize the platform first.',
       };
     }
+
+    if (!wallet || !wallet.publicKey) {
+      return {
+        success: false,
+        error: 'Wallet not connected properly'
+      };
+    }
+
+    console.log('✅ Platform is initialized, proceeding with token creation');
 
     const program = getProgram(wallet);
     
@@ -752,6 +756,65 @@ export async function createTokenOnChain(
       mintKeypair.publicKey,
       wallet.publicKey
     );
+    
+    // Check SOL balance
+    const balance = await connection.getBalance(wallet.publicKey);
+    console.log(`💰 Wallet balance: ${balance / LAMPORTS_PER_SOL} SOL`);
+    
+    if (balance < 0.01 * LAMPORTS_PER_SOL) {
+      return {
+        success: false,
+        error: 'Insufficient SOL balance. You need at least 0.01 SOL for transaction fees.'
+      };
+    }
+    
+    // Validate inputs
+    if (!tokenData.name || tokenData.name.length > 32) {
+      return {
+        success: false,
+        error: 'Token name must be 1-32 characters'
+      };
+    }
+    
+    if (!tokenData.symbol || tokenData.symbol.length > 10) {
+      return {
+        success: false,
+        error: 'Token symbol must be 1-10 characters'
+      };
+    }
+    
+    if (tokenData.description && tokenData.description.length > 200) {
+      return {
+        success: false,
+        error: 'Description must be 200 characters or less'
+      };
+    }
+    
+    // Ensure decimals is a valid number
+    const decimals = parseInt(tokenData.decimals);
+    if (isNaN(decimals) || decimals < 0 || decimals > 9) {
+      return {
+        success: false,
+        error: 'Decimals must be a number between 0 and 9'
+      };
+    }
+    
+    // Ensure totalSupply is a valid number
+    let totalSupply = 0;
+    try {
+      totalSupply = parseFloat(tokenData.totalSupply);
+      if (isNaN(totalSupply) || totalSupply <= 0) {
+        return {
+          success: false,
+          error: 'Total supply must be a positive number'
+        };
+      }
+    } catch (e) {
+      return {
+        success: false,
+        error: 'Invalid total supply format'
+      };
+    }
     
     // Prepare metadata
     const metadata = {
@@ -777,9 +840,9 @@ export async function createTokenOnChain(
       .createToken(
         tokenData.name,
         tokenData.symbol,
-        tokenData.description,
-        tokenData.decimals,
-        new BN(tokenData.totalSupply * Math.pow(10, tokenData.decimals)),
+        tokenData.description || '',
+        decimals,
+        new BN(totalSupply * Math.pow(10, decimals)),
         metadata,
         features
       )
@@ -796,6 +859,8 @@ export async function createTokenOnChain(
       })
       .signers([tokenKeypair, mintKeypair])
       .rpc();
+    
+    console.log('✅ Token created successfully! Transaction:', tx);
     
     return {
       success: true,
@@ -826,7 +891,11 @@ export async function createTokenOnChain(
       } else if (error.message.includes('InvalidDecimals')) {
         errorMessage = 'Invalid decimals (must be 6 or 9)';
       } else if (error.message.includes('insufficient funds')) {
-        errorMessage = 'Insufficient SOL balance for transaction fees';
+        errorMessage = 'Insufficient SOL balance for transaction fees. You need at least 0.01 SOL.';
+      } else if (error.message.includes('Transaction simulation failed')) {
+        errorMessage = 'Transaction simulation failed. Please check wallet connection and try again.';
+      } else if (error.message.includes('User rejected')) {
+        errorMessage = 'Transaction was rejected by the wallet. Please approve the transaction.';
       } else {
         errorMessage = error.message;
       }
