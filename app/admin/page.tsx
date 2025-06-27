@@ -11,7 +11,6 @@ import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { initializePlatform, getPlatformState, ADMIN_WALLET } from '@/lib/solana';
 import { AlertTriangle, CheckCircle, Settings, Loader2, Shield, Wallet, ArrowLeft, Rocket, BarChart3 } from 'lucide-react';
 import Link from 'next/link';
-import { toast } from '@/hooks/use-toast';
 
 export default function AdminPage() {
   const [creationFee, setCreationFee] = useState('0');
@@ -36,18 +35,8 @@ export default function AdminPage() {
     }
 
     setIsCheckingState(true);
-    setError('');
-
-    try {
-      const result = await getPlatformState();
-      if (result.success) {
-        setStateInfo(result.data);
         setError('');
-        toast({
-          title: "✅ Platform Status Retrieved",
-          description: "Platform is properly initialized and ready for token creation.",
-          duration: 4000,
-        });
+        alert("Platform is properly initialized and ready for token creation.");
       } else {
         setStateInfo(null);
         setError(result.error || 'Platform not yet initialized');
@@ -61,11 +50,6 @@ export default function AdminPage() {
     } catch (err) {
       setStateInfo(null);
       setError('Platform not yet initialized - this is normal for a new deployment');
-      toast({
-        title: "ℹ️ Platform Setup Required",
-        description: "This appears to be a new platform deployment. Initialize it below to enable token creation.",
-        duration: 5000,
-      });
     } finally {
       setIsCheckingState(false);
     }
@@ -80,12 +64,7 @@ export default function AdminPage() {
     // Check if user is admin
     if (publicKey.toString() !== ADMIN_WALLET.toString()) {
       setError(`❌ Admin access required. Only the designated admin wallet can initialize the platform.`);
-      toast({
-        title: "🚫 Unauthorized Action",
-        description: "Platform initialization requires the admin wallet. Please connect the correct wallet.",
-        variant: "destructive",
-        duration: 6000,
-      });
+      alert("Platform initialization requires the admin wallet. Please connect the correct wallet.");
       return;
     }
 
@@ -100,11 +79,7 @@ export default function AdminPage() {
       if (result.success) {
         setInitResult(result);
         setError('');
-        toast({
-          title: "🎉 Platform Initialized Successfully!",
-          description: `Platform is now ready for token creation. Creation fee set to ${creationFee} SOL.`,
-          duration: 6000,
-        });
+        alert(`Platform initialized successfully! Creation fee set to ${creationFee} SOL.`);
         // Check state after successful initialization
         setTimeout(() => {
           checkPlatformState();
@@ -112,27 +87,17 @@ export default function AdminPage() {
       } else {
         const errorMsg = result.error || 'Failed to initialize platform';
         setError(errorMsg);
-        toast({
-          title: "❌ Initialization Failed",
-          description: errorMsg.includes('insufficient') 
-            ? "Not enough SOL in your wallet. Add SOL and try again."
-            : `${errorMsg}. Please check the error details and try again.`,
-          variant: "destructive",
-          duration: 8000,
-        });
+        alert(errorMsg.includes('insufficient') 
+          ? "Not enough SOL in your wallet. Add SOL and try again."
+          : `Initialization failed: ${errorMsg}. Please check the error details and try again.`);
       }
     } catch (err) {
       console.error('Initialization error:', err);
       const errorMsg = err instanceof Error ? err.message : 'Failed to initialize platform';
       setError(errorMsg);
-      toast({
-        title: "❌ Initialization Error",
-        description: errorMsg.includes('insufficient') 
-          ? "Insufficient SOL balance. Please add SOL to your wallet and try again."
-          : `Unexpected error: ${errorMsg}. Please try again or contact support.`,
-        variant: "destructive",
-        duration: 8000,
-      });
+      alert(errorMsg.includes('insufficient') 
+        ? "Insufficient SOL balance. Please add SOL to your wallet and try again."
+        : `Unexpected error: ${errorMsg}. Please try again or contact support.`);
     } finally {
       setIsInitializing(false);
     }
