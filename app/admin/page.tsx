@@ -35,6 +35,12 @@ export default function AdminPage() {
     }
 
     setIsCheckingState(true);
+    setError('');
+    try {
+      const result = await getPlatformState();
+      
+      if (result.success) {
+        setStateInfo(result.data);
         setError('');
         alert("Platform is properly initialized and ready for token creation.");
       } else {
