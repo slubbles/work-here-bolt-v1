@@ -229,7 +229,14 @@ Visit: https://snarbles.xyz for more information
   const generatePDFReport = async () => {
     try {
       // Dynamic import to avoid SSR issues
-      const jsPDF = (await import('jspdf')).default;
+      // First check if we're in a browser environment
+      if (typeof window === 'undefined') {
+        console.error('PDF generation requires browser environment');
+        return generateDetailedReport(); // Fallback to text report
+      }
+
+      // Use require instead of dynamic import for better compatibility
+      const jsPDF = require('jspdf').default;
       
       const doc = new jsPDF();
       const pageWidth = doc.internal.pageSize.width;
@@ -308,7 +315,10 @@ Visit: https://snarbles.xyz for more information
     } catch (error) {
       console.error('Error generating PDF:', error);
       // Fallback to text report
-      generateDetailedReport();
+      alert('PDF generation failed. Generating text report instead.');
+      setTimeout(() => {
+        generateDetailedReport();
+      }, 500);
     }
   };
 

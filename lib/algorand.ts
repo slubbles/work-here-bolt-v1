@@ -1,4 +1,5 @@
 import algosdk from 'algosdk';
+import { supabaseHelpers } from '@/lib/supabase';
 
 // Algorand network configurations
 export const ALGORAND_NETWORKS = {
@@ -543,3 +544,6 @@ export function microAlgosToAlgos(microAlgos: number): number {
 export function algosToMicroAlgos(algos: number): number {
   return algos * 1000000;
 }
+
+// Re-export supabaseHelpers for TokenForm
+export { supabaseHelpers };
