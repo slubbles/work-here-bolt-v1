@@ -88,12 +88,27 @@ export default function SolanaDashboard() {
       const walletAddress = publicKey.toString();
       console.log(`📊 Fetching dashboard data for: ${walletAddress}`);
       
+      // Add timeout to prevent hanging
+      const timeout = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Request timeout')), 30000)
+      );
+      
       // Fetch all data in parallel
+      const [tokensResult, transactionsResult, summaryResult] = await Promise.race([
+        Promise.all([
+          getEnhancedTokenInfo(walletAddress),
+          getWalletTransactionHistory(walletAddress, 20),
+          getWalletSummary(walletAddress)
+        ]),
+        timeout
+      ]) as any;
+      
+      /* Original code:
       const [tokensResult, transactionsResult, summaryResult] = await Promise.all([
         getEnhancedTokenInfo(walletAddress),
         getWalletTransactionHistory(walletAddress, 20),
         getWalletSummary(walletAddress)
-      ]);
+      ]);*/
       
       // Handle tokens data
       if (tokensResult.success && tokensResult.data) {
@@ -124,7 +139,16 @@ export default function SolanaDashboard() {
       
     } catch (err) {
       console.error('❌ Error fetching dashboard data:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Failed to load dashboard data';
+      let errorMessage = 'Failed to load dashboard data';
+      if (err instanceof Error) {
+        if (err.message.includes('timeout')) {
+          errorMessage = 'Request timed out. Please check your connection and try again.';
+        } else if (err.message.includes('network')) {
+          errorMessage = 'Network error. Please check your connection.';
+        } else {
+          errorMessage = err.message;
+        }
+      }
       setError(errorMessage);
     } finally {
       setIsLoading(false);

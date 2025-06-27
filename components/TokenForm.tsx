@@ -54,6 +54,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
   const [deploymentResult, setDeploymentResult] = useState<any>(null);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [error, setError] = useState('');
 
   // Wallet connections
   const { connected: solanaConnected, publicKey: solanaPublicKey, wallet: solanaWallet } = useWallet();
@@ -368,6 +369,16 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
                 ))}
               </ul>
             </div>
+          </AlertDescription>
+        </Alert>
+      )}
+        
+      {/* General Error Display */}
+      {error && !validationErrors.length && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            <p className="font-semibold text-red-600">{error}</p>
           </AlertDescription>
         </Alert>
       )}

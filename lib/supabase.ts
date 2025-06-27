@@ -71,13 +71,16 @@ export const supabaseHelpers = {
     try {
       const metadataJson = JSON.stringify(metadata, null, 2);
       
+      console.log('📦 Attempting fallback metadata storage...');
+      
       // Try GitHub Gist (most reliable)
       try {
+        console.log('🔄 Trying GitHub Gist...');
         const gistResponse = await fetch('https://api.github.com/gists', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            description: 'Token Metadata',
+            description: `Token Metadata - ${metadata.name || 'Unnamed Token'}`,
             public: true,
             files: { 'metadata.json': { content: metadataJson } }
           })
@@ -86,14 +89,37 @@ export const supabaseHelpers = {
         if (gistResponse.ok) {
           const gistResult = await gistResponse.json();
           const gistUrl = `https://gist.githubusercontent.com/anonymous/${gistResult.id}/raw/metadata.json`;
-          console.log('✅ GitHub Gist upload successful');
+          console.log('✅ GitHub Gist upload successful:', gistUrl);
           return { success: true, url: gistUrl };
         }
       } catch (gistError) {
-        console.warn('GitHub Gist failed:', gistError);
+        console.warn('⚠️ GitHub Gist failed:', gistError);
+      }
+      
+      // Try JSONBin.io as secondary fallback
+      try {
+        console.log('🔄 Trying JSONBin.io...');
+        const jsonbinResponse = await fetch('https://api.jsonbin.io/v3/b', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'X-Bin-Name': `token-metadata-${Date.now()}`
+          },
+          body: metadataJson
+        });
+        
+        if (jsonbinResponse.ok) {
+          const jsonbinResult = await jsonbinResponse.json();
+          const jsonbinUrl = `https://api.jsonbin.io/v3/b/${jsonbinResult.metadata.id}/latest`;
+          console.log('✅ JSONBin.io upload successful:', jsonbinUrl);
+          return { success: true, url: jsonbinUrl };
+        }
+      } catch (jsonbinError) {
+        console.warn('⚠️ JSONBin.io failed:', jsonbinError);
       }
 
       // Fallback to minimal data URL for Algorand compatibility
+      console.log('🔄 Using minimal data URL fallback...');
       const minimalMetadata = {
         name: metadata.name || 'Token',
         symbol: metadata.properties?.symbol || 'TKN',
@@ -104,17 +130,17 @@ export const supabaseHelpers = {
       const dataUrl = `data:application/json;base64,${btoa(minimalJson)}`;
       
       if (dataUrl.length <= 96) {
-        console.log('✅ Data URL fallback successful');
+        console.log('✅ Data URL fallback successful (96 chars limit)');
         return { success: true, url: dataUrl };
       }
       
       // Ultimate fallback
-      const fallbackUrl = 'https://algorand.org';
-      console.log('✅ Using fallback URL for compatibility');
+      const fallbackUrl = 'https://token.info';
+      console.log('✅ Using minimal fallback URL for compatibility');
       return { success: true, url: fallbackUrl };
       
     } catch (error) {
-      console.error('All fallback methods failed:', error);
+      console.error('❌ All fallback methods failed:', error);
       return { success: false, error: 'Metadata upload failed' };
     }
   }

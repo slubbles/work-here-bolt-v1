@@ -68,6 +68,7 @@ export default function VerifyPage() {
     setError(null);
     setVerificationProgress(0);
     setCurrentVerificationStep('Initializing verification process...');
+    setVerificationResult(null);
     
     try {
       if (selectedNetwork.startsWith('algorand')) {
@@ -81,6 +82,12 @@ export default function VerifyPage() {
           setIsLoading(false);
           return;
         }
+        
+        if (assetId < 0 || assetId > 2147483647) {
+          setError('Please enter a valid Asset ID between 0 and 2147483647');
+          setIsLoading(false);
+          return;
+        }
 
         setVerificationProgress(40);
         setCurrentVerificationStep(`Looking up Asset ID ${assetId}...`);
@@ -88,10 +95,24 @@ export default function VerifyPage() {
         
         setVerificationProgress(60);
         setCurrentVerificationStep('Fetching asset information...');
+        
+        // Add timeout for verification
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Verification timeout')), 30000)
+        );
+        
         const assetInfoResult = await getAlgorandAssetInfo(assetId, selectedNetwork);
         
         if (!assetInfoResult.success) {
-          setError(`Asset not found on ${selectedNetwork}: ${assetInfoResult.error}`);
+          let errorMsg = `Asset not found on ${selectedNetwork}`;
+          if (assetInfoResult.error?.includes('timeout')) {
+            errorMsg = 'Verification timed out. Please try again.';
+          } else if (assetInfoResult.error?.includes('network')) {
+            errorMsg = 'Network error. Please check your connection.';
+          } else if (assetInfoResult.error) {
+            errorMsg += `: ${assetInfoResult.error}`;
+          }
+          setError(errorMsg);
           setIsLoading(false);
           return;
         }
