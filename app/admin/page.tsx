@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
+import { useToast } from '@/hooks/use-toast';
 import { initializePlatform, getPlatformState, ADMIN_WALLET } from '@/lib/solana';
 import { AlertTriangle, CheckCircle, Settings, Loader2, Shield, Wallet, ArrowLeft, Rocket, BarChart3 } from 'lucide-react';
 import Link from 'next/link';
@@ -22,6 +23,7 @@ export default function AdminPage() {
   const [mounted, setMounted] = useState(false);
 
   const { connected, publicKey, wallet } = useWallet();
+  const { toast } = useToast();
 
   // Handle hydration
   useEffect(() => {
