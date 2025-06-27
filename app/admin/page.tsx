@@ -68,6 +68,7 @@ export default function AdminPage() {
     }
 
     // Additional validation
+    const feeInLamports = parseFloat(creationFee) * 1000000000;
     if (feeInLamports < 0 || feeInLamports > 1000000000000) { // Max 1000 SOL
       setError('Creation fee must be between 0 and 1000 SOL');
       return;
@@ -80,14 +81,13 @@ export default function AdminPage() {
       return;
     }
 
+    console.log(`🚀 Initializing platform with fee: ${creationFee} SOL (${feeInLamports} lamports)`);
+        
     setIsInitializing(true);
     setError('');
     setInitResult(null);
 
     try {
-      const feeInLamports = parseFloat(creationFee) * 1000000000; // Convert SOL to lamports
-      console.log(`🚀 Initializing platform with fee: ${creationFee} SOL (${feeInLamports} lamports)`);
-      
       const result = await initializePlatform(wallet.adapter, feeInLamports);
       
       if (result.success) {
@@ -113,7 +113,7 @@ export default function AdminPage() {
         } else if (errorMsg.includes('access violation')) {
           userMessage = "❌ Smart contract error. Please contact support or try again later.";
         }
-        
+          
         setTimeout(() => {
           alert(userMessage);
         }, 500);
