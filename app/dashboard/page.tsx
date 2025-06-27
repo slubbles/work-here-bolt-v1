@@ -1,5 +1,5 @@
-import SolanaDashboard from './SolanaDashboard';
+import UnifiedDashboard from './UnifiedDashboard';
 
 export default function DashboardPage() {
-  return <SolanaDashboard />;
+  return <UnifiedDashboard />;
 }

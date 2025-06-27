@@ -167,7 +167,8 @@ export async function getAlgorandAssetInfo(assetId: number, network: string) {
     
     return {
       success: true,
-      data: assetData
+      data: assetData,
+      assetData // Add this for backward compatibility
     };
   } catch (error) {
     console.error(`❌ Error fetching Algorand asset info on ${network}:`, error);
@@ -484,6 +485,9 @@ export async function checkWalletConnection(address: string, network: string) {
     const balance = accountInfo.balance || 0;
     const networkConfig = getAlgorandNetwork(network);
     
+    // Add an alias for backward compatibility
+    setAlgorandSelectedNetwork = setAlgorandSelectedNetwork;
+    
     // Minimum balance required for token creation (account minimum + transaction fees)
     const minimumRequired = networkConfig.isMainnet ? 0.202 : 0.101; // MainNet requires more ALGO
     const canCreateToken = balance >= minimumRequired;
@@ -545,5 +549,31 @@ export function algosToMicroAlgos(algos: number): number {
   return algos * 1000000;
 }
 
-// Re-export supabaseHelpers for TokenForm
+// Add file upload helper for tokens
+export const uploadFileToStorage = async (file: File, bucket: string, fileName: string) => {
+  try {
+    // Use supabaseHelpers for file upload
+    const metadataBlob = new Blob([file], { type: file.type });
+    const metadataJson = JSON.stringify({
+      name: fileName,
+      type: file.type,
+      size: file.size
+    });
+    
+    return await supabaseHelpers.uploadMetadataToStorage(
+      { 
+        file: metadataJson,
+        name: fileName,
+        type: file.type 
+      }, 
+      bucket, 
+      fileName
+    );
+  } catch (error) {
+    console.error('File upload error:', error);
+    return { success: false, error: 'File upload failed' };
+  }
+};
+
+// Re-export supabaseHelpers for compatibility
 export { supabaseHelpers };
