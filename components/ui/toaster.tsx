@@ -153,3 +153,5 @@ export {
   ToastAction,
   Toaster,
 }
+
+export { Toaster }
