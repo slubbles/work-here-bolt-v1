@@ -28,7 +28,6 @@ import {
   ChevronDown,
   RefreshCw
 } from 'lucide-react';
-import { DashboardSkeleton, StatCardSkeleton, TokenCardSkeleton, ChartSkeleton, TransactionItemSkeleton, TokenOverviewSkeleton, ManagementActionsSkeleton } from '@/components/skeletons/DashboardSkeletons';
 import Link from 'next/link';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { 
@@ -68,7 +67,6 @@ export default function SolanaDashboard() {
       console.log('🔄 Wallet connected, fetching real data...');
       fetchDashboardData();
     } else {
-      // Reset states when wallet disconnects
       console.log('❌ Wallet disconnected, resetting dashboard...');
       setIsLoading(true);
       setUserTokens([]);
@@ -171,158 +169,55 @@ export default function SolanaDashboard() {
       return;
     }
     
-    // Simulate transfer
     alert(`Successfully transferred ${transferAmount} ${userTokens[selectedToken].symbol} to ${transferAddress}`);
     setTransferAmount('');
     setTransferAddress('');
   };
 
-  // CSV Export Functions
-  const convertToCSV = (data: any[], headers: string[]): string => {
-    const csvRows = [];
-    
-    // Add headers
-    csvRows.push(headers.join(','));
-    
-    // Add data rows
-    for (const row of data) {
-      const values = headers.map(header => {
-        const value = row[header] || '';
-        // Escape commas and quotes in CSV
-        return `"${String(value).replace(/"/g, '""')}"`;
-      });
-      csvRows.push(values.join(','));
-    }
-    
-    return csvRows.join('\n');
-  };
+  // Simplified export function
+  const exportData = (type: 'transactions' | 'analytics' | 'all') => {
+    let data;
+    let filename;
 
-  const downloadCSV = (csv: string, filename: string): void => {
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    
-    if (link.download !== undefined) {
-      const url = URL.createObjectURL(blob);
-      link.setAttribute('href', url);
-      link.setAttribute('download', filename);
-      link.style.visibility = 'hidden';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+    switch (type) {
+      case 'transactions':
+        data = transactionData;
+        filename = `transactions-${new Date().toISOString().split('T')[0]}.json`;
+        break;
+      case 'analytics':
+        data = chartData;
+        filename = `analytics-${new Date().toISOString().split('T')[0]}.json`;
+        break;
+      case 'all':
+        data = { tokens: userTokens, transactions: transactionData, summary: walletSummary };
+        filename = `dashboard-data-${new Date().toISOString().split('T')[0]}.json`;
+        break;
     }
-  };
 
-  const exportTransactions = (format: 'csv' | 'json' = 'csv'): void => {
-    const filename = `${userTokens[selectedToken]?.symbol || 'TOKEN'}_transactions_${new Date().toISOString().split('T')[0]}`;
-    
-    if (format === 'csv') {
-      const headers = ['type', 'amount', 'to', 'time', 'status', 'token_symbol'];
-      const exportData = transactionData.map(tx => ({
-        type: tx.type,
-        amount: tx.amount,
-        to: tx.to,
-        time: tx.time,
-        status: tx.status,
-        token_symbol: userTokens[selectedToken]?.symbol || 'TOKEN'
-      }));
-      
-      const csv = convertToCSV(exportData, headers);
-      downloadCSV(csv, `${filename}.csv`);
-    } else {
-      // JSON export
-      const exportData = {
-        token: userTokens[selectedToken],
-        transactions: transactionData,
-        exported_at: new Date().toISOString(),
-        total_transactions: transactionData.length
-      };
-      
-      const jsonString = JSON.stringify(exportData, null, 2);
-      const blob = new Blob([jsonString], { type: 'application/json' });
-      const link = document.createElement('a');
-      link.href = URL.createObjectURL(blob);
-      link.download = `${filename}.json`;
-      link.click();
-      URL.revokeObjectURL(link.href);
-    }
-    
-    alert(`Transaction data exported as ${format.toUpperCase()}`);
-  };
-
-  const exportChartData = (format: 'csv' | 'json' = 'csv'): void => {
-    const filename = `${userTokens[selectedToken]?.symbol || 'TOKEN'}_analytics_${new Date().toISOString().split('T')[0]}`;
-    
-    if (format === 'csv') {
-      const headers = ['period', 'value', 'token_symbol', 'data_type'];
-      const exportData = chartData.map(item => ({
-        period: item.name,
-        value: item.value,
-        token_symbol: userTokens[selectedToken]?.symbol || 'TOKEN',
-        data_type: 'price_chart'
-      }));
-      
-      const csv = convertToCSV(exportData, headers);
-      downloadCSV(csv, `${filename}.csv`);
-    } else {
-      // JSON export
-      const exportData = {
-        token: userTokens[selectedToken],
-        chart_data: chartData,
-        analytics: {
-          total_supply: userTokens[selectedToken]?.totalSupply,
-          holders: userTokens[selectedToken]?.holders,
-          current_value: userTokens[selectedToken]?.value,
-          change: userTokens[selectedToken]?.change
-        },
-        exported_at: new Date().toISOString(),
-        data_points: chartData.length
-      };
-      
-      const jsonString = JSON.stringify(exportData, null, 2);
-      const blob = new Blob([jsonString], { type: 'application/json' });
-      const link = document.createElement('a');
-      link.href = URL.createObjectURL(blob);
-      link.download = `${filename}.json`;
-      link.click();
-      URL.revokeObjectURL(link.href);
-    }
-    
-    alert(`Analytics data exported as ${format.toUpperCase()}`);
-  };
-
-  const exportAllData = (): void => {
-    const filename = `${userTokens[selectedToken]?.symbol || 'TOKEN'}_complete_data_${new Date().toISOString().split('T')[0]}`;
-    
-    const completeData = {
-      token_info: userTokens[selectedToken],
-      transactions: transactionData,
-      chart_data: chartData,
-      analytics: {
-        total_supply: userTokens[selectedToken]?.totalSupply,
-        holders: userTokens[selectedToken]?.holders,
-        current_value: userTokens[selectedToken]?.value,
-        change: userTokens[selectedToken]?.change
-      },
-      export_metadata: {
-        exported_at: new Date().toISOString(),
-        export_type: 'complete_dashboard_data',
-        version: '1.0',
-        total_transactions: transactionData.length,
-        total_chart_points: chartData.length
-      }
-    };
-    
-    const jsonString = JSON.stringify(completeData, null, 2);
+    const jsonString = JSON.stringify(data, null, 2);
     const blob = new Blob([jsonString], { type: 'application/json' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `${filename}.json`;
+    link.download = filename;
     link.click();
     URL.revokeObjectURL(link.href);
     
-    alert('Complete data exported as JSON');
+    alert(`${type} data exported successfully`);
   };
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen app-background">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500 mx-auto"></div>
+            <p className="mt-4 text-muted-foreground">Loading dashboard...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Redirect to wallet connection if not connected
   if (!connected) {
@@ -369,15 +264,6 @@ export default function SolanaDashboard() {
     );
   }
 
-  // Show full loading skeleton on initial load
-  if (isLoading) {
-    console.log('🔄 Showing dashboard loading skeleton...');
-    return <DashboardSkeleton />;
-  }
-
-  // Log when dashboard content is about to render
-  console.log('✅ Rendering dashboard content with wallet:', publicKey?.toString());
-
   return (
     <div className="min-h-screen app-background">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -419,55 +305,44 @@ export default function SolanaDashboard() {
 
         {/* Stats Overview */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
-          {isLoading ? (
-            <>
-              <StatCardSkeleton />
-              <StatCardSkeleton />
-              <StatCardSkeleton />
-              <StatCardSkeleton />
-            </>
-          ) : (
-            <>
-              <div className="glass-card p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-muted-foreground text-sm">Total Tokens</p>
-                    <p className="text-2xl font-bold text-foreground">
-                      {walletSummary?.totalTokens || userTokens.length}
-                    </p>
-                  </div>
-                  <Coins className="w-8 h-8 text-red-500" />
-                </div>
+          <div className="glass-card p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-muted-foreground text-sm">Total Tokens</p>
+                <p className="text-2xl font-bold text-foreground">
+                  {walletSummary?.totalTokens || userTokens.length}
+                </p>
               </div>
-              <div className="glass-card p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-muted-foreground text-sm">Total Value</p>
-                    <p className="text-2xl font-bold text-foreground">${walletSummary?.totalValue?.toFixed(2) || '0.00'}</p>
-                  </div>
-                  <DollarSign className="w-8 h-8 text-red-500" />
-                </div>
+              <Coins className="w-8 h-8 text-red-500" />
+            </div>
+          </div>
+          <div className="glass-card p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-muted-foreground text-sm">Total Value</p>
+                <p className="text-2xl font-bold text-foreground">${walletSummary?.totalValue?.toFixed(2) || '0.00'}</p>
               </div>
-              <div className="glass-card p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-muted-foreground text-sm">SOL Balance</p>
-                    <p className="text-2xl font-bold text-foreground">{walletSummary?.solBalance?.toFixed(4) || '0.0000'}</p>
-                  </div>
-                  <Wallet className="w-8 h-8 text-red-500" />
-                </div>
+              <DollarSign className="w-8 h-8 text-red-500" />
+            </div>
+          </div>
+          <div className="glass-card p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-muted-foreground text-sm">SOL Balance</p>
+                <p className="text-2xl font-bold text-foreground">{walletSummary?.solBalance?.toFixed(4) || '0.0000'}</p>
               </div>
-              <div className="glass-card p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-muted-foreground text-sm">Recent Transactions</p>
-                    <p className="text-2xl font-bold text-foreground">{walletSummary?.recentTransactions || transactionData.length}</p>
-                  </div>
-                  <BarChart3 className="w-8 h-8 text-red-500" />
-                </div>
+              <Wallet className="w-8 h-8 text-red-500" />
+            </div>
+          </div>
+          <div className="glass-card p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-muted-foreground text-sm">Recent Transactions</p>
+                <p className="text-2xl font-bold text-foreground">{walletSummary?.recentTransactions || transactionData.length}</p>
               </div>
-            </>
-          )}
+              <BarChart3 className="w-8 h-8 text-red-500" />
+            </div>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -475,13 +350,7 @@ export default function SolanaDashboard() {
           <div className="lg:col-span-1">
             <div className="glass-card p-6">
               <h2 className="text-xl font-bold text-foreground mb-6">Your Tokens</h2>
-              {isLoading ? (
-                <div className="space-y-4">
-                  <TokenCardSkeleton />
-                  <TokenCardSkeleton />
-                  <TokenCardSkeleton />
-                </div>
-              ) : userTokens.length === 0 ? (
+              {userTokens.length === 0 ? (
                 <div className="text-center py-8">
                   <Coins className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                   <p className="text-muted-foreground mb-4">
@@ -514,7 +383,6 @@ export default function SolanaDashboard() {
                               alt={token.symbol}
                               className="w-10 h-10 rounded-full"
                               onError={(e) => {
-                                // Fallback to symbol if image fails
                                 const target = e.target as HTMLImageElement;
                                 target.style.display = 'none';
                                 target.nextElementSibling?.classList.remove('hidden');
@@ -560,7 +428,6 @@ export default function SolanaDashboard() {
           {/* Token Details */}
           <div className="lg:col-span-2">
             <Tabs defaultValue="overview" className="space-y-6">
-              {/* Enhanced Tab Navigation */}
               <div className="glass-card p-6">
                 <div className="mb-4">
                   <h3 className="text-lg font-semibold text-foreground">Token Management</h3>
@@ -587,9 +454,7 @@ export default function SolanaDashboard() {
               </div>
 
               <TabsContent value="overview" className="space-y-6">
-                {isLoading ? (
-                  <TokenOverviewSkeleton />
-                ) : userTokens.length === 0 ? (
+                {userTokens.length === 0 ? (
                   <div className="glass-card p-6 text-center">
                     <Coins className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                     <h3 className="text-xl font-semibold text-foreground mb-2">No Tokens Found</h3>
@@ -658,11 +523,7 @@ export default function SolanaDashboard() {
                   </div>
                 )}
 
-                {isLoading || userTokens.length === 0 ? (
-                  <div className="glass-card p-6">
-                    <ChartSkeleton />
-                  </div>
-                ) : (
+                {userTokens.length > 0 && (
                   <div className="glass-card p-6">
                     <h4 className="text-lg font-semibold text-foreground mb-4">Transaction Activity</h4>
                     <div className="h-64">
@@ -682,38 +543,7 @@ export default function SolanaDashboard() {
                             tick={{ fontSize: 12 }}
                             tickLine={{ stroke: 'currentColor', opacity: 0.5 }}
                           />
-                          <Tooltip
-                            wrapperClassName="custom-tooltip"
-                            contentStyle={{}}
-                            content={({ active, payload, label }) => {
-                              if (active && payload && payload.length) {
-                                return (
-                                  <div className="p-4">
-                                    <p className="text-foreground font-semibold mb-2">{`Period: ${label}`}</p>
-                                    <div className="space-y-1">
-                                      {payload.map((entry, index) => (
-                                        <div key={index} className="flex items-center space-x-2">
-                                          <div 
-                                            className="w-3 h-3 rounded-full" 
-                                            style={{ backgroundColor: entry.color }}
-                                          />
-                                          <span className="text-foreground text-sm">
-                                            Transactions: <span className="font-bold">{entry.value}</span>
-                                          </span>
-                                        </div>
-                                      ))}
-                                    </div>
-                                    <div className="mt-2 pt-2 border-t border-border">
-                                      <p className="text-xs text-muted-foreground">
-                                        Recent activity for your wallet
-                                      </p>
-                                    </div>
-                                  </div>
-                                );
-                              }
-                              return null;
-                            }}
-                          />
+                          <Tooltip />
                           <Line 
                             type="monotone" 
                             dataKey="value" 
@@ -721,9 +551,6 @@ export default function SolanaDashboard() {
                             strokeWidth={3}
                             dot={{ fill: '#EF4444', strokeWidth: 2, r: 4 }}
                             activeDot={{ r: 6, fill: '#EF4444', stroke: '#fff', strokeWidth: 2 }}
-                            animationBegin={0}
-                            animationDuration={1500}
-                            animationEasing="ease-out"
                           />
                         </LineChart>
                       </ResponsiveContainer>
@@ -733,33 +560,19 @@ export default function SolanaDashboard() {
               </TabsContent>
 
               <TabsContent value="analytics" className="space-y-6">
-                {isLoading || userTokens.length === 0 ? (
-                  <div className="glass-card p-6">
-                    <ChartSkeleton />
-                  </div>
-                ) : (
+                {userTokens.length > 0 && (
                   <div className="glass-card p-6">
                     <div className="flex items-center justify-between mb-4">
                       <h4 className="text-lg font-semibold text-foreground">Transaction Distribution</h4>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="outline" size="sm" className="gap-2">
-                            <FileDown className="w-4 h-4" />
-                            Export Analytics
-                            <ChevronDown className="w-4 h-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => exportChartData('csv')}>
-                            <Download className="w-4 h-4 mr-2" />
-                            Export as CSV
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => exportChartData('json')}>
-                            <FileDown className="w-4 h-4 mr-2" />
-                            Export as JSON
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => exportData('analytics')}
+                        className="gap-2"
+                      >
+                        <FileDown className="w-4 h-4" />
+                        Export Analytics
+                      </Button>
                     </div>
                     <div className="h-64">
                       <ResponsiveContainer width="100%" height="100%">
@@ -770,53 +583,17 @@ export default function SolanaDashboard() {
                             stroke="currentColor" 
                             opacity={0.7}
                             tick={{ fontSize: 12 }}
-                            tickLine={{ stroke: 'currentColor', opacity: 0.5 }}
                           />
                           <YAxis 
                             stroke="currentColor" 
                             opacity={0.7}
                             tick={{ fontSize: 12 }}
-                            tickLine={{ stroke: 'currentColor', opacity: 0.5 }}
                           />
-                          <Tooltip
-                            wrapperClassName="custom-tooltip"
-                            contentStyle={{}}
-                            content={({ active, payload, label }) => {
-                              if (active && payload && payload.length) {
-                                return (
-                                  <div className="p-4">
-                                    <p className="text-foreground font-semibold mb-2">{`Period: ${label}`}</p>
-                                    <div className="space-y-1">
-                                      {payload.map((entry, index) => (
-                                        <div key={index} className="flex items-center space-x-2">
-                                          <div 
-                                            className="w-3 h-3 rounded-sm" 
-                                            style={{ backgroundColor: entry.color }}
-                                          />
-                                          <span className="text-foreground text-sm">
-                                            Transactions: <span className="font-bold">{entry.value}</span>
-                                          </span>
-                                        </div>
-                                      ))}
-                                    </div>
-                                    <div className="mt-2 pt-2 border-t border-border">
-                                      <p className="text-xs text-muted-foreground">
-                                        Your wallet activity
-                                      </p>
-                                    </div>
-                                  </div>
-                                );
-                              }
-                              return null;
-                            }}
-                          />
+                          <Tooltip />
                           <Bar 
                             dataKey="value" 
                             fill="#EF4444"
                             radius={[4, 4, 0, 0]}
-                            animationBegin={100}
-                            animationDuration={1200}
-                            animationEasing="ease-out"
                           />
                         </BarChart>
                       </ResponsiveContainer>
@@ -826,95 +603,68 @@ export default function SolanaDashboard() {
               </TabsContent>
 
               <TabsContent value="transactions" className="space-y-6">
-                {isLoading ? (
-                  <div className="glass-card p-6">
-                    <h4 className="text-lg font-semibold text-foreground mb-4">Recent Transactions</h4>
-                    <div className="space-y-4">
-                      <TransactionItemSkeleton />
-                      <TransactionItemSkeleton />
-                      <TransactionItemSkeleton />
-                    </div>
+                <div className="glass-card p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="text-lg font-semibold text-foreground">Recent Transactions</h4>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => exportData('transactions')}
+                      className="gap-2"
+                    >
+                      <Download className="w-4 h-4" />
+                      Export Transactions
+                    </Button>
                   </div>
-                ) : (
-                  <div className="glass-card p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <h4 className="text-lg font-semibold text-foreground">Recent Transactions</h4>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="outline" size="sm" className="gap-2">
-                            <Download className="w-4 h-4" />
-                            Export Transactions
-                            <ChevronDown className="w-4 h-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => exportTransactions('csv')}>
-                            <Download className="w-4 h-4 mr-2" />
-                            Export as CSV
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => exportTransactions('json')}>
-                            <FileDown className="w-4 h-4 mr-2" />
-                            Export as JSON
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={exportAllData}>
-                            <FileDown className="w-4 h-4 mr-2" />
-                            Export All Data
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                  {transactionData.length === 0 ? (
+                    <div className="text-center py-8">
+                      <Calendar className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                      <p className="text-muted-foreground">No recent transactions found</p>
+                      <p className="text-sm text-muted-foreground mt-2">Transactions will appear here as you use your wallet</p>
                     </div>
-                    {transactionData.length === 0 ? (
-                      <div className="text-center py-8">
-                        <Calendar className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                        <p className="text-muted-foreground">No recent transactions found</p>
-                        <p className="text-sm text-muted-foreground mt-2">Transactions will appear here as you use your wallet</p>
-                      </div>
-                    ) : (
-                      <div className="space-y-4">
-                        {transactionData.map((tx, index) => {
-                          const displayTx = formatTransactionForDisplay(tx);
-                          return (
-                            <div key={index} className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
-                              <div className="flex items-center space-x-3">
-                                <div className="w-8 h-8 rounded-full bg-red-500/20 flex items-center justify-center">
-                                  <Send className="w-4 h-4 text-red-400" />
-                                </div>
-                                <div>
-                                  <p className="text-foreground font-medium">{displayTx.type}</p>
-                                  <p className="text-muted-foreground text-sm">{displayTx.amount} to {displayTx.to}</p>
-                                  <button
-                                    onClick={() => window.open(`https://explorer.solana.com/tx/${tx.signature}`, '_blank')}
-                                    className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
-                                  >
-                                    View on Explorer
-                                  </button>
-                                </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {transactionData.map((tx, index) => {
+                        const displayTx = formatTransactionForDisplay(tx);
+                        return (
+                          <div key={index} className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+                            <div className="flex items-center space-x-3">
+                              <div className="w-8 h-8 rounded-full bg-red-500/20 flex items-center justify-center">
+                                <Send className="w-4 h-4 text-red-400" />
                               </div>
-                              <div className="text-right">
-                                <p className="text-muted-foreground text-sm">{displayTx.time}</p>
-                                <Badge className={`${
-                                  displayTx.status === 'Completed' 
-                                    ? 'bg-green-500/20 text-green-400 border-green-500/30'
-                                    : displayTx.status === 'Failed'
-                                    ? 'bg-red-500/20 text-red-400 border-red-500/30'
-                                    : 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
-                                }`}>
-                                  {displayTx.status}
-                                </Badge>
+                              <div>
+                                <p className="text-foreground font-medium">{displayTx.type}</p>
+                                <p className="text-muted-foreground text-sm">{displayTx.amount} to {displayTx.to}</p>
+                                <button
+                                  onClick={() => window.open(`https://explorer.solana.com/tx/${tx.signature}`, '_blank')}
+                                  className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+                                >
+                                  View on Explorer
+                                </button>
                               </div>
                             </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                )}
+                            <div className="text-right">
+                              <p className="text-muted-foreground text-sm">{displayTx.time}</p>
+                              <Badge className={`${
+                                displayTx.status === 'Completed' 
+                                  ? 'bg-green-500/20 text-green-400 border-green-500/30'
+                                  : displayTx.status === 'Failed'
+                                  ? 'bg-red-500/20 text-red-400 border-red-500/30'
+                                  : 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
+                              }`}>
+                                {displayTx.status}
+                              </Badge>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               </TabsContent>
 
               <TabsContent value="manage" className="space-y-6">
-                {isLoading ? (
-                  <ManagementActionsSkeleton />
-                ) : userTokens.length === 0 ? (
+                {userTokens.length === 0 ? (
                   <div className="glass-card p-6 text-center">
                     <Settings className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                     <h3 className="text-xl font-semibold text-foreground mb-2">No Tokens to Manage</h3>
@@ -936,7 +686,7 @@ export default function SolanaDashboard() {
                           <Label htmlFor="transferAddress" className="text-foreground font-medium">Recipient Address</Label>
                           <Input
                             id="transferAddress"
-                            placeholder="Enter wallet address (e.g., 7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU)"
+                            placeholder="Enter wallet address"
                             value={transferAddress}
                             onChange={(e) => setTransferAddress(e.target.value)}
                             className="input-enhanced mt-2"
@@ -985,7 +735,7 @@ export default function SolanaDashboard() {
                         </Button>
                         <Button 
                           variant="outline" 
-                          onClick={exportAllData}
+                          onClick={() => exportData('all')}
                           className="border-border text-muted-foreground hover:bg-muted h-12 gap-2"
                         >
                           <Download className="w-4 h-4" />

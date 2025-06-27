@@ -19,7 +19,6 @@ const nextConfig = {
     'algosdk', 
     '@perawallet/connect',
     '@supabase/supabase-js',
-    '@supabase/realtime-js',
     '@solana/wallet-adapter-base',
     '@solana/wallet-adapter-react',
     '@solana/wallet-adapter-react-ui',
@@ -34,19 +33,16 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  // Explicitly define page extensions for App Router only
   pageExtensions: ['ts', 'tsx', 'js', 'jsx'],
-  // Experimental features for better performance
   experimental: {
     optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
     optimizeCss: true,
     scrollRestoration: true,
-    // Enable SWC for faster builds
     forceSwcTransforms: true,
   },
-  // Enhanced webpack configuration to handle Solana modules
-  webpack: (config, { buildId, dev, isServer, defaultLoaders, webpack }) => {
-    // Fix for import.meta usage in Solana wallet adapters
+  // Simplified webpack configuration
+  webpack: (config, { webpack }) => {
+    // Fix for import.meta usage
     config.module.rules.push({
       test: /\.m?js$/,
       type: 'javascript/auto',
@@ -58,13 +54,6 @@ const nextConfig = {
       },
     });
 
-    // Don't externalize wallet adapter modules on client side
-    if (!isServer) {
-      config.externals = config.externals.filter(
-        (external) => typeof external !== 'string' || !external.includes('@solana')
-      );
-    }
-    
     // Add polyfills for Node.js modules
     config.resolve.fallback = {
       ...config.resolve.fallback,
@@ -75,15 +64,6 @@ const nextConfig = {
       fs: false,
       net: false,
       tls: false,
-      zlib: false,
-      http: false,
-      https: false,
-      assert: false,
-      os: false,
-      path: false,
-      timers: false,
-      url: require.resolve('url'),
-      // Additional fallbacks for Algorand SDK
       querystring: require.resolve('querystring-es3'),
     };
 
@@ -94,35 +74,6 @@ const nextConfig = {
         process: 'process/browser',
       })
     );
-
-    // Optimize for better performance
-    config.optimization = {
-      ...config.optimization,
-      sideEffects: false,
-    };
-
-    // Ignore specific modules that cause issues
-    config.resolve.alias = {
-      ...config.resolve.alias,
-      // Fix specific module resolution issues
-      'process/browser': require.resolve('process/browser'),
-      'buffer': require.resolve('buffer'),
-      // Fix for wallet adapter modules
-      '@solana/wallet-adapter-base': require.resolve('@solana/wallet-adapter-base'),
-      '@solana/wallet-adapter-react': require.resolve('@solana/wallet-adapter-react'),
-      '@solana/wallet-adapter-react-ui': require.resolve('@solana/wallet-adapter-react-ui'),
-    };
-    
-    // Add bundle analyzer in development
-    if (process.env.ANALYZE === 'true') {
-      const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
-      config.plugins.push(
-        new BundleAnalyzerPlugin({
-          analyzerMode: 'static',
-          openAnalyzer: false,
-        })
-      );
-    }
 
     return config;
   },

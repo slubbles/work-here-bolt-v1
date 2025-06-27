@@ -6,9 +6,7 @@ import { Menu, X, Sun, Moon, Wallet, ChevronDown, Copy, Check } from 'lucide-rea
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useWallet } from '@solana/wallet-adapter-react';
-import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { useAlgorandWallet } from '@/components/providers/AlgorandWalletProvider';
-import { ADMIN_WALLET } from '@/lib/solana';
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -17,7 +15,6 @@ export default function Navbar() {
   const [mounted, setMounted] = useState(false);
   const [showWalletOptions, setShowWalletOptions] = useState(false);
   const [copiedAddress, setCopiedAddress] = useState<string | null>(null);
-  
   const pathname = usePathname();
   
   // Solana wallet
@@ -69,35 +66,9 @@ export default function Navbar() {
   const isAdmin = solanaConnected && solanaPublicKey && solanaPublicKey.toString() === ADMIN_WALLET.toString();
 
   const handleAlgorandConnect = async () => {
-    try {
-      await connectAlgorand();
-      setShowWalletOptions(false);
-    } catch (error) {
-      console.error('Failed to connect Algorand wallet:', error);
-    }
-  };
-
-  const handleAlgorandDisconnect = async () => {
-    try {
-      await disconnectAlgorand();
-    } catch (error) {
-      console.error('Failed to disconnect Algorand wallet:', error);
-    }
-  };
-
-  const copyToClipboard = async (address: string, walletType: string) => {
-    try {
-      await navigator.clipboard.writeText(address);
-      setCopiedAddress(address);
-      
       // Reset the copied state after 2 seconds
       setTimeout(() => {
-        setCopiedAddress(null);
-      }, 2000);
-    } catch (error) {
-      console.error('Failed to copy address:', error);
-    }
-  };
+      alert('Failed to disconnect wallet');
 
   const formatAddress = (address: string) => {
     if (address.length <= 12) return address;
@@ -184,9 +155,6 @@ export default function Navbar() {
               onClick={toggleTheme}
               className="text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-xl p-2"
             >
-              {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-            </Button>
-            
             {/* Enhanced Multi-Wallet Connection */}
             <div className="relative">
               {isAnyWalletConnected ? (
@@ -522,11 +490,6 @@ export default function Navbar() {
                   size="sm" 
                   onClick={toggleTheme}
                   className="text-muted-foreground hover:text-foreground rounded-xl p-2"
-                >
-                  {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-                </Button>
-              </div>
-              
               {/* Enhanced Mobile Wallet Connections */}
               <div className="space-y-4">
                 <h4 className="text-foreground font-semibold text-lg">Connected Wallets</h4>
