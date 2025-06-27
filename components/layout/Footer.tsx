@@ -26,8 +26,8 @@ export default function Footer() {
       links: [
         { name: 'About Us', href: 'https://about.snarbles.xyz', icon: Users },
         { name: 'Blog', href: 'https://blog.snarbles.xyz', icon: FileText },
-        { name: 'Careers', href: 'https://careers.snarbles.xyz', icon: Users },
         { name: 'Contact', href: 'https://contact.snarbles.xyz', icon: MessageCircle },
+        { name: 'GitHub', href: 'https://github.com/snarbles', icon: Code },
       ],
     },
   ];
@@ -44,7 +44,7 @@ export default function Footer() {
               <span className="text-xl font-bold text-foreground">Snarbles</span>
             </div>
             <p className="text-muted-foreground text-sm leading-relaxed">
-              The easiest way to create and manage your own tokens. Empowering creators worldwide with professional-grade blockchain tools.
+              The decentralized way to create and manage your own tokens. Empowering creators worldwide with professional-grade blockchain tools.
             </p>
             <div className="flex space-x-4">
               <a 
@@ -97,7 +97,7 @@ export default function Footer() {
         <div className="border-t border-border mt-12 pt-8">
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
             <p className="text-muted-foreground text-sm">
-              © 2025 Snarbles. All rights reserved. Built with ❤️ for the blockchain community.
+              © 2025 Snarbles. All rights reserved. Built with ❤️ for the decentralized future.
             </p>
             <div className="flex space-x-6">
               <Link 
@@ -112,20 +112,14 @@ export default function Footer() {
               >
                 Privacy Policy
               </Link>
-              <Link 
-                href="https://legal.snarbles.xyz/cookies" 
-                className="text-muted-foreground hover:text-foreground transition-colors text-sm"
-              >
-                Cookie Policy
-              </Link>
             </div>
           </div>
           
           <div className="mt-6 pt-6 border-t border-border">
             <div className="text-center">
               <p className="text-muted-foreground text-xs">
-                Snarbles is a decentralized token creation platform. Always do your own research before investing in any cryptocurrency or token.
-                This platform is for educational and development purposes. Please ensure compliance with your local regulations.
+                Snarbles is a fully decentralized token creation platform. Always do your own research before investing in any cryptocurrency or token.
+                This platform operates without any centralized dependencies. Please ensure compliance with your local regulations.
               </p>
             </div>
           </div>

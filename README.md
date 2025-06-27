@@ -34,6 +34,12 @@ A comprehensive, production-ready token creation platform built with Next.js, fe
 - **Fast Performance**: Optimized images and lazy loading
 - **Accessible**: WCAG compliant design
 
+### 🔗 Decentralized Architecture
+- **Wallet-Based Identity**: No accounts, just connect your wallet
+- **Direct Blockchain Integration**: All data comes from on-chain sources
+- **Zero Central Dependencies**: Works without any centralized services
+- **True Web3 Experience**: Complete decentralization
+
 ## 🛠️ Technology Stack
 
 - **Framework**: Next.js 13+ with App Router
