@@ -151,7 +151,7 @@ export default function Navbar() {
           <Link href="/" className="flex items-center group">
             <div className="flex items-center space-x-2">
               <img 
-                src="/image copy.png" 
+                src="/logo.png" 
                 alt="Snarbles Logo" 
                 className="w-8 h-8 rounded-lg"
               />
@@ -160,7 +160,7 @@ export default function Navbar() {
               </span>
             <div className="flex items-center space-x-2">
               <img 
-                src="/image copy.png" 
+                src="/logo.png" 
                 alt="Snarbles Logo" 
                 className="w-8 h-8 rounded-lg"
               />

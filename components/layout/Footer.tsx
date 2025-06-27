@@ -39,7 +39,7 @@ export default function Footer() {
           <div className="space-y-4">
             <div className="flex items-center">
               <img 
-                src="/image copy.png" 
+                src="/logo.png" 
                 alt="Snarbles Logo" 
                 className="w-8 h-8 rounded-lg mr-3"
               />
