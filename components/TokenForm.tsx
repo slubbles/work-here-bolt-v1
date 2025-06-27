@@ -306,7 +306,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
       <Card className="glass-card">
         <CardHeader>
           <CardTitle className="text-2xl flex items-center space-x-3">
-            <div className="w-10 h-10 bg-red-500/10 rounded-full flex items-center justify-center">
+            <div className="w-10 h-10 bg-red-500/10 rounded-full flex items-center justify-center shadow-sm">
               <Rocket className="w-6 h-6 text-red-500" />
             </div>
             <span>Step 1: Choose Network</span>
@@ -318,29 +318,29 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div 
-              className={`network-card flex flex-col justify-center items-center p-6 ${
-                tokenData.network.startsWith('algorand') ? 'active algorand-card' : ''
+              className={`network-card flex flex-col justify-center items-center p-6 transition-all duration-300 ${
+                tokenData.network.startsWith('algorand') ? 'active algorand-card shadow-lg transform -translate-y-1' : ''
               } cursor-pointer`}
               onClick={() => setTokenData({ ...tokenData, network: 'algorand-testnet' })}
             >
-              <div className="w-12 h-12 bg-[#76f935]/20 rounded-full flex items-center justify-center mb-3">
+              <div className="w-12 h-12 bg-[#76f935]/20 rounded-full flex items-center justify-center mb-3 shadow-md">
                 <span className="text-xl font-bold text-[#76f935]">A</span>
               </div>
-              <h3 className="font-semibold text-lg mb-1">Algorand</h3>
+              <h3 className="font-semibold text-lg mb-2">Algorand</h3>
               <Badge className="algorand-badge">Ultra Low Cost</Badge>
               <p className="text-sm text-muted-foreground mt-2 text-center">Perfect for cost-sensitive projects</p>
             </div>
             
             <div 
-              className={`network-card flex flex-col justify-center items-center p-6 ${
-                tokenData.network.startsWith('solana') ? 'active' : ''
+              className={`network-card flex flex-col justify-center items-center p-6 transition-all duration-300 ${
+                tokenData.network.startsWith('solana') ? 'active shadow-lg transform -translate-y-1' : ''
               } cursor-pointer`}
               onClick={() => setTokenData({ ...tokenData, network: 'solana-devnet' })}
             >
-              <div className="w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center mb-3">
+              <div className="w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center mb-3 shadow-md">
                 <span className="text-xl font-bold text-blue-500">S</span>
               </div>
-              <h3 className="font-semibold text-lg mb-1">Solana</h3>
+              <h3 className="font-semibold text-lg mb-2">Solana</h3>
               <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">Fast & Reliable</Badge>
               <p className="text-sm text-muted-foreground mt-2 text-center">Best for high-performance projects</p>
             </div>
@@ -371,7 +371,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
       <Card className="glass-card">
         <CardHeader>
           <CardTitle className="text-2xl flex items-center space-x-3">
-            <div className="w-10 h-10 bg-red-500/10 rounded-full flex items-center justify-center">
+            <div className="w-10 h-10 bg-red-500/10 rounded-full flex items-center justify-center shadow-sm">
               <Coins className="w-6 h-6 text-red-500" />
             </div>
             <span>Step 2: Define Your Token</span>
@@ -387,12 +387,12 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
                 <Label htmlFor="name" className="text-foreground font-medium">Token Name <span className="text-red-500">*</span></Label>
                 <span className="text-xs text-muted-foreground">Required</span>
               </div>
-              <Input
+              <Input 
                 id="name"
                 placeholder="e.g., My Awesome Token"
                 value={tokenData.name}
                 onChange={(e) => setTokenData({ ...tokenData, name: e.target.value })}
-                className="input-enhanced h-12 text-base"
+                className="input-enhanced h-12 text-base focus:ring-4"
                 required
               />
               <p className="text-xs text-muted-foreground">The full name of your token (max 32 characters)</p>
@@ -403,12 +403,12 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
                 <Label htmlFor="symbol" className="text-foreground font-medium">Token Symbol <span className="text-red-500">*</span></Label>
                 <span className="text-xs text-muted-foreground">Required</span>
               </div>
-              <Input
+              <Input 
                 id="symbol"
                 placeholder="e.g., MAT"
                 value={tokenData.symbol}
                 onChange={(e) => setTokenData({ ...tokenData, symbol: e.target.value.toUpperCase() })}
-                className="input-enhanced h-12 text-base"
+                className="input-enhanced h-12 text-base focus:ring-4"
                 maxLength={10}
                 required
               />
@@ -423,7 +423,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
               placeholder="Describe your token's purpose and features..."
               value={tokenData.description}
               onChange={(e) => setTokenData({ ...tokenData, description: e.target.value })}
-              className="input-enhanced min-h-[120px] text-base"
+              className="input-enhanced min-h-[120px] text-base focus:ring-4"
               maxLength={tokenData.network.startsWith('algorand') ? 1000 : 200}
             />
             <p className="text-xs text-muted-foreground">
@@ -437,13 +437,13 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
                 <Label htmlFor="totalSupply" className="text-foreground font-medium">Total Supply <span className="text-red-500">*</span></Label>
                 <span className="text-xs text-muted-foreground">Required</span>
               </div>
-              <Input
+              <Input 
                 id="totalSupply"
                 type="number"
                 placeholder="e.g., 1000000"
                 value={tokenData.totalSupply}
                 onChange={(e) => setTokenData({ ...tokenData, totalSupply: e.target.value })}
-                className="input-enhanced h-12 text-base"
+                className="input-enhanced h-12 text-base focus:ring-4"
                 required
                 min="1"
               />
@@ -458,12 +458,12 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
                 <Label htmlFor="decimals" className="text-foreground font-medium">Decimals</Label>
                 <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">Recommended: 9</span>
               </div>
-              <Input
+              <Input 
                 id="decimals"
                 type="number"
                 value={tokenData.decimals}
                 onChange={(e) => setTokenData({ ...tokenData, decimals: e.target.value })}
-                className="input-enhanced h-12 text-base"
+                className="input-enhanced h-12 text-base focus:ring-4"
                 min="0"
                 max="18"
               />
@@ -471,15 +471,24 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
             </div>
           </div>
           
-          <div className="mt-2 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+          <div className="mt-2 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg hover:bg-blue-500/15 transition-colors">
             <div className="flex items-start gap-3">
               <HelpCircle className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
               <div>
                 <h4 className="font-medium text-blue-600">Quick Tips</h4>
-                <ul className="mt-1 text-sm text-blue-600 space-y-1">
-                  <li>• Choose a clear, memorable name and symbol</li>
-                  <li>• Set supply based on your tokenomics strategy</li>
-                  <li>• Higher decimals (9) allow for smaller fractional amounts</li>
+                <ul className="mt-2 text-sm text-blue-600 space-y-2">
+                  <li className="flex items-start">
+                    <span className="mr-2">•</span>
+                    <span>Choose a clear, memorable name and symbol</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="mr-2">•</span>
+                    <span>Set supply based on your tokenomics strategy</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="mr-2">•</span>
+                    <span>Higher decimals (9) allow for smaller fractional amounts</span>
+                  </li>
                 </ul>
               </div>
             </div>
@@ -491,7 +500,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
       <Card className="glass-card">
         <CardHeader>
           <CardTitle className="text-2xl flex items-center space-x-3">
-            <div className="w-10 h-10 bg-red-500/10 rounded-full flex items-center justify-center">
+            <div className="w-10 h-10 bg-red-500/10 rounded-full flex items-center justify-center shadow-sm">
               <Upload className="w-6 h-6 text-red-500" />
             </div>
             <span>Step 3: Add Logo</span>
@@ -506,16 +515,16 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
               <div className="flex items-center space-x-4">
                 <img 
                   src={tokenData.logoUrl} 
-                  alt="Token logo" 
-                  className="w-16 h-16 rounded-full object-cover border-2 border-red-500/50"
+                  alt="Token logo"
+                  className="w-20 h-20 rounded-full object-cover border-2 border-red-500/50 shadow-xl"
                 />
                 <div className="flex-1">
-                  <p className="text-sm text-foreground font-medium">Logo uploaded successfully</p>
+                  <p className="text-base text-foreground font-medium">Logo uploaded successfully</p>
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => setTokenData({ ...tokenData, logoUrl: '' })}
-                    className="mt-2"
+                    className="mt-2 hover:bg-red-50 hover:text-red-500 transition-colors"
                   >
                     <X className="w-4 h-4 mr-2" />
                     Remove
@@ -523,8 +532,8 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
                 </div>
               </div>
             ) : (
-              <div className="border-2 border-dashed border-border rounded-lg p-8 text-center">
-                <Upload className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+              <div className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-red-300 transition-colors">
+                <Upload className="w-12 h-12 text-muted-foreground mx-auto mb-4 animate-pulse" />
                 <div className="space-y-4">
                   <div>
                     <p className="text-foreground font-medium text-lg">Upload token logo</p>
@@ -552,8 +561,11 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
               </div>
             )}
             
-            <div className="mt-4 text-sm text-muted-foreground">
-              <p className="flex items-center"><Info className="w-4 h-4 mr-2" /> A well-designed logo increases recognition and trust in your token</p>
+            <div className="mt-4 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg text-sm text-yellow-600">
+              <p className="flex items-center">
+                <Info className="w-5 h-5 mr-2 flex-shrink-0" /> 
+                <span>A well-designed logo increases recognition and trust in your token. For best results, use a square image with a simple, bold design.</span>
+              </p>
             </div>
           </div>
         </CardContent>
@@ -563,7 +575,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
       <Card className="glass-card">
         <CardHeader>
           <CardTitle className="text-2xl flex items-center space-x-3">
-            <div className="w-10 h-10 bg-red-500/10 rounded-full flex items-center justify-center">
+            <div className="w-10 h-10 bg-red-500/10 rounded-full flex items-center justify-center shadow-sm">
               <Link2 className="w-6 h-6 text-red-500" />
             </div>
             <span>Step 4: Add Links</span>
@@ -581,7 +593,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
               placeholder="https://your-website.com"
               value={tokenData.website}
               onChange={(e) => setTokenData({ ...tokenData, website: e.target.value })}
-              className="input-enhanced h-12 text-base"
+              className="input-enhanced h-12 text-base focus:ring-4"
             />
           </div>
           
@@ -593,7 +605,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
                 placeholder="https://twitter.com/username"
                 value={tokenData.twitter}
                 onChange={(e) => setTokenData({ ...tokenData, twitter: e.target.value })}
-                className="input-enhanced h-12 text-base"
+                className="input-enhanced h-12 text-base focus:ring-4"
               />
             </div>
             
@@ -604,7 +616,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
                 placeholder="https://github.com/username"
                 value={tokenData.github}
                 onChange={(e) => setTokenData({ ...tokenData, github: e.target.value })}
-                className="input-enhanced h-12 text-base"
+                className="input-enhanced h-12 text-base focus:ring-4"
               />
             </div>
           </div>
@@ -615,7 +627,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
       <Card className="glass-card">
         <CardHeader>
           <CardTitle className="text-2xl flex items-center space-x-3">
-            <div className="w-10 h-10 bg-red-500/10 rounded-full flex items-center justify-center">
+            <div className="w-10 h-10 bg-red-500/10 rounded-full flex items-center justify-center shadow-sm">
               <Settings className="w-6 h-6 text-red-500" />
             </div>
             <span>Step 5: Add Features</span>
@@ -626,7 +638,10 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className={`feature-card ${tokenData.mintable ? 'active' : ''}`}>
+            <div 
+              className={`feature-card ${tokenData.mintable ? 'active transform scale-105' : ''} transition-all duration-300`}
+              onClick={() => setTokenData({ ...tokenData, mintable: !tokenData.mintable })}
+            >
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
                   <Plus className="w-5 h-5 text-green-500" />
@@ -643,7 +658,10 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
               </div>
             </div>
 
-            <div className={`feature-card ${tokenData.burnable ? 'active' : ''}`}>
+            <div 
+              className={`feature-card ${tokenData.burnable ? 'active transform scale-105' : ''} transition-all duration-300`}
+              onClick={() => setTokenData({ ...tokenData, burnable: !tokenData.burnable })}
+            >
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
                   <Flame className="w-5 h-5 text-red-500" />
@@ -660,7 +678,10 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
               </div>
             </div>
 
-            <div className={`feature-card ${tokenData.pausable ? 'active' : ''}`}>
+            <div 
+              className={`feature-card ${tokenData.pausable ? 'active transform scale-105' : ''} transition-all duration-300`}
+              onClick={() => setTokenData({ ...tokenData, pausable: !tokenData.pausable })}
+            >
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
                   <Pause className="w-5 h-5 text-yellow-500" />
@@ -678,7 +699,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
             </div>
           </div>
           
-          <div className="mt-4 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+          <div className="mt-4 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg hover:bg-yellow-500/15 transition-colors">
             <div className="flex items-start gap-3">
               <AlertTriangle className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
               <div className="text-sm text-yellow-600">
@@ -694,7 +715,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
       <Card className="glass-card">
         <CardHeader>
           <CardTitle className="text-2xl flex items-center space-x-3">
-            <div className="w-10 h-10 bg-red-500/10 rounded-full flex items-center justify-center">
+            <div className="w-10 h-10 bg-red-500/10 rounded-full flex items-center justify-center shadow-sm">
               <Rocket className="w-6 h-6 text-red-500" />
             </div>
             <span>Step 6: Deploy Token</span>
@@ -705,10 +726,14 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Wallet Connection Status */}
-          <div className={`p-5 rounded-lg border ${isWalletConnected() ? 'bg-green-500/10 border-green-500/30' : 'bg-red-500/10 border-red-500/30'}`}>
+          <div className={`p-5 rounded-lg border ${
+            isWalletConnected() 
+              ? 'bg-green-500/10 border-green-500/30 shadow-md' 
+              : 'bg-red-500/10 border-red-500/30'
+          } transition-all duration-300`}>
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <div className={`w-3 h-3 rounded-full ${isWalletConnected() ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                <div className={`w-3 h-3 rounded-full ${isWalletConnected() ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
                 <div>
                   <span className="text-foreground font-medium">
                     {tokenData.network.includes('algorand') ? 'Algorand' : 'Solana'} Wallet
@@ -722,7 +747,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
               </div>
               <span className={`text-sm font-semibold px-3 py-1 rounded-full ${isWalletConnected() 
                 ? 'text-green-500 bg-green-500/10' 
-                : 'text-red-500 bg-red-500/10'}`}
+                : 'text-red-500 bg-red-500/10 animate-pulse'}`}
               >
                 {isWalletConnected() ? 'Connected ✓' : 'Not Connected'}
               </span>
@@ -788,10 +813,14 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
           )}
 
           {/* Deploy Button */}
-          <Button
+          <Button 
             onClick={handleCreateToken}
             disabled={isDeploying || !isWalletConnected() || validationErrors.length > 0}
-            className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white h-14 text-lg font-bold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
+            className={`w-full h-16 text-xl font-bold rounded-xl transition-all duration-500 ${
+              isWalletConnected() && validationErrors.length === 0
+                ? 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white shadow-xl hover:shadow-2xl hover:scale-105'
+                : 'bg-gradient-to-r from-gray-500 to-gray-600 text-white'
+            }`}
           >
             {isDeploying ? (
               <div className="flex items-center justify-center">
@@ -816,11 +845,11 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
             )}
           </Button>
 
-          <div className="p-4 bg-muted/30 border border-border rounded-lg">
+          <div className="p-4 bg-muted/30 border border-border rounded-lg hover:bg-muted/40 transition-colors">
             <div className="text-center space-y-2">
-              <p className="text-foreground"><span className="font-medium">Network Fee:</span> {networkInfo.cost}</p>
+              <p className="text-foreground text-lg"><span className="font-medium">Network Fee:</span> {networkInfo.cost}</p>
               <p className="text-sm text-muted-foreground">Your token will be created and managed using your connected wallet</p>
-              <p className="text-xs text-muted-foreground italic">Tokens are created directly on the blockchain, no account required</p>
+              <p className="text-xs text-muted-foreground italic mt-1">Tokens are created directly on the blockchain, no account required</p>
             </div>
           </div>
         </CardContent>
