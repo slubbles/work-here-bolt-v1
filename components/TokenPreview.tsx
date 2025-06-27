@@ -141,10 +141,10 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
 
   // Enhanced header text based on network
   const getHeaderText = () => {
-    if (network.startsWith('algorand')) {
-      return algorandNetwork === 'algorand-mainnet' ? 'Algorand Mainnet Preview' : 'Algorand Testnet Preview';
-    } else if (network.startsWith('solana')) {
-      return 'Solana Devnet Preview';
+    if (network === 'algorand') {
+      return 'Algorand Network Preview';
+    } else if (network === 'solana') {
+      return 'Solana Network Preview';
     }
     return 'Live Preview';
   };

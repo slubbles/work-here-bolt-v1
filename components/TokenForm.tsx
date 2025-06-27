@@ -143,18 +143,18 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
 
   // Check wallet connection based on selected network
   const isWalletConnected = () => {
-    if (tokenData.network.startsWith('algorand')) {
+    if (tokenData.network === 'algorand') {
       return algorandConnected && algorandAddress;
-    } else if (tokenData.network.startsWith('solana')) {
+    } else if (tokenData.network === 'solana') {
       return solanaConnected && solanaPublicKey;
     }
     return false;
   };
 
   const getConnectedAddress = () => {
-    if (tokenData.network.startsWith('algorand')) {
+    if (tokenData.network === 'algorand') {
       return algorandAddress;
-    } else if (tokenData.network.startsWith('solana')) {
+    } else if (tokenData.network === 'solana') {
       return solanaPublicKey?.toString();
     }
     return null;
@@ -246,7 +246,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
 
     // Check wallet connection
     if (!isWalletConnected()) {
-      setError(`Please connect your ${tokenData.network.startsWith('algorand') ? 'Algorand' : 'Solana'} wallet first`);
+      setError(`Please connect your ${tokenData.network === 'algorand' ? 'Algorand' : 'Solana'} wallet first`);
       setTimeout(() => setError(''), 5000);
       return;
     }
@@ -259,7 +259,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
     try {
       let result;
 
-      if (tokenData.network.startsWith('algorand')) {
+      if (tokenData.network === 'algorand') {
         // Algorand token creation
         setDeploymentStep('Creating Algorand Standard Asset...');
         
@@ -288,11 +288,10 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
           algorandNetwork
         );
 
-      } else if (tokenData.network.startsWith('solana')) {
+      } else if (tokenData.network === 'solana') {
         // Solana token creation
         setDeploymentStep('Creating Solana token...');
-        console.log('🚀 Creating token on Solana with data:', tokenData);
-
+        
         if (!solanaWallet || !solanaPublicKey) {
           throw new Error('Solana wallet not properly connected');
         }
@@ -349,7 +348,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
 
   // Get network display info
   const getNetworkInfo = () => {
-    if (tokenData.network.startsWith('algorand')) {
+    if (tokenData.network === 'algorand') {
       // Use the network selected in the Algorand wallet provider
       return algorandNetwork === 'algorand-mainnet' 
         ? { 
@@ -362,7 +361,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
             color: 'bg-[#76f935]/20 text-[#76f935] border-[#76f935]/30',
             cost: '~$0.001'
           };
-    } else if (tokenData.network.startsWith('solana')) {
+    } else if (tokenData.network === 'solana') {
       return { 
         name: 'Solana Devnet', 
         color: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
@@ -372,13 +371,8 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
     
     // Fallback
     const networks = {
-      'solana-devnet': { 
+      'solana': { 
         name: 'Solana Devnet', 
-        color: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-        cost: 'Free'
-      },
-      'solana': {
-        name: 'Solana Devnet',
         color: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
         cost: 'Free'
       }
@@ -460,7 +454,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
                 onClick={() => setTokenData({ ...tokenData, network: 'solana' })}
               >
                 <div className="w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center mb-3 shadow-md">
-                  <span className="text-xl font-bold text-blue-500">SOL</span>
+                  <span className="text-xl font-bold text-blue-500">S</span>
                 </div>
                 <h3 className="font-semibold text-lg mb-2">Solana</h3>
                 <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">Fast & Reliable</Badge>
@@ -829,7 +823,6 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
                 <div>
                   <h3 className="font-bold text-foreground">Burnable Token</h3>
                   <p className="text-sm text-muted-foreground mt-1">Allows permanent destruction of tokens</p>
-                  <p className="text-xs text-muted-foreground mt-1 italic">Works on both Solana and Algorand</p>
                 </div>
               </div>
             </div>
@@ -910,7 +903,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
             {!isWalletConnected() && (
               <div className="mt-3 text-sm text-red-600 flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4" />
-                <span>Please connect your {tokenData.network.startsWith('algorand') ? 'Algorand' : 'Solana'} wallet in the top navigation bar first</span>
+                <span>Please connect your {tokenData.network === 'algorand' ? 'Algorand' : 'Solana'} wallet in the top navigation bar first</span>
               </div>
             )}
           </div>
@@ -984,7 +977,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
             ) : !isWalletConnected() ? (
               <div className="flex items-center justify-center">
                 <Wallet className="w-5 h-5 mr-3" />
-                Connect {tokenData.network.startsWith('algorand') ? 'Algorand' : 'Solana'} Wallet First
+                Connect {tokenData.network === 'algorand' ? 'Algorand' : 'Solana'} Wallet First
               </div>
             ) : validationErrors.length > 0 ? (
               <div className="flex items-center justify-center">
