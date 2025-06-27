@@ -38,7 +38,7 @@ const nextConfig = {
     optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
     optimizeCss: true,
     scrollRestoration: true,
-    forceSwcTransforms: true,
+    forceSwcTransforms: false,
   },
   // Simplified webpack configuration
   webpack: (config, { webpack }) => {

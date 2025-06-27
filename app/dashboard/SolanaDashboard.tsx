@@ -174,9 +174,7 @@ export default function SolanaDashboard() {
 
   // Format transaction data for display
   const formatTransactionForDisplay = (tx: TransactionInfo) => {
-    const timeAgo = new Date(tx.timestamp).toRelativeTimeString 
-      ? new Date(tx.timestamp).toRelativeTimeString()
-      : new Date(tx.timestamp).toLocaleDateString();
+    const timeAgo = formatDistanceToNow(new Date(tx.timestamp), { addSuffix: true });
     
     return {
       type: tx.type,
