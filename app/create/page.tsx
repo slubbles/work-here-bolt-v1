@@ -74,15 +74,11 @@ export default function CreateTokenPage() {
         )}
         
         <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 lg:gap-16">
-          <div className="order-2 xl:order-1">
-            <div className="xl:col-span-7 xl:pr-4">
-              <TokenForm tokenData={tokenData} setTokenData={setTokenData} />
-            </div>
+          <div className="order-2 xl:order-1 xl:col-span-7 xl:pr-4">
+            <TokenForm tokenData={tokenData} setTokenData={setTokenData} />
           </div>
-          <div className="order-1 xl:order-2">
-            <div className="xl:col-span-5 xl:pl-4">
-              <TokenPreview tokenData={tokenData} />
-            </div>
+          <div className="order-1 xl:order-2 xl:col-span-5 xl:pl-4">
+            <TokenPreview tokenData={tokenData} />
           </div>
         </div>
       </div>
