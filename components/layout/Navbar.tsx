@@ -150,12 +150,21 @@ export default function Navbar() {
           {/* Logo */}
           <Link href="/" className="flex items-center group">
             <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center">
-                <span className="text-white font-bold text-sm">S</span>
-              </div>
+              <img 
+                src="/image copy.png" 
+                alt="Snarbles Logo" 
+                className="w-8 h-8 rounded-lg"
+              />
               <span className="text-2xl font-bold text-foreground group-hover:text-red-500 transition-colors">
                 Snarbles
               </span>
+            <div className="flex items-center space-x-2">
+              <img 
+                src="/image copy.png" 
+                alt="Snarbles Logo" 
+                className="w-8 h-8 rounded-lg"
+              />
+              <span className="text-2xl font-bold text-foreground">Snarbles</span>
             </div>
           </Link>
 

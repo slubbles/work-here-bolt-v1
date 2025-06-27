@@ -38,9 +38,11 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           <div className="space-y-4">
             <div className="flex items-center">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center mr-3">
-                <span className="text-white font-bold text-sm">S</span>
-              </div>
+              <img 
+                src="/image copy.png" 
+                alt="Snarbles Logo" 
+                className="w-8 h-8 rounded-lg mr-3"
+              />
               <span className="text-xl font-bold text-foreground">Snarbles</span>
             </div>
             <p className="text-muted-foreground text-sm leading-relaxed">
