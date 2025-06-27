@@ -23,7 +23,8 @@ import {
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useAlgorandWallet } from '@/components/providers/AlgorandWalletProvider';
 import { createTokenOnChain } from '@/lib/solana';
-import { createAlgorandToken, supabaseHelpers } from '@/lib/algorand';
+import { createAlgorandToken } from '@/lib/algorand';
+import { supabaseHelpers } from '@/lib/supabase';
 
 interface TokenFormProps {
   tokenData: {
