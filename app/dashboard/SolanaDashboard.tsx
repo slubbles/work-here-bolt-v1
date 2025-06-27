@@ -26,11 +26,7 @@ import {
   Download,
   FileDown,
   ChevronDown,
-  RefreshCw,
-  Loader2,
-  CheckCircle,
-  Pause,
-  Play
+  RefreshCw
 } from 'lucide-react';
 import { DashboardSkeleton, StatCardSkeleton, TokenCardSkeleton, ChartSkeleton, TransactionItemSkeleton, TokenOverviewSkeleton, ManagementActionsSkeleton } from '@/components/skeletons/DashboardSkeletons';
 import Link from 'next/link';
@@ -41,9 +37,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
   getEnhancedTokenInfo, 
   getWalletTransactionHistory, 
@@ -51,39 +45,13 @@ import {
   EnhancedTokenInfo,
   TransactionInfo
 } from '@/lib/solana-data';
-import { 
-  getTokenData,
-  mintTokens,
-  burnTokens,
-  pauseToken,
-  unpauseToken,
-  transferTokens,
-  getTokenBalance
-} from '@/lib/solana';
-import { useSupabaseAuth, useTokenHistory } from '@/hooks/useSupabase';
-
-interface TokenOperation {
-  type: 'mint' | 'burn' | 'pause' | 'unpause' | 'transfer';
-  tokenAddress: string;
-  amount?: number;
-  recipient?: string;
-  status: 'pending' | 'success' | 'error';
-  signature?: string;
-  error?: string;
-}
 
 export default function SolanaDashboard() {
   const [selectedToken, setSelectedToken] = useState(0);
   const [transferAmount, setTransferAmount] = useState('');
   const [transferAddress, setTransferAddress] = useState('');
-  const [mintAmount, setMintAmount] = useState('');
-  const [burnAmount, setBurnAmount] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  
-  // Token operation states
-  const [currentOperation, setCurrentOperation] = useState<TokenOperation | null>(null);
-  const [operationHistory, setOperationHistory] = useState<TokenOperation[]>([]);
   
   // Real data states
   const [userTokens, setUserTokens] = useState<EnhancedTokenInfo[]>([]);
@@ -91,17 +59,8 @@ export default function SolanaDashboard() {
   const [walletSummary, setWalletSummary] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   
-  // Token balances and data
-  const [tokenBalances, setTokenBalances] = useState<{[key: string]: number}>({});
-  const [tokenDataCache, setTokenDataCache] = useState<{[key: string]: any}>({});
-  
   // Solana wallet integration
-  const { connected, publicKey, wallet } = useWallet();
-  const { toast } = useToast();
-  
-  // Supabase integration
-  const { user, isAuthenticated } = useSupabaseAuth();
-  const { tokens: savedTokens, fetchTokenHistory } = useTokenHistory();
+  const { connected, publicKey } = useWallet();
 
   // Fetch real data when wallet connects
   useEffect(() => {
@@ -117,8 +76,6 @@ export default function SolanaDashboard() {
       setWalletSummary(null);
       setError(null);
       setSelectedToken(0);
-      setTokenBalances({});
-      setTokenDataCache({});
     }
   }, [connected]);
 
@@ -133,27 +90,17 @@ export default function SolanaDashboard() {
       const walletAddress = publicKey.toString();
       console.log(`📊 Fetching dashboard data for: ${walletAddress}`);
       
-      // Fetch all data in parallel, including saved token history if authenticated
-      const promises = [
+      // Fetch all data in parallel
+      const [tokensResult, transactionsResult, summaryResult] = await Promise.all([
         getEnhancedTokenInfo(walletAddress),
         getWalletTransactionHistory(walletAddress, 20),
         getWalletSummary(walletAddress)
-      ];
-      
-      // Add token history fetch if authenticated
-      if (isAuthenticated && user) {
-        promises.push(fetchTokenHistory());
-      }
-      
-      const [tokensResult, transactionsResult, summaryResult] = await Promise.all(promises);
+      ]);
       
       // Handle tokens data
       if (tokensResult.success && tokensResult.data) {
         setUserTokens(tokensResult.data);
         console.log(`✅ Loaded ${tokensResult.data.length} tokens`);
-        
-        // Fetch additional token data and balances for management
-        await fetchTokenManagementData(tokensResult.data);
       } else {
         console.warn('⚠️ Failed to load tokens:', tokensResult.error);
         setUserTokens([]);
@@ -177,60 +124,13 @@ export default function SolanaDashboard() {
         setWalletSummary(null);
       }
       
-      toast({
-        title: "✅ Dashboard Updated",
-        description: "Loaded latest data from Solana blockchain",
-        duration: 3000,
-      });
-      
     } catch (err) {
       console.error('❌ Error fetching dashboard data:', err);
       const errorMessage = err instanceof Error ? err.message : 'Failed to load dashboard data';
       setError(errorMessage);
-      
-      toast({
-        title: "❌ Failed to Load Data",
-        description: errorMessage,
-        variant: "destructive",
-        duration: 5000,
-      });
     } finally {
       setIsLoading(false);
     }
-  };
-
-  // Fetch additional token management data
-  const fetchTokenManagementData = async (tokens: EnhancedTokenInfo[]) => {
-    if (!publicKey || !wallet) return;
-    
-    const balances: {[key: string]: number} = {};
-    const tokenData: {[key: string]: any} = {};
-    
-    for (const token of tokens) {
-      try {
-        // Get current balance
-        const balanceResult = await getTokenBalance(publicKey.toString(), token.mint);
-        if (balanceResult.success) {
-          balances[token.mint] = balanceResult.balance;
-        }
-        
-        // Get token management data (if it's a token we created)
-        try {
-          const dataResult = await getTokenData(token.mint);
-          if (dataResult.success) {
-            tokenData[token.mint] = dataResult.data;
-          }
-        } catch (err) {
-          // Token might not be created through our platform - that's okay
-          console.log(`Token ${token.mint} not created through platform`);
-        }
-      } catch (err) {
-        console.warn(`Failed to fetch data for token ${token.mint}:`, err);
-      }
-    }
-    
-    setTokenBalances(balances);
-    setTokenDataCache(tokenData);
   };
   
   // Manual refresh function
@@ -240,257 +140,6 @@ export default function SolanaDashboard() {
     setIsRefreshing(true);
     await fetchDashboardData();
     setIsRefreshing(false);
-  };
-
-  // Token operation functions
-  const executeTokenOperation = async (operation: Omit<TokenOperation, 'status' | 'signature'>) => {
-    if (!wallet || !publicKey) {
-      toast({
-        title: "❌ Wallet Not Connected",
-        description: "Please connect your wallet to perform token operations",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const token = userTokens[selectedToken];
-    if (!token) {
-      toast({
-        title: "❌ No Token Selected",
-        description: "Please select a token to manage",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Start operation
-    const operationWithStatus: TokenOperation = {
-      ...operation,
-      status: 'pending'
-    };
-    
-    setCurrentOperation(operationWithStatus);
-    
-    try {
-      let result;
-      
-      switch (operation.type) {
-        case 'mint':
-          if (!operation.amount || operation.amount <= 0) {
-            throw new Error('Please enter a valid amount to mint');
-          }
-          result = await mintTokens(wallet, operation.tokenAddress, operation.amount, token.decimals);
-          break;
-          
-        case 'burn':
-          if (!operation.amount || operation.amount <= 0) {
-            throw new Error('Please enter a valid amount to burn');
-          }
-          result = await burnTokens(wallet, operation.tokenAddress, operation.amount, token.decimals);
-          break;
-          
-        case 'pause':
-          result = await pauseToken(wallet, operation.tokenAddress);
-          break;
-          
-        case 'unpause':
-          result = await unpauseToken(wallet, operation.tokenAddress);
-          break;
-          
-        case 'transfer':
-          if (!operation.amount || operation.amount <= 0) {
-            throw new Error('Please enter a valid amount to transfer');
-          }
-          if (!operation.recipient) {
-            throw new Error('Please enter a recipient address');
-          }
-          result = await transferTokens(wallet, operation.tokenAddress, operation.recipient, operation.amount, token.decimals);
-          break;
-          
-        default:
-          throw new Error('Unknown operation type');
-      }
-      
-      if (result.success) {
-        const completedOperation: TokenOperation = {
-          ...operationWithStatus,
-          status: 'success',
-          signature: result.signature
-        };
-        
-        setCurrentOperation(completedOperation);
-        setOperationHistory(prev => [completedOperation, ...prev.slice(0, 9)]); // Keep last 10
-        
-        toast({
-          title: "✅ Operation Successful",
-          description: `${operation.type.charAt(0).toUpperCase() + operation.type.slice(1)} operation completed successfully`,
-          duration: 5000,
-        });
-        
-        // Clear form fields
-        setMintAmount('');
-        setBurnAmount('');
-        setTransferAmount('');
-        setTransferAddress('');
-        
-        // Refresh data after successful operation
-        setTimeout(() => {
-          fetchDashboardData();
-        }, 2000);
-        
-      } else {
-        throw new Error(result.error || 'Operation failed');
-      }
-      
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Operation failed';
-      
-      const failedOperation: TokenOperation = {
-        ...operationWithStatus,
-        status: 'error',
-        error: errorMessage
-      };
-      
-      setCurrentOperation(failedOperation);
-      setOperationHistory(prev => [failedOperation, ...prev.slice(0, 9)]);
-      
-      toast({
-        title: "❌ Operation Failed",
-        description: errorMessage,
-        variant: "destructive",
-        duration: 5000,
-      });
-    }
-    
-    // Clear current operation after 5 seconds
-    setTimeout(() => {
-      setCurrentOperation(null);
-    }, 5000);
-  };
-
-  // Handle specific operations
-  const handleMint = () => {
-    const amount = parseFloat(mintAmount);
-    if (!amount || amount <= 0) {
-      toast({
-        title: "❌ Invalid Amount",
-        description: "Please enter a valid amount to mint",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    executeTokenOperation({
-      type: 'mint',
-      tokenAddress: userTokens[selectedToken].mint,
-      amount
-    });
-  };
-
-  const handleBurn = () => {
-    const amount = parseFloat(burnAmount);
-    if (!amount || amount <= 0) {
-      toast({
-        title: "❌ Invalid Amount",
-        description: "Please enter a valid amount to burn",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    const currentBalance = tokenBalances[userTokens[selectedToken].mint] || 0;
-    if (amount > currentBalance) {
-      toast({
-        title: "❌ Insufficient Balance",
-        description: `You only have ${currentBalance} tokens available to burn`,
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    executeTokenOperation({
-      type: 'burn',
-      tokenAddress: userTokens[selectedToken].mint,
-      amount
-    });
-  };
-
-  const handlePause = () => {
-    executeTokenOperation({
-      type: 'pause',
-      tokenAddress: userTokens[selectedToken].mint
-    });
-  };
-
-  const handleUnpause = () => {
-    executeTokenOperation({
-      type: 'unpause',
-      tokenAddress: userTokens[selectedToken].mint
-    });
-  };
-
-  const handleTransfer = () => {
-    const amount = parseFloat(transferAmount);
-    if (!amount || amount <= 0) {
-      toast({
-        title: "❌ Invalid Amount",
-        description: "Please enter a valid amount to transfer",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    if (!transferAddress.trim()) {
-      toast({
-        title: "❌ Invalid Address",
-        description: "Please enter a valid recipient address",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    const currentBalance = tokenBalances[userTokens[selectedToken].mint] || 0;
-    if (amount > currentBalance) {
-      toast({
-        title: "❌ Insufficient Balance",
-        description: `You only have ${currentBalance} tokens available to transfer`,
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    executeTokenOperation({
-      type: 'transfer',
-      tokenAddress: userTokens[selectedToken].mint,
-      amount,
-      recipient: transferAddress
-    });
-  };
-
-  // Check if token is manageable (created through our platform)
-  const isTokenManageable = (tokenMint: string) => {
-    return tokenDataCache[tokenMint] !== undefined;
-  };
-
-  // Check if token supports specific operations
-  const canMint = (tokenMint: string) => {
-    const tokenData = tokenDataCache[tokenMint];
-    return tokenData?.features?.canMint || false;
-  };
-
-  const canBurn = (tokenMint: string) => {
-    const tokenData = tokenDataCache[tokenMint];
-    return tokenData?.features?.canBurn || false;
-  };
-
-  const canPause = (tokenMint: string) => {
-    const tokenData = tokenDataCache[tokenMint];
-    return tokenData?.features?.canPause || false;
-  };
-
-  const isTokenPaused = (tokenMint: string) => {
-    const tokenData = tokenDataCache[tokenMint];
-    return tokenData?.isPaused || false;
   };
 
   // Generate chart data from transaction history
@@ -514,6 +163,18 @@ export default function SolanaDashboard() {
       time: timeAgo,
       status: tx.status === 'confirmed' ? 'Completed' : tx.status === 'failed' ? 'Failed' : 'Pending'
     };
+  };
+
+  const handleTransfer = () => {
+    if (!transferAmount || !transferAddress) {
+      alert('Please fill in both amount and recipient address');
+      return;
+    }
+    
+    // Simulate transfer
+    alert(`Successfully transferred ${transferAmount} ${userTokens[selectedToken].symbol} to ${transferAddress}`);
+    setTransferAmount('');
+    setTransferAddress('');
   };
 
   // CSV Export Functions
@@ -586,10 +247,7 @@ export default function SolanaDashboard() {
       URL.revokeObjectURL(link.href);
     }
     
-    toast({
-      title: "Export Successful",
-      description: `Transaction data exported as ${format.toUpperCase()}`,
-    });
+    alert(`Transaction data exported as ${format.toUpperCase()}`);
   };
 
   const exportChartData = (format: 'csv' | 'json' = 'csv'): void => {
@@ -630,10 +288,7 @@ export default function SolanaDashboard() {
       URL.revokeObjectURL(link.href);
     }
     
-    toast({
-      title: "Export Successful",
-      description: `Analytics data exported as ${format.toUpperCase()}`,
-    });
+    alert(`Analytics data exported as ${format.toUpperCase()}`);
   };
 
   const exportAllData = (): void => {
@@ -666,10 +321,7 @@ export default function SolanaDashboard() {
     link.click();
     URL.revokeObjectURL(link.href);
     
-    toast({
-      title: "Complete Export Successful",
-      description: "All dashboard data exported as JSON",
-    });
+    alert('Complete data exported as JSON');
   };
 
   // Redirect to wallet connection if not connected
@@ -739,16 +391,6 @@ export default function SolanaDashboard() {
                 Connected: {publicKey.toBase58().slice(0, 4)}...{publicKey.toBase58().slice(-4)}
               </p>
             )}
-            {isAuthenticated && user && (
-              <p className="text-sm text-green-600 mt-1">
-                ✓ Signed in as {user.email?.split('@')[0]}
-              </p>
-            )}
-            {!isAuthenticated && (
-              <p className="text-sm text-orange-600 mt-1">
-                Sign in to save your token history and access advanced features
-              </p>
-            )}
             {error && (
               <div className="flex items-center space-x-2 mt-2 text-red-500 text-sm">
                 <AlertCircle className="w-4 h-4" />
@@ -775,48 +417,6 @@ export default function SolanaDashboard() {
           </div>
         </div>
 
-        {/* Current Operation Status */}
-        {currentOperation && (
-          <div className="mb-8">
-            <Card className="glass-card border-blue-500/30 bg-blue-500/5">
-              <CardContent className="p-6">
-                <div className="flex items-center space-x-4">
-                  {currentOperation.status === 'pending' && (
-                    <Loader2 className="w-6 h-6 text-blue-500 animate-spin" />
-                  )}
-                  {currentOperation.status === 'success' && (
-                    <CheckCircle className="w-6 h-6 text-green-500" />
-                  )}
-                  {currentOperation.status === 'error' && (
-                    <AlertCircle className="w-6 h-6 text-red-500" />
-                  )}
-                  
-                  <div className="flex-1">
-                    <p className="font-semibold text-foreground">
-                      {currentOperation.type.charAt(0).toUpperCase() + currentOperation.type.slice(1)} Operation
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {currentOperation.status === 'pending' && 'Processing transaction...'}
-                      {currentOperation.status === 'success' && `Successfully completed! TX: ${currentOperation.signature?.slice(0, 8)}...`}
-                      {currentOperation.status === 'error' && currentOperation.error}
-                    </p>
-                  </div>
-                  
-                  {currentOperation.signature && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => window.open(`https://explorer.solana.com/tx/${currentOperation.signature}`, '_blank')}
-                    >
-                      <ExternalLink className="w-4 h-4" />
-                    </Button>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
         {/* Stats Overview */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
           {isLoading ? (
@@ -834,11 +434,6 @@ export default function SolanaDashboard() {
                     <p className="text-muted-foreground text-sm">Total Tokens</p>
                     <p className="text-2xl font-bold text-foreground">
                       {walletSummary?.totalTokens || userTokens.length}
-                      {isAuthenticated && savedTokens && savedTokens.length > 0 && (
-                        <span className="text-sm text-muted-foreground ml-2">
-                          (+{savedTokens.length} saved)
-                        </span>
-                      )}
                     </p>
                   </div>
                   <Coins className="w-8 h-8 text-red-500" />
@@ -890,10 +485,7 @@ export default function SolanaDashboard() {
                 <div className="text-center py-8">
                   <Coins className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                   <p className="text-muted-foreground mb-4">
-                    {isAuthenticated && savedTokens && savedTokens.length > 0 
-                      ? `No tokens in current wallet (${savedTokens.length} saved tokens in history)`
-                      : 'No tokens found in your wallet'
-                    }
+                    No tokens found in your wallet
                   </p>
                   <Link href="/create">
                     <Button className="bg-red-500 hover:bg-red-600 text-white">
@@ -901,11 +493,6 @@ export default function SolanaDashboard() {
                       Create Your First Token
                     </Button>
                   </Link>
-                  {!isAuthenticated && (
-                    <p className="text-sm text-muted-foreground mt-4">
-                      Sign in to save your token history across sessions
-                    </p>
-                  )}
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -942,24 +529,15 @@ export default function SolanaDashboard() {
                             <p className="text-muted-foreground text-sm">{token.symbol}</p>
                           </div>
                         </div>
-                        <div className="flex items-center space-x-2">
-                          {token.verified && (
-                            <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs">
-                              Verified
-                            </Badge>
-                          )}
-                          {isTokenManageable(token.mint) && (
-                            <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30 text-xs">
-                              Manageable
-                            </Badge>
-                          )}
-                        </div>
+                        {token.verified && (
+                          <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs">
+                            Verified
+                          </Badge>
+                        )}
                       </div>
                       <div className="flex justify-between items-center">
                         <div>
-                          <p className="text-foreground font-semibold">
-                            {(tokenBalances[token.mint] || token.uiBalance || 0).toLocaleString()}
-                          </p>
+                          <p className="text-foreground font-semibold">{token.uiBalance.toLocaleString()}</p>
                           <p className="text-muted-foreground text-sm">{token.value || 'N/A'}</p>
                         </div>
                         {token.change && (
@@ -987,11 +565,6 @@ export default function SolanaDashboard() {
                 <div className="mb-4">
                   <h3 className="text-lg font-semibold text-foreground">Token Management</h3>
                   <p className="text-sm text-muted-foreground">Manage and analyze your token performance</p>
-                  {isAuthenticated && (
-                    <p className="text-sm text-green-600 mt-1">
-                      ✓ History saved to your account
-                    </p>
-                  )}
                 </div>
                 <TabsList className="enhanced-tabs grid w-full grid-cols-4">
                   <TabsTrigger value="overview" className="enhanced-tab-trigger">
@@ -1021,10 +594,7 @@ export default function SolanaDashboard() {
                     <Coins className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                     <h3 className="text-xl font-semibold text-foreground mb-2">No Tokens Found</h3>
                     <p className="text-muted-foreground mb-6">
-                      {isAuthenticated 
-                        ? 'Create your first token to get started. It will be saved to your account!'
-                        : 'Connect your wallet and create your first token to get started.'
-                      }
+                      Connect your wallet and create your first token to get started.
                     </p>
                     <Link href="/create">
                       <Button className="bg-red-500 hover:bg-red-600 text-white">
@@ -1039,18 +609,6 @@ export default function SolanaDashboard() {
                       <div>
                         <h3 className="text-2xl font-bold text-foreground">{userTokens[selectedToken].name}</h3>
                         <p className="text-muted-foreground">{userTokens[selectedToken].symbol}</p>
-                        {isTokenManageable(userTokens[selectedToken].mint) && (
-                          <div className="flex items-center space-x-2 mt-2">
-                            <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">
-                              Platform Token
-                            </Badge>
-                            {isTokenPaused(userTokens[selectedToken].mint) && (
-                              <Badge className="bg-red-500/20 text-red-400 border-red-500/30">
-                                Paused
-                              </Badge>
-                            )}
-                          </div>
-                        )}
                       </div>
                       <div className="flex space-x-2">
                         <Button 
@@ -1073,21 +631,19 @@ export default function SolanaDashboard() {
                     </div>
 
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      <div className="bg-muted/30 rounded-lg p-4 text-center">
-                        <p className="text-muted-foreground text-sm">Current Balance</p>
-                        <p className="text-foreground font-bold">
-                          {(tokenBalances[userTokens[selectedToken].mint] || userTokens[selectedToken].uiBalance || 0).toLocaleString()}
-                        </p>
+                      <div className="bg-muted/50 rounded-lg p-4 text-center">
+                        <p className="text-muted-foreground text-sm">Balance</p>
+                        <p className="text-foreground font-bold">{userTokens[selectedToken].uiBalance.toLocaleString()}</p>
                       </div>
-                      <div className="bg-muted/30 rounded-lg p-4 text-center">
+                      <div className="bg-muted/50 rounded-lg p-4 text-center">
                         <p className="text-muted-foreground text-sm">Value</p>
                         <p className="text-foreground font-bold">{userTokens[selectedToken].value || 'N/A'}</p>
                       </div>
-                      <div className="bg-muted/30 rounded-lg p-4 text-center">
+                      <div className="bg-muted/50 rounded-lg p-4 text-center">
                         <p className="text-muted-foreground text-sm">Decimals</p>
                         <p className="text-foreground font-bold">{userTokens[selectedToken].decimals}</p>
                       </div>
-                      <div className="bg-muted/30 rounded-lg p-4 text-center">
+                      <div className="bg-muted/50 rounded-lg p-4 text-center">
                         <p className="text-muted-foreground text-sm">Mint Address</p>
                         <p className="text-foreground font-bold text-xs">{userTokens[selectedToken].mint.slice(0, 8)}...</p>
                       </div>
@@ -1307,50 +863,6 @@ export default function SolanaDashboard() {
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
-                    
-                    {/* Operation History */}
-                    {operationHistory.length > 0 && (
-                      <div className="mb-6">
-                        <h5 className="text-sm font-semibold text-foreground mb-3">Recent Operations</h5>
-                        <div className="space-y-2">
-                          {operationHistory.slice(0, 3).map((operation, index) => (
-                            <div key={index} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg text-sm">
-                              <div className="flex items-center space-x-3">
-                                {operation.status === 'pending' && <Loader2 className="w-4 h-4 animate-spin" />}
-                                {operation.status === 'success' && <CheckCircle className="w-4 h-4 text-green-500" />}
-                                {operation.status === 'error' && <AlertCircle className="w-4 h-4 text-red-500" />}
-                                <div>
-                                  <p className="font-medium text-foreground capitalize">{operation.type}</p>
-                                  {operation.amount && (
-                                    <p className="text-muted-foreground">{operation.amount} tokens</p>
-                                  )}
-                                </div>
-                              </div>
-                              <div className="text-right">
-                                <Badge className={`text-xs ${
-                                  operation.status === 'success' ? 'bg-green-500/20 text-green-400 border-green-500/30' :
-                                  operation.status === 'error' ? 'bg-red-500/20 text-red-400 border-red-500/30' :
-                                  'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
-                                }`}>
-                                  {operation.status}
-                                </Badge>
-                                {operation.signature && (
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="mt-1 h-6 text-xs"
-                                    onClick={() => window.open(`https://explorer.solana.com/tx/${operation.signature}`, '_blank')}
-                                  >
-                                    View TX
-                                  </Button>
-                                )}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    
                     {transactionData.length === 0 ? (
                       <div className="text-center py-8">
                         <Calendar className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
@@ -1414,59 +926,6 @@ export default function SolanaDashboard() {
                       </Button>
                     </Link>
                   </div>
-                ) : !isTokenManageable(userTokens[selectedToken].mint) ? (
-                  <div className="glass-card p-6 text-center">
-                    <AlertCircle className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-xl font-semibold text-foreground mb-2">Token Not Manageable</h3>
-                    <p className="text-muted-foreground mb-6">
-                      This token was not created through our platform and cannot be managed here. 
-                      You can still transfer tokens using the basic transfer function below.
-                    </p>
-                    
-                    {/* Basic Transfer for Non-Manageable Tokens */}
-                    <div className="max-w-md mx-auto">
-                      <div className="space-y-4">
-                        <div>
-                          <Label htmlFor="basicTransferAddress" className="text-foreground font-medium">Recipient Address</Label>
-                          <Input
-                            id="basicTransferAddress"
-                            placeholder="Enter wallet address"
-                            value={transferAddress}
-                            onChange={(e) => setTransferAddress(e.target.value)}
-                            className="input-enhanced mt-2"
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="basicTransferAmount" className="text-foreground font-medium">Amount</Label>
-                          <Input
-                            id="basicTransferAmount"
-                            type="number"
-                            placeholder={`Enter amount of ${userTokens[selectedToken].symbol}`}
-                            value={transferAmount}
-                            onChange={(e) => setTransferAmount(e.target.value)}
-                            className="input-enhanced mt-2"
-                          />
-                        </div>
-                        <Button 
-                          onClick={handleTransfer}
-                          disabled={currentOperation?.status === 'pending'}
-                          className="bg-red-500 hover:bg-red-600 text-white w-full"
-                        >
-                          {currentOperation?.status === 'pending' ? (
-                            <>
-                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                              Processing...
-                            </>
-                          ) : (
-                            <>
-                              <Send className="w-4 h-4 mr-2" />
-                              Transfer {userTokens[selectedToken].symbol}
-                            </>
-                          )}
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
                 ) : (
                   <>
                     {/* Token Transfer */}
@@ -1492,162 +951,38 @@ export default function SolanaDashboard() {
                             value={transferAmount}
                             onChange={(e) => setTransferAmount(e.target.value)}
                             className="input-enhanced mt-2"
-                            max={tokenBalances[userTokens[selectedToken].mint] || 0}
                           />
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Available: {(tokenBalances[userTokens[selectedToken].mint] || 0).toLocaleString()} {userTokens[selectedToken].symbol}
-                          </p>
                         </div>
                         <Button 
                           onClick={handleTransfer}
-                          disabled={currentOperation?.status === 'pending'}
                           className="bg-red-500 hover:bg-red-600 text-white w-full"
                         >
-                          {currentOperation?.status === 'pending' ? (
-                            <>
-                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                              Processing...
-                            </>
-                          ) : (
-                            <>
-                              <Send className="w-4 h-4 mr-2" />
-                              Transfer {userTokens[selectedToken].symbol}
-                            </>
-                          )}
+                          <Send className="w-4 h-4 mr-2" />
+                          Transfer {userTokens[selectedToken].symbol}
                         </Button>
                       </div>
                     </div>
 
-                    {/* Advanced Token Management */}
+                    {/* Other Management Actions */}
                     <div className="glass-card p-6">
-                      <h4 className="text-lg font-semibold text-foreground mb-6">Advanced Token Management</h4>
-                      
-                      {/* Mint Tokens */}
-                      {canMint(userTokens[selectedToken].mint) && (
-                        <div className="mb-6 p-4 border border-green-500/30 rounded-lg bg-green-500/5">
-                          <h5 className="font-semibold text-foreground mb-3 flex items-center">
-                            <Plus className="w-4 h-4 mr-2 text-green-500" />
-                            Mint New Tokens
-                          </h5>
-                          <div className="space-y-3">
-                            <Input
-                              type="number"
-                              placeholder="Amount to mint"
-                              value={mintAmount}
-                              onChange={(e) => setMintAmount(e.target.value)}
-                              className="input-enhanced"
-                            />
-                            <Button 
-                              onClick={handleMint}
-                              disabled={currentOperation?.status === 'pending'}
-                              className="bg-green-500 hover:bg-green-600 text-white w-full"
-                            >
-                              {currentOperation?.status === 'pending' && currentOperation?.type === 'mint' ? (
-                                <>
-                                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                  Minting...
-                                </>
-                              ) : (
-                                <>
-                                  <Plus className="w-4 h-4 mr-2" />
-                                  Mint Tokens
-                                </>
-                              )}
-                            </Button>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Burn Tokens */}
-                      {canBurn(userTokens[selectedToken].mint) && (
-                        <div className="mb-6 p-4 border border-red-500/30 rounded-lg bg-red-500/5">
-                          <h5 className="font-semibold text-foreground mb-3 flex items-center">
-                            <Flame className="w-4 h-4 mr-2 text-red-500" />
-                            Burn Tokens
-                          </h5>
-                          <div className="space-y-3">
-                            <Input
-                              type="number"
-                              placeholder="Amount to burn"
-                              value={burnAmount}
-                              onChange={(e) => setBurnAmount(e.target.value)}
-                              className="input-enhanced"
-                              max={tokenBalances[userTokens[selectedToken].mint] || 0}
-                            />
-                            <p className="text-xs text-muted-foreground">
-                              Max burnable: {(tokenBalances[userTokens[selectedToken].mint] || 0).toLocaleString()} {userTokens[selectedToken].symbol}
-                            </p>
-                            <Button 
-                              onClick={handleBurn}
-                              disabled={currentOperation?.status === 'pending'}
-                              variant="destructive"
-                              className="w-full"
-                            >
-                              {currentOperation?.status === 'pending' && currentOperation?.type === 'burn' ? (
-                                <>
-                                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                  Burning...
-                                </>
-                              ) : (
-                                <>
-                                  <Flame className="w-4 h-4 mr-2" />
-                                  Burn Tokens
-                                </>
-                              )}
-                            </Button>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Pause/Unpause */}
-                      {canPause(userTokens[selectedToken].mint) && (
-                        <div className="mb-6 p-4 border border-yellow-500/30 rounded-lg bg-yellow-500/5">
-                          <h5 className="font-semibold text-foreground mb-3 flex items-center">
-                            {isTokenPaused(userTokens[selectedToken].mint) ? (
-                              <Play className="w-4 h-4 mr-2 text-yellow-500" />
-                            ) : (
-                              <Pause className="w-4 h-4 mr-2 text-yellow-500" />
-                            )}
-                            {isTokenPaused(userTokens[selectedToken].mint) ? 'Resume Token' : 'Pause Token'}
-                          </h5>
-                          <p className="text-sm text-muted-foreground mb-3">
-                            {isTokenPaused(userTokens[selectedToken].mint) 
-                              ? 'Resume all token transfers and operations'
-                              : 'Temporarily halt all token transfers'
-                            }
-                          </p>
-                          <Button 
-                            onClick={isTokenPaused(userTokens[selectedToken].mint) ? handleUnpause : handlePause}
-                            disabled={currentOperation?.status === 'pending'}
-                            className={`w-full ${
-                              isTokenPaused(userTokens[selectedToken].mint) 
-                                ? 'bg-green-500 hover:bg-green-600' 
-                                : 'bg-yellow-500 hover:bg-yellow-600'
-                            } text-white`}
-                          >
-                            {currentOperation?.status === 'pending' && 
-                             (currentOperation?.type === 'pause' || currentOperation?.type === 'unpause') ? (
-                              <>
-                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                Processing...
-                              </>
-                            ) : isTokenPaused(userTokens[selectedToken].mint) ? (
-                              <>
-                                <Play className="w-4 h-4 mr-2" />
-                                Resume Token
-                              </>
-                            ) : (
-                              <>
-                                <Pause className="w-4 h-4 mr-2" />
-                                Pause Token
-                              </>
-                            )}
-                          </Button>
-                        </div>
-                      )}
-
-                      {/* Other Management Actions */}
+                      <h4 className="text-lg font-semibold text-foreground mb-6">Token Management</h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <Button variant="outline" className="border-border text-muted-foreground hover:bg-muted h-12">
+                          <Plus className="w-4 h-4 mr-2" />
+                          Mint Tokens
+                        </Button>
+                        <Button variant="outline" className="border-border text-muted-foreground hover:bg-muted h-12">
+                          <Flame className="w-4 h-4 mr-2" />
+                          Burn Tokens
+                        </Button>
+                        <Button variant="outline" className="border-border text-muted-foreground hover:bg-muted h-12">
+                          <Settings className="w-4 h-4 mr-2" />
+                          Update Metadata
+                        </Button>
+                        <Button variant="outline" className="border-border text-muted-foreground hover:bg-muted h-12">
+                          <BarChart3 className="w-4 h-4 mr-2" />
+                          View Analytics
+                        </Button>
                         <Button 
                           variant="outline" 
                           onClick={exportAllData}

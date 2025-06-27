@@ -8,9 +8,7 @@ import { usePathname } from 'next/navigation';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { useAlgorandWallet } from '@/components/providers/AlgorandWalletProvider';
-import { useToast } from '@/hooks/use-toast';
 import { ADMIN_WALLET } from '@/lib/solana';
-import UserMenu from '@/components/auth/UserMenu';
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -20,7 +18,6 @@ export default function Navbar() {
   const [showWalletOptions, setShowWalletOptions] = useState(false);
   const [copiedAddress, setCopiedAddress] = useState<string | null>(null);
   
-  const { toast } = useToast();
   const pathname = usePathname();
   
   // Solana wallet
@@ -73,40 +70,18 @@ export default function Navbar() {
 
   const handleAlgorandConnect = async () => {
     try {
-      toast({
-        title: "Connecting to Algorand...",
-        description: "Please approve the connection in your wallet",
-        duration: 3000,
-      });
       await connectAlgorand();
       setShowWalletOptions(false);
     } catch (error) {
       console.error('Failed to connect Algorand wallet:', error);
-      toast({
-        title: "Connection Failed",
-        description: "Failed to connect to Algorand wallet. Please try again.",
-        variant: "destructive",
-        duration: 4000,
-      });
     }
   };
 
   const handleAlgorandDisconnect = async () => {
     try {
-      toast({
-        title: "Disconnecting...",
-        description: "Disconnecting from Algorand wallet",
-        duration: 2000,
-      });
       await disconnectAlgorand();
     } catch (error) {
       console.error('Failed to disconnect Algorand wallet:', error);
-      toast({
-        title: "Disconnect Error",
-        description: "Failed to disconnect wallet",
-        variant: "destructive",
-        duration: 3000,
-      });
     }
   };
 
@@ -114,12 +89,6 @@ export default function Navbar() {
     try {
       await navigator.clipboard.writeText(address);
       setCopiedAddress(address);
-      
-      toast({
-        title: "Address Copied! 📋",
-        description: `${walletType} address copied to clipboard`,
-        duration: 2000,
-      });
       
       // Reset the copied state after 2 seconds
       setTimeout(() => {
@@ -217,9 +186,6 @@ export default function Navbar() {
             >
               {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
             </Button>
-            
-            {/* User Authentication */}
-            <UserMenu />
             
             {/* Enhanced Multi-Wallet Connection */}
             <div className="relative">
@@ -559,11 +525,6 @@ export default function Navbar() {
                 >
                   {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
                 </Button>
-              </div>
-              
-              {/* User Authentication */}
-              <div className="border-t border-border pt-4">
-                <UserMenu />
               </div>
               
               {/* Enhanced Mobile Wallet Connections */}

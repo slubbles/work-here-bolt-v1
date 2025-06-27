@@ -17,19 +17,13 @@ import {
   Pause, 
   CheckCircle, 
   AlertTriangle, 
-  Info,
   Upload,
-  X,
-  User,
-  Coins
+  X
 } from 'lucide-react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useAlgorandWallet } from '@/components/providers/AlgorandWalletProvider';
-import { useToast } from '@/hooks/use-toast';
 import { createTokenOnChain } from '@/lib/solana';
 import { createAlgorandToken, supabaseHelpers } from '@/lib/algorand';
-import { useSupabaseAuth, useTokenHistory } from '@/hooks/useSupabase';
-import AuthModal from '@/components/auth/AuthModal';
 
 interface TokenFormProps {
   tokenData: {
@@ -56,8 +50,6 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
   const [deploymentResult, setDeploymentResult] = useState<any>(null);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
-  const [showAuthModal, setShowAuthModal] = useState(false);
-  const [authPromptReason, setAuthPromptReason] = useState('');
 
   // Wallet connections
   const { connected: solanaConnected, publicKey: solanaPublicKey, wallet: solanaWallet } = useWallet();
@@ -67,12 +59,6 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
     signTransaction: algorandSignTransaction,
     selectedNetwork: algorandNetwork 
   } = useAlgorandWallet();
-  
-  // Supabase integration
-  const { user, isAuthenticated } = useSupabaseAuth();
-  const { saveToken } = useTokenHistory();
-  
-  const { toast } = useToast();
 
   // Form validation
   const validateForm = (): boolean => {
@@ -125,22 +111,12 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
 
     // Validate file type and size
     if (!file.type.startsWith('image/')) {
-      toast({
-        title: "❌ Invalid File Type",
-        description: "Please upload an image file (PNG, JPG, GIF, etc.)",
-        variant: "destructive",
-        duration: 4000,
-      });
+      alert('Please upload an image file (PNG, JPG, GIF, etc.)');
       return;
     }
 
     if (file.size > 5 * 1024 * 1024) { // 5MB limit
-      toast({
-        title: "❌ File Too Large",
-        description: "Please upload an image smaller than 5MB",
-        variant: "destructive",
-        duration: 4000,
-      });
+      alert('Please upload an image smaller than 5MB');
       return;
     }
 
@@ -156,82 +132,20 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
 
       if (uploadResult.success && uploadResult.url) {
         setTokenData({ ...tokenData, logoUrl: uploadResult.url });
-        toast({
-          title: "✅ Logo Uploaded",
-          description: "Your token logo has been uploaded successfully",
-          duration: 4000,
-        });
       } else {
         // Fallback: Create a data URL for the image
         const reader = new FileReader();
         reader.onload = (e) => {
           const result = e.target?.result as string;
           setTokenData({ ...tokenData, logoUrl: result });
-          toast({
-            title: "✅ Logo Added",
-            description: "Logo added (using fallback method)",
-            duration: 4000,
-          });
         };
         reader.readAsDataURL(file);
       }
     } catch (error) {
       console.error('Upload error:', error);
-      toast({
-        title: "❌ Upload Failed",
-        description: "Failed to upload logo. Please try again.",
-        variant: "destructive",
-        duration: 4000,
-      });
+      alert('Failed to upload logo. Please try again.');
     } finally {
       setIsUploading(false);
-    }
-  };
-
-  // Save token to Supabase after successful creation
-  const saveTokenToHistory = async (creationResult: any, network: string) => {
-    if (!isAuthenticated || !user) {
-      console.log('User not authenticated, skipping token history save');
-      return;
-    }
-
-    try {
-      const tokenHistoryData = {
-        user_id: user.id,
-        token_name: tokenData.name,
-        token_symbol: tokenData.symbol,
-        network: network,
-        contract_address: creationResult.assetId?.toString() || creationResult.tokenAddress || creationResult.mintAddress || '',
-        description: tokenData.description || null,
-        total_supply: parseFloat(tokenData.totalSupply),
-        decimals: parseInt(tokenData.decimals),
-        logo_url: tokenData.logoUrl || null,
-        website: tokenData.website || null,
-        github: tokenData.github || null,
-        twitter: tokenData.twitter || null,
-        mintable: tokenData.mintable,
-        burnable: tokenData.burnable,
-        pausable: tokenData.pausable,
-        transaction_hash: creationResult.transactionId || creationResult.signature || null
-      };
-
-      console.log('Saving token to history:', tokenHistoryData);
-      
-      const saveResult = await saveToken(tokenHistoryData);
-      
-      if (saveResult?.success) {
-        toast({
-          title: "✅ Token Saved",
-          description: "Token has been saved to your account history",
-          duration: 4000,
-        });
-      } else {
-        console.warn('Failed to save token to history:', saveResult?.error);
-        // Don't show error toast as this is not critical to token creation
-      }
-    } catch (error) {
-      console.error('Error saving token to history:', error);
-      // Don't show error toast as this is not critical to token creation
     }
   };
 
@@ -241,32 +155,14 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
 
     // Validate form first
     if (!validateForm()) {
-      toast({
-        title: "❌ Validation Error",
-        description: "Please fix the form errors before proceeding",
-        variant: "destructive",
-        duration: 5000,
-      });
+      alert('Please fix the form errors before proceeding');
       return;
     }
 
     // Check wallet connection
     if (!isWalletConnected()) {
-      toast({
-        title: "❌ Wallet Not Connected",
-        description: `Please connect your ${tokenData.network.includes('algorand') ? 'Algorand' : 'Solana'} wallet first`,
-        variant: "destructive",
-        duration: 5000,
-      });
+      alert(`Please connect your ${tokenData.network.includes('algorand') ? 'Algorand' : 'Solana'} wallet first`);
       return;
-    }
-
-    // Check authentication - prompt user to sign in if not authenticated
-    if (!isAuthenticated) {
-      setAuthPromptReason('Sign in to save your token to your account and track your creation history');
-      setShowAuthModal(true);
-      // Don't return here - we'll allow token creation without authentication
-      // but show the modal for user to optionally sign in
     }
 
     setIsDeploying(true);
@@ -336,16 +232,6 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
         setDeploymentStep('Token created successfully!');
         setDeploymentResult(result);
 
-        // Save to Supabase if user is authenticated
-        await saveTokenToHistory(result, tokenData.network);
-
-        toast({
-          title: "🎉 Token Created Successfully!",
-          description: `Your ${tokenData.symbol} token has been deployed to ${tokenData.network}`,
-          duration: 8000,
-        });
-
-        // Clear form or reset as needed
         console.log('✅ Token creation completed:', result);
 
       } else {
@@ -358,12 +244,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       setDeploymentStep(`Failed: ${errorMessage}`);
       
-      toast({
-        title: "❌ Token Creation Failed",
-        description: errorMessage,
-        variant: "destructive",
-        duration: 8000,
-      });
+      alert(`Token creation failed: ${errorMessage}`);
     } finally {
       setIsDeploying(false);
     }
@@ -400,45 +281,6 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
 
   return (
     <div className="space-y-8">
-      {/* Authentication Banner */}
-      {!isAuthenticated && (
-        <Alert className="border-blue-500/30 bg-blue-500/5">
-          <User className="h-4 w-4" />
-          <AlertDescription>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-semibold text-blue-600 mb-1">Sign in to save your tokens</p>
-                <p className="text-sm text-blue-600">
-                  Track your token history and access advanced features by creating an account
-                </p>
-              </div>
-              <Button 
-                onClick={() => setShowAuthModal(true)}
-                size="sm" 
-                className="bg-blue-500 hover:bg-blue-600 text-white"
-              >
-                <User className="w-4 h-4 mr-2" />
-                Sign In
-              </Button>
-            </div>
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {isAuthenticated && user && (
-        <Alert className="border-green-500/30 bg-green-500/5">
-          <CheckCircle className="h-4 w-4" />
-          <AlertDescription>
-            <div className="flex items-center space-x-2">
-              <span className="font-semibold text-green-600">
-                ✓ Signed in as {user.email?.split('@')[0]}
-              </span>
-              <span className="text-green-600">- Your tokens will be saved to your account</span>
-            </div>
-          </AlertDescription>
-        </Alert>
-      )}
-
       {/* Form Validation Errors */}
       {validationErrors.length > 0 && (
         <Alert variant="destructive">
@@ -843,17 +685,10 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
 
           <div className="text-center text-sm text-muted-foreground">
             <p>Deployment cost: {networkInfo.cost}</p>
-            <p className="mt-1">Your token will be created and automatically saved to your account</p>
+            <p className="mt-1">Your token will be created and managed using your connected wallet</p>
           </div>
         </CardContent>
       </Card>
-
-      {/* Authentication Modal */}
-      <AuthModal 
-        isOpen={showAuthModal} 
-        onClose={() => setShowAuthModal(false)}
-        defaultTab="signin"
-      />
     </div>
   );
 }

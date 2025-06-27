@@ -1,6 +1,6 @@
 # 🚀 Snarbles Token Platform
 
-A comprehensive, production-ready token creation platform built with Next.js, featuring mobile-optimized design and Solana blockchain integration.
+A comprehensive, production-ready token creation platform built with Next.js, featuring mobile-optimized design and blockchain integration.
 
 ## ✨ Features
 
@@ -39,7 +39,7 @@ A comprehensive, production-ready token creation platform built with Next.js, fe
 - **Framework**: Next.js 13+ with App Router
 - **Styling**: Tailwind CSS with custom design system
 - **UI Components**: Radix UI with shadcn/ui
-- **Blockchain**: Solana Web3.js integration
+- **Blockchain**: Solana Web3.js and Algorand integration
 - **Charts**: Recharts for analytics visualization
 - **Icons**: Lucide React
 - **TypeScript**: Full type safety
@@ -155,6 +155,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🙏 Acknowledgments
 
 - **Solana Foundation** for blockchain infrastructure
+- **Algorand Foundation** for blockchain infrastructure
 - **Vercel** for Next.js framework
 - **Radix UI** for accessible components
 - **Tailwind CSS** for utility-first styling
@@ -167,6 +168,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-**Built with ❤️ for the Solana ecosystem**
+**Built with ❤️ for the blockchain ecosystem**
 
 *Empowering creators to launch their token ideas in minutes, not months.*

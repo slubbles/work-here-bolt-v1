@@ -1,7 +1,6 @@
 import './globals.css';
 import type { Metadata } from 'next';
 import Footer from '@/components/layout/Footer';
-import { Toaster } from '@/components/ui/toaster';
 import dynamic from 'next/dynamic';
 
 // Dynamically import components that use browser APIs with better error handling
@@ -98,7 +97,6 @@ export default function RootLayout({
             </main>
             <Footer />
           </div>
-          <Toaster />
         </WalletContextProvider>
       </body>
     </html>
