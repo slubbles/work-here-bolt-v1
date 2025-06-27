@@ -26,8 +26,7 @@ import {
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useAlgorandWallet } from '@/components/providers/AlgorandWalletProvider';
 import { createTokenOnChain } from '@/lib/solana';
-import { createAlgorandToken } from '@/lib/algorand';
-import { supabaseHelpers } from '@/lib/supabase';
+import { createAlgorandToken, supabaseHelpers } from '@/lib/algorand';
 import { HelpCircle, Info, Link2 } from 'lucide-react';
 
 interface TokenFormProps {
