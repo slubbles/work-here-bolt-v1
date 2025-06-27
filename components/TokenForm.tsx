@@ -70,6 +70,9 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
   const [dialogTitle, setDialogTitle] = useState('');
   const [dialogMessage, setDialogMessage] = useState('');
   const [dialogType, setDialogType] = useState<'success' | 'error'>('success');
+  
+  // Network selection states
+  const [showNetworkOptions, setShowNetworkOptions] = useState(false);
 
   // Wallet connections
   const { connected: solanaConnected, publicKey: solanaPublicKey, wallet: solanaWallet } = useWallet();
@@ -421,37 +424,81 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
             Select the blockchain network where your token will be deployed
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div 
-              className={`network-card flex flex-col justify-center items-center p-6 transition-all duration-300 cursor-pointer ${
-                tokenData.network === 'algorand' ? 'active algorand-card shadow-lg transform -translate-y-1' : ''
-              } cursor-pointer`}
-              onClick={() => setTokenData({ ...tokenData, network: 'algorand' })}
-            >
-              <div className="w-12 h-12 bg-[#76f935]/20 rounded-full flex items-center justify-center mb-3 shadow-md">
-                <span className="text-xl font-bold text-[#76f935]">A</span>
+        <CardContent className="space-y-6">
+          <div className="space-y-2">
+            <Label>Select Network</Label>
+            <div className="grid grid-cols-2 gap-4">
+              {/* Algorand Network */}
+              <div 
+                className={`network-card flex flex-col justify-center items-center p-6 transition-all duration-300 cursor-pointer ${
+                  tokenData.network === 'algorand' ? 'active algorand-card shadow-lg transform -translate-y-1' : ''
+                } cursor-pointer`}
+                onClick={() => {
+                  setTokenData({ ...tokenData, network: 'algorand' });
+                  setShowNetworkOptions(true);
+                }}
+              >
+                <div className="w-12 h-12 bg-[#76f935]/20 rounded-full flex items-center justify-center mb-3 shadow-md">
+                  <span className="text-xl font-bold text-[#76f935]">A</span>
+                </div>
+                <h3 className="font-semibold text-lg mb-2">Algorand</h3>
+                <Badge className="algorand-badge">Ultra Low Cost</Badge>
+                <p className="text-sm text-muted-foreground mt-2 text-center">Perfect for cost-sensitive projects</p>
               </div>
-              <h3 className="font-semibold text-lg mb-2">Algorand</h3>
-              <Badge className="algorand-badge">Ultra Low Cost</Badge>
-              <p className="text-sm text-muted-foreground mt-2 text-center">Perfect for cost-sensitive projects</p>
+              
+              {/* Solana Network */}
+              <div 
+                className={`network-card flex flex-col justify-center items-center p-6 transition-all duration-300 cursor-pointer ${
+                  tokenData.network === 'solana' ? 'active shadow-lg transform -translate-y-1' : ''
+                } cursor-pointer`}
+                onClick={() => setTokenData({ ...tokenData, network: 'solana' })}
+              >
+                <div className="w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center mb-3 shadow-md">
+                  <span className="text-xl font-bold text-blue-500">S</span>
+                </div>
+                <h3 className="font-semibold text-lg mb-2">Solana</h3>
+                <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">Fast & Reliable</Badge>
+                <p className="text-sm text-muted-foreground mt-2 text-center">Best for high-performance projects</p>
+              </div>
             </div>
             
-            <div 
-              className={`network-card flex flex-col justify-center items-center p-6 transition-all duration-300 cursor-pointer ${
-                tokenData.network === 'solana' ? 'active shadow-lg transform -translate-y-1' : ''
-              } cursor-pointer`}
-              onClick={() => setTokenData({ ...tokenData, network: 'solana' })}
-            >
-              <div className="w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center mb-3 shadow-md">
-                <span className="text-xl font-bold text-blue-500">S</span>
+            {/* Algorand Network Options Dialog */}
+            {showNetworkOptions && tokenData.network === 'algorand' && (
+              <div className="mt-4 p-4 bg-muted/20 border border-border rounded-lg">
+                <h4 className="font-medium text-foreground mb-3">Choose Algorand Network</h4>
+                <div className="grid grid-cols-2 gap-3">
+                  <Button
+                    variant={algorandNetwork === 'algorand-testnet' ? 'default' : 'outline'}
+                    onClick={() => {
+                      if (setAlgorandSelectedNetwork) {
+                        setAlgorandSelectedNetwork('algorand-testnet');
+                      }
+                      setShowNetworkOptions(false);
+                    }}
+                    className="h-16 flex flex-col items-center justify-center"
+                  >
+                    <span className="font-semibold">Algorand Testnet</span>
+                    <span className="text-xs opacity-75">~$0.001 cost</span>
+                  </Button>
+                  <Button
+                    variant={algorandNetwork === 'algorand-mainnet' ? 'default' : 'outline'}
+                    onClick={() => {
+                      if (setAlgorandSelectedNetwork) {
+                        setAlgorandSelectedNetwork('algorand-mainnet');
+                      }
+                      setShowNetworkOptions(false);
+                    }}
+                    className="h-16 flex flex-col items-center justify-center"
+                  >
+                    <span className="font-semibold">Algorand Mainnet</span>
+                    <span className="text-xs opacity-75">~$0.002 cost</span>
+                  </Button>
+                </div>
               </div>
-              <h3 className="font-semibold text-lg mb-2">Solana</h3>
-              <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">Fast & Reliable</Badge>
-              <p className="text-sm text-muted-foreground mt-2 text-center">Best for high-performance projects</p>
-            </div>
+            )}
           </div>
-          
+
+          {/* Address Input */}
           <div className="mt-4 p-4 rounded-lg border border-border bg-muted/30">
             <div className="flex justify-between items-center">
               <div>
@@ -463,10 +510,10 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
               </Badge>
             </div>
             
-            {algorandNetwork === 'algorand-testnet' && tokenData.network === 'algorand' && (
+            {tokenData.network === 'algorand' && algorandNetwork === 'algorand-testnet' && (
               <div className="mt-3 flex items-start gap-2 text-sm text-amber-500">
                 <Info className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                <p>Using testnet for development. Tokens are not tradable on mainnet.</p>
+                <p>Using Testnet for development. Tokens are not tradable on Mainnet.</p>
               </div>
             )}
           </div>

@@ -185,31 +185,37 @@ export default function VerifyPage() {
     <div className="min-h-screen app-background">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Header */}
-        <div className="text-center mb-12">
+        <div className="text-center mb-16">
           <div className="flex items-center justify-center space-x-2 text-red-500 font-medium text-sm mb-4">
             <Network className="w-4 h-4" />
             <span className="uppercase tracking-wide">Token Security</span>
           </div>
-          <h1 className="text-4xl font-bold text-foreground mb-4">Token Verification</h1>
-          <p className="text-muted-foreground text-lg">
+          <h1 className="text-5xl font-bold text-foreground mb-6">Token Verification</h1>
+          <p className="text-muted-foreground text-xl max-w-3xl mx-auto">
             Verify the authenticity and security of tokens across multiple blockchains
           </p>
         </div>
 
         {/* Search Section */}
-        <Card className="glass-card mb-8">
+        <div className="max-w-2xl mx-auto mb-12">
+          <Card className="glass-card shadow-2xl border-2 border-red-500/20">
           <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Search className="w-5 h-5" />
-              <span>Verify Token</span>
+            <CardTitle className="flex items-center justify-center space-x-3 text-2xl">
+              <div className="w-12 h-12 bg-red-500/10 rounded-full flex items-center justify-center">
+                <Search className="w-6 h-6 text-red-500" />
+              </div>
+              <span>Verify Token Security</span>
             </CardTitle>
+            <CardDescription className="text-center text-lg">
+              Enter a token address or Asset ID to verify its authenticity and security status
+            </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-8">
             {/* Network Selection */}
             <div className="space-y-2">
-              <Label>Select Network</Label>
+              <Label className="text-base font-semibold">Select Network</Label>
               <Select value={selectedNetwork} onValueChange={setSelectedNetwork}>
-                <SelectTrigger className="input-enhanced">
+                <SelectTrigger className="input-enhanced h-14 text-lg">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -235,19 +241,19 @@ export default function VerifyPage() {
 
             {/* Address Input */}
             <div className="space-y-2">
-              <Label htmlFor="tokenAddress">
+              <Label htmlFor="tokenAddress" className="text-base font-semibold">
                 {selectedNetwork.startsWith('algorand') ? 'Asset ID' : 'Token Address'}
               </Label>
               <Input
                 id="tokenAddress"
                 placeholder={
                   selectedNetwork.startsWith('algorand') 
-                    ? "Enter Algorand Asset ID (e.g., 31566704)" 
-                    : "Enter token mint address..."
+                    ? "Enter Algorand Asset ID (e.g., 31566704)"
+                    : "Enter token mint address"
                 }
                 value={searchAddress}
                 onChange={(e) => setSearchAddress(e.target.value)}
-                className="input-enhanced"
+                className="input-enhanced h-14 text-lg"
               />
               <p className="text-xs text-muted-foreground">
                 {selectedNetwork.startsWith('algorand') 
@@ -260,7 +266,7 @@ export default function VerifyPage() {
             <Button 
               onClick={handleVerify}
               disabled={isLoading || !networks.find(n => n.value === selectedNetwork)?.available}
-              className="w-full bg-red-500 hover:bg-red-600 text-white touch-target"
+              className="w-full bg-red-500 hover:bg-red-600 text-white h-16 text-lg font-bold shadow-xl hover:shadow-2xl transition-all transform hover:scale-105"
             >
               {isLoading ? (
                 <>
@@ -276,15 +282,19 @@ export default function VerifyPage() {
             </Button>
 
             {error && (
-              <div className="flex items-start space-x-2 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
+              <div className="flex items-start space-x-2 p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
                 <AlertTriangle className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
                 <span className="text-red-600 text-sm">{error}</span>
               </div>
             )}
           </CardContent>
+        </Card>
+        </div>
             {/* Enhanced Progress Indicator */}
             {isLoading && (
-              <div className="mt-6 space-y-4">
+              <div className="max-w-2xl mx-auto mb-8">
+                <Card className="glass-card">
+                  <CardContent className="p-6">
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Verification Progress</span>
@@ -302,12 +312,15 @@ export default function VerifyPage() {
                   <span>{currentVerificationStep}</span>
                 </div>
               </div>
+                  </CardContent>
+                </Card>
+              </div>
             )}
 
-        </Card>
 
         {/* Network Info */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <div className="max-w-4xl mx-auto mb-12">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {networks.map((network) => (
             <Card 
               key={network.value}
@@ -316,7 +329,7 @@ export default function VerifyPage() {
               } ${!network.available ? 'opacity-60' : 'hover:scale-105 cursor-pointer'}`}
               onClick={() => network.available && setSelectedNetwork(network.value)}
             >
-              <CardContent className="p-4 text-center">
+              <CardContent className="p-6 text-center">
                 <h3 className="font-semibold text-foreground mb-2">{network.label}</h3>
                 {network.available ? (
                   <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
@@ -331,9 +344,11 @@ export default function VerifyPage() {
             </Card>
           ))}
         </div>
+        </div>
 
         {/* Verification Results */}
         {verificationResult && (
+          <div className="max-w-4xl mx-auto mb-12">
           <Card className="glass-card">
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -473,17 +488,18 @@ export default function VerifyPage() {
               </div>
             </CardContent>
           </Card>
+          </div>
         )}
 
         {/* Back to Home */}
-        <div className="text-center mt-8">
+        <div className="text-center mt-16 space-y-4">
           <Link href="/">
-            <Button variant="outline" className="mr-4">
+            <Button variant="outline" className="mr-4 h-12 px-6 text-base">
               Back to Home
             </Button>
           </Link>
           <Link href="/create">
-            <Button className="bg-red-500 hover:bg-red-600 text-white">
+            <Button className="bg-red-500 hover:bg-red-600 text-white h-12 px-6 text-base">
               Create Your Own Token
             </Button>
           </Link>
