@@ -726,16 +726,32 @@ export async function createTokenOnChain(
     mintable: boolean;
     burnable: boolean;
     pausable: boolean;
+  },
+  options?: {
+    onStepUpdate?: (step: string, status: string, details?: any) => void;
   }
 ) {
   try {
+    const { onStepUpdate } = options || {};
+    
     // First check if platform is initialized
+    if (onStepUpdate) {
+      onStepUpdate('platform-check', 'in-progress', { message: 'Checking platform state...' });
+    }
+    
     const platformState = await getPlatformState();
     if (!platformState.success) {
+      if (onStepUpdate) {
+        onStepUpdate('platform-check', 'failed', { error: 'Platform not initialized' });
+      }
       return {
         success: false,
         error: 'Platform not initialized. Please contact the administrator to initialize the platform first.',
       };
+    }
+    
+    if (onStepUpdate) {
+      onStepUpdate('platform-check', 'completed', { message: 'Platform state verified' });
     }
 
     const program = getProgram(wallet);
@@ -772,6 +788,10 @@ export async function createTokenOnChain(
     console.log('Token keypair:', tokenKeypair.publicKey.toString());
     console.log('Mint keypair:', mintKeypair.publicKey.toString());
     
+    if (onStepUpdate) {
+      onStepUpdate('wallet-approval', 'in-progress', { message: 'Please approve transaction in your wallet' });
+    }
+    
     // Create token transaction
     const tx = await program.methods
       .createToken(
@@ -797,6 +817,19 @@ export async function createTokenOnChain(
       .signers([tokenKeypair, mintKeypair])
       .rpc();
     
+    if (onStepUpdate) {
+      onStepUpdate('wallet-approval', 'completed', { message: 'Transaction approved' });
+      onStepUpdate('transaction-broadcast', 'completed', { signature: tx });
+      onStepUpdate('confirmation', 'in-progress', { message: 'Waiting for confirmation...' });
+    }
+    
+    // Wait a bit for confirmation
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    if (onStepUpdate) {
+      onStepUpdate('confirmation', 'completed', { message: 'Transaction confirmed' });
+    }
+    
     return {
       success: true,
       signature: tx,
@@ -814,6 +847,11 @@ export async function createTokenOnChain(
     
     // Handle specific Anchor errors
     let errorMessage = 'Failed to create token';
+    
+    if (onStepUpdate) {
+      onStepUpdate('wallet-approval', 'failed', { error: errorMessage });
+    }
+    
     if (error instanceof Error) {
       if (error.message.includes('AccountNotInitialized')) {
         errorMessage = 'Platform not initialized. Please contact the administrator to set up the platform first.';

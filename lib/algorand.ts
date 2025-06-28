@@ -207,9 +207,14 @@ export async function createAlgorandToken(
   },
   signTransaction: (txn: any) => Promise<Uint8Array>,
   uploadMetadataToStorage: (metadata: any, bucket?: string, fileName?: string) => Promise<{ success: boolean; url?: string; error?: string }>,
-  network: string
+  network: string,
+  options?: {
+    onStepUpdate?: (step: string, status: string, details?: any) => void;
+  }
 ) {
   try {
+    const { onStepUpdate } = options || {};
+    
     console.log(`🚀 Creating Algorand token on ${network}`);
     console.log('Token data:', tokenData);
     
@@ -297,6 +302,10 @@ export async function createAlgorandToken(
     console.log('- Clawback (burnable):', clawbackAddress);
     console.log('- Total supply:', totalSupplyWithDecimals);
     
+    if (onStepUpdate) {
+      onStepUpdate('wallet-approval', 'in-progress', { message: 'Please approve transaction in Pera Wallet' });
+    }
+    
     // Create asset creation transaction
     const assetCreateTxn = algosdk.makeAssetCreateTxnWithSuggestedParamsFromObject({
       sender: creatorAddress,
@@ -317,9 +326,19 @@ export async function createAlgorandToken(
     console.log('📝 Signing transaction...');
     const signedTxn = await signTransaction(assetCreateTxn);
     
+    if (onStepUpdate) {
+      onStepUpdate('wallet-approval', 'completed', { message: 'Transaction signed in wallet' });
+      onStepUpdate('transaction-broadcast', 'in-progress', { message: 'Broadcasting to Algorand network...' });
+    }
+    
     console.log('📡 Sending transaction to network...');
     const response = await algodClient.sendRawTransaction(signedTxn).do();
     const txId = response.txid;
+    
+    if (onStepUpdate) {
+      onStepUpdate('transaction-broadcast', 'completed', { txId, message: `Transaction broadcasted: ${txId}` });
+      onStepUpdate('confirmation', 'in-progress', { message: 'Waiting for network confirmation...' });
+    }
     
     console.log('⏳ Waiting for confirmation...');
     let confirmedTxn;
@@ -329,6 +348,11 @@ export async function createAlgorandToken(
     } catch (confirmError) {
       console.error(`❌ Transaction confirmation failed on ${network}:`, confirmError);
       throw new Error(`Transaction submitted but not confirmed on ${network}. Please check the explorer for transaction status. TX ID: ${txId}`);
+    }
+    
+    if (onStepUpdate) {
+      onStepUpdate('confirmation', 'completed', { message: 'Transaction confirmed on blockchain' });
+      onStepUpdate('asset-verification', 'in-progress', { message: 'Extracting asset information...' });
     }
     
     // Extract asset ID from transaction confirmation with robust fallback logic
@@ -409,7 +433,22 @@ export async function createAlgorandToken(
     if (!assetId) {
       console.error('❌ Asset ID not found in confirmed transaction');
       console.error('Full transaction details:', JSON.stringify(confirmedTxn, null, 2));
+      
+      if (onStepUpdate) {
+        onStepUpdate('asset-verification', 'failed', { 
+          error: 'Asset ID could not be extracted',
+          suggestion: 'Check explorer for details'
+        });
+      }
+      
       throw new Error(`Asset creation transaction confirmed (TX: ${txId}) but asset ID could not be extracted. Please check the ${networkConfig.explorer}/tx/${txId} for the asset details.`);
+    }
+    
+    if (onStepUpdate) {
+      onStepUpdate('asset-verification', 'completed', { 
+        assetId, 
+        message: `Asset created successfully: ${assetId}` 
+      });
     }
     
     console.log(`✅ Token created successfully on ${network}!`);
@@ -449,6 +488,11 @@ export async function createAlgorandToken(
     
   } catch (error) {
     console.error(`❌ Error creating Algorand token on ${network}:`, error);
+    
+    if (options?.onStepUpdate) {
+      options.onStepUpdate('wallet-approval', 'failed', { error: error instanceof Error ? error.message : 'Unknown error' });
+    }
+    
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to create token'

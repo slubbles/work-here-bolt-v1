@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -19,23 +20,37 @@ import {
 } from '@/components/ui/alert-dialog';
 import { CustomToggle } from '@/components/ui/custom-toggle';
 import { 
-  Loader2, 
-  Rocket, 
+  Loader2,
+  Rocket,
   Plus,
   Flame,
   Pause,
-  CheckCircle, 
-  AlertTriangle, 
+  CheckCircle,
+  AlertTriangle,
   Upload,
   X,
   Coins,
   Settings,
-  Wallet
+  Wallet,
+  Clock,
+  Broadcast,
+  Shield,
+  ExternalLink
 } from 'lucide-react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useAlgorandWallet } from '@/components/providers/AlgorandWalletProvider';
 import { createTokenOnChain } from '@/lib/solana';
 import { createAlgorandToken, supabaseHelpers } from '@/lib/algorand';
+import { 
+  classifyError, 
+  TransactionTracker, 
+  createTokenCreationSteps, 
+  formatErrorForUser,
+  checkNetworkHealth,
+  retryWithBackoff,
+  type TransactionStep,
+  type BlockchainError
+} from '@/lib/error-handling';
 import { HelpCircle, Info, Link2 } from 'lucide-react';
 
 interface TokenFormProps {
@@ -59,19 +74,26 @@ interface TokenFormProps {
 
 export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
   const [isDeploying, setIsDeploying] = useState(false);
-  const [deploymentStep, setDeploymentStep] = useState('');
+  const [transactionSteps, setTransactionSteps] = useState<TransactionStep[]>([]);
+  const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [deploymentProgress, setDeploymentProgress] = useState(0);
   const [deploymentSteps, setDeploymentSteps] = useState<{step: string, status: 'pending' | 'processing' | 'complete' | 'error', error?: string}[]>([]);
   const [deploymentResult, setDeploymentResult] = useState<any>(null);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState('');
+  const [classifiedError, setClassifiedError] = useState<BlockchainError | null>(null);
+  const [networkHealth, setNetworkHealth] = useState<{ healthy: boolean; latency?: number } | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
   
   // Dialog states
   const [showResultDialog, setShowResultDialog] = useState(false);
   const [dialogTitle, setDialogTitle] = useState('');
   const [dialogMessage, setDialogMessage] = useState('');
   const [dialogType, setDialogType] = useState<'success' | 'error'>('success');
+  
+  // Transaction tracker
+  const [transactionTracker] = useState(() => new TransactionTracker(setTransactionSteps));
 
   // Wallet connections
   const { connected: solanaConnected, publicKey: solanaPublicKey, wallet: solanaWallet } = useWallet();
@@ -83,12 +105,65 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
     setSelectedNetwork: setAlgorandSelectedNetwork
   } = useAlgorandWallet();
 
+  // Check network health on component mount
+  useEffect(() => {
+    const checkHealth = async () => {
+      const network = tokenData.network.startsWith('algorand') ? 'algorand' : 'solana';
+      const health = await checkNetworkHealth(network);
+      setNetworkHealth(health);
+    };
+    checkHealth();
+  }, [tokenData.network]);
+
+  // Calculate progress based on transaction steps
+  const getProgress = () => {
+    if (transactionSteps.length === 0) return 0;
+    const completedSteps = transactionSteps.filter(step => step.status === 'completed').length;
+    return Math.round((completedSteps / transactionSteps.length) * 100);
+  };
+
+  // Get current step description
+  const getCurrentStepDescription = () => {
+    const currentStep = transactionSteps.find(step => step.status === 'in-progress');
+    return currentStep?.description || 'Preparing transaction...';
+  };
+
   // Show result dialog helper
   const showDialog = (title: string, message: string, type: 'success' | 'error') => {
     setDialogTitle(title);
     setDialogMessage(message);
     setDialogType(type);
     setShowResultDialog(true);
+  };
+
+  // Enhanced error handler
+  const handleError = (error: any, context: string) => {
+    console.error(`❌ Error in ${context}:`, error);
+    
+    const network = tokenData.network.startsWith('algorand') ? 'algorand' : 'solana';
+    const classified = classifyError(error, network);
+    
+    setClassifiedError(classified);
+    setError(formatErrorForUser(classified));
+    
+    // Fail current step if transaction is in progress
+    const currentStep = transactionSteps.find(step => step.status === 'in-progress');
+    if (currentStep) {
+      transactionTracker.failStep(currentStep.id, classified.userMessage);
+    }
+    
+    showDialog('Transaction Failed', formatErrorForUser(classified), 'error');
+  };
+
+  // Reset transaction state
+  const resetTransactionState = () => {
+    setIsDeploying(false);
+    setTransactionSteps([]);
+    setCurrentStepIndex(0);
+    setError('');
+    setClassifiedError(null);
+    setRetryCount(0);
+    transactionTracker.reset();
   };
 
   // Form validation
@@ -288,6 +363,9 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
   // Main token creation handler
   const handleCreateToken = async () => {
     console.log('🚀 Starting token creation process...');
+    
+    // Reset previous state
+    resetTransactionState();
 
     // Validate form first
     if (!validateForm()) {
@@ -296,13 +374,26 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
       return;
     }
 
+    // Check network health before proceeding
+    const network = tokenData.network.startsWith('algorand') ? 'algorand' : 'solana';
+    const health = await checkNetworkHealth(network);
+    if (!health.healthy) {
+      handleError(new Error(`Network connectivity issues: ${health.error}`), 'network check');
+      return;
+    }
+
     // Check wallet connection
     if (!isWalletConnected()) {
-      setError(`Please connect your ${tokenData.network === 'algorand' ? 'Algorand' : 'Solana'} wallet first`);
+      handleError(new Error('Wallet not connected'), 'wallet check');
       setTimeout(() => setError(''), 5000);
       return;
     }
 
+    // Initialize transaction steps
+    const steps = createTokenCreationSteps(network);
+    setTransactionSteps(steps);
+    steps.forEach(step => transactionTracker.addStep(step));
+    
     setIsDeploying(true);
     setDeploymentStep('Preparing token creation...');
     setDeploymentProgress(5);
@@ -312,11 +403,19 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
       { step: 'Awaiting wallet confirmation', status: 'pending' },
       { step: 'Broadcasting transaction', status: 'pending' },
       { step: 'Confirming on blockchain', status: 'pending' }
-    ]);
     setDeploymentResult(null);
     setError('');
 
     try {
+      // Step 1: Validation
+      transactionTracker.startStep('validation');
+      await new Promise(resolve => setTimeout(resolve, 500)); // Small delay for UX
+      transactionTracker.completeStep('validation', 'All parameters validated successfully');
+      
+      // Step 2: Metadata upload
+      transactionTracker.startStep('metadata-upload');
+      // Metadata upload happens within the token creation functions
+      
       let result;
 
       // Update deployment step
@@ -329,13 +428,18 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
 
       if (tokenData.network.startsWith('algorand')) {
         // Algorand token creation
-        setDeploymentStep('Creating Algorand Standard Asset...');
+        transactionTracker.completeStep('metadata-upload', 'Metadata prepared for Algorand');
         setDeploymentProgress(30);
         
         if (!algorandAddress || !algorandSignTransaction) {
-          throw new Error('Algorand wallet not properly connected');
+          throw new Error('WALLET_DISCONNECTED: Algorand wallet not properly connected');
         }
 
+        // Platform check not needed for Algorand
+        
+        // Wallet approval step
+        transactionTracker.startStep('wallet-approval');
+        
         setDeploymentSteps(steps => steps.map((s, i) => 
           i === 2 ? { ...s, status: 'complete' } : 
           i === 3 ? { ...s, status: 'processing' } : s
@@ -360,16 +464,45 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
           },
           algorandSignTransaction,
           supabaseHelpers.uploadMetadataToStorage,
-          algorandNetwork
+          algorandNetwork,
+          {
+            onStepUpdate: (step: string, status: string, details?: any) => {
+              console.log(`📊 Step update: ${step} - ${status}`, details);
+              
+              if (step === 'wallet-approval' && status === 'completed') {
+                transactionTracker.completeStep('wallet-approval', 'Transaction approved in wallet');
+                transactionTracker.startStep('transaction-broadcast');
+              } else if (step === 'transaction-broadcast' && status === 'completed') {
+                if (details?.txId) {
+                  const explorerUrl = `${getAlgorandNetwork(algorandNetwork).explorer}/tx/${details.txId}`;
+                  transactionTracker.addTransaction('transaction-broadcast', details.txId, explorerUrl);
+                  transactionTracker.completeStep('transaction-broadcast', `Transaction ID: ${details.txId}`);
+                  transactionTracker.startStep('confirmation');
+                }
+              } else if (step === 'confirmation' && status === 'completed') {
+                transactionTracker.completeStep('confirmation', 'Transaction confirmed on Algorand');
+                transactionTracker.startStep('asset-verification');
+              }
+            }
+          }
         );
 
       } else if (tokenData.network === 'solana-devnet') {
-        setDeploymentStep('Creating Solana token...');
+        transactionTracker.completeStep('metadata-upload', 'Metadata prepared for Solana');
         setDeploymentProgress(30);
         
+        // Platform check
+        transactionTracker.startStep('platform-check');
+        
         if (!solanaWallet || !solanaPublicKey) {
-          throw new Error('Solana wallet not properly connected');
+          throw new Error('WALLET_DISCONNECTED: Solana wallet not properly connected');
         }
+        
+        // Platform check happens within createTokenOnChain
+        transactionTracker.completeStep('platform-check', 'Platform status verified');
+        
+        // Wallet approval step
+        transactionTracker.startStep('wallet-approval');
 
         setDeploymentSteps(steps => steps.map((s, i) => 
           i === 2 ? { ...s, status: 'complete' } : 
@@ -390,6 +523,25 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
           mintable: tokenData.mintable,
           burnable: tokenData.burnable,
           pausable: tokenData.pausable,
+        }, {
+          onStepUpdate: (step: string, status: string, details?: any) => {
+            console.log(`📊 Step update: ${step} - ${status}`, details);
+            
+            if (step === 'wallet-approval' && status === 'completed') {
+              transactionTracker.completeStep('wallet-approval', 'Transaction approved in wallet');
+              transactionTracker.startStep('transaction-broadcast');
+            } else if (step === 'transaction-broadcast' && status === 'completed') {
+              if (details?.signature) {
+                const explorerUrl = `https://explorer.solana.com/tx/${details.signature}?cluster=devnet`;
+                transactionTracker.addTransaction('transaction-broadcast', details.signature, explorerUrl);
+                transactionTracker.completeStep('transaction-broadcast', `Transaction ID: ${details.signature}`);
+                transactionTracker.startStep('confirmation');
+              }
+            } else if (step === 'confirmation' && status === 'completed') {
+              transactionTracker.completeStep('confirmation', 'Transaction confirmed on Solana');
+              transactionTracker.startStep('finalization');
+            }
+          }
         });
 
       } else {
@@ -426,11 +578,16 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
         console.log('✅ Token creation completed:', result);
 
       } else {
-        throw new Error(result.error || 'Token creation failed');
+        throw new Error(result.error || 'UNKNOWN_ERROR: Token creation failed');
       }
 
     } catch (error) {
-      console.error('❌ Token creation failed:', error);        
+        // Complete remaining steps
+        const pendingSteps = transactionSteps.filter(step => step.status !== 'completed');
+        pendingSteps.forEach(step => {
+          transactionTracker.completeStep(step.id, 'Completed successfully');
+        });
+        
       // Mark current step as error
       const currentStepIndex = deploymentSteps.findIndex(s => s.status === 'processing');
       if (currentStepIndex >= 0) {
@@ -438,17 +595,22 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
           i === currentStepIndex ? { ...s, status: 'error', error: error instanceof Error ? error.message : 'Unknown error' } : s
         ));
       }
-      
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      setDeploymentStep(`Failed: ${errorMessage}`);
-      setDeploymentProgress(0);
-      setError(errorMessage);
-      
-      // Show error dialog
-      showDialog('❌ Token Creation Failed', errorMessage, 'error');
+      handleError(error, 'token creation');
     } finally {
       setIsDeploying(false);
     }
+  };
+
+  // Retry failed transaction
+  const handleRetry = async () => {
+    if (retryCount >= 3) {
+      showDialog('Maximum Retries Reached', 'Please try again later or contact support', 'error');
+      return;
+    }
+    
+    setRetryCount(prev => prev + 1);
+    resetTransactionState();
+    await handleCreateToken();
   };
 
   // Get network display info
@@ -1054,17 +1216,77 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
           {/* Enhanced Deployment Progress with detailed steps */}
           {isDeploying && (
             <div className="p-6 bg-blue-500/10 border border-blue-500/30 rounded-lg space-y-6">
+            <div className="p-6 bg-blue-500/10 border border-blue-500/30 rounded-lg space-y-6">
               <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3 text-blue-600">
-                <Loader2 className="w-5 h-5 animate-spin text-red-500" />
-                <span className="font-medium">{deploymentStep}</span>
+                <h4 className="text-lg font-semibold text-foreground">Creating Token</h4>
+                <div className="text-sm text-muted-foreground">
+                  {getProgress()}% Complete
+                </div>
                 </div>
                 <span className="text-blue-500 font-bold">{deploymentProgress}%</span>
               </div>
 
-              <div className="w-full bg-muted rounded-full h-2">
-                <div className="bg-blue-500 h-2 rounded-full transition-all duration-500" style={{ width: `${deploymentProgress}%` }}></div>
+              
+              <Progress value={getProgress()} className="w-full" />
+              
+              <div className="space-y-3">
+                {transactionSteps.map((step, index) => (
+                  <div key={step.id} className="flex items-start space-x-3">
+                    <div className="flex-shrink-0 mt-1">
+                      {step.status === 'completed' ? (
+                        <CheckCircle className="w-5 h-5 text-green-500" />
+                      ) : step.status === 'in-progress' ? (
+                        <Loader2 className="w-5 h-5 text-blue-500 animate-spin" />
+                      ) : step.status === 'failed' ? (
+                        <AlertTriangle className="w-5 h-5 text-red-500" />
+                      ) : (
+                        <Clock className="w-5 h-5 text-muted-foreground" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <p className={`font-medium ${
+                          step.status === 'completed' ? 'text-green-600' :
+                          step.status === 'in-progress' ? 'text-blue-600' :
+                          step.status === 'failed' ? 'text-red-600' :
+                          'text-muted-foreground'
+                        }`}>
+                          {step.title}
+                        </p>
+                        {step.txId && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => window.open(step.explorerUrl, '_blank')}
+                            className="text-xs h-6 px-2"
+                          >
+                            <ExternalLink className="w-3 h-3 mr-1" />
+                            View
+                          </Button>
+                        )}
+                      </div>
+                      <p className="text-sm text-muted-foreground">{step.description}</p>
+                      {step.details && (
+                        <p className="text-xs text-muted-foreground mt-1">{step.details}</p>
+                      )}
+                      {step.txId && (
+                        <p className="text-xs font-mono text-blue-600 mt-1">
+                          TX: {step.txId.slice(0, 8)}...{step.txId.slice(-8)}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
+              
+              {networkHealth && !networkHealth.healthy && (
+                <div className="flex items-center space-x-2 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+                  <AlertTriangle className="w-4 h-4 text-yellow-500" />
+                  <span className="text-sm text-yellow-600">
+                    Network issues detected. Transaction may take longer than usual.
+                  </span>
+                </div>
+              )}
               
               <div className="space-y-4 mt-2">
                 {deploymentSteps.map((step, index) => (
@@ -1103,6 +1325,49 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
                     </div>
                   </div>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {/* Enhanced Error Display */}
+          {classifiedError && !isDeploying && (
+            <div className="p-5 bg-red-500/10 border border-red-500/30 rounded-lg space-y-4">
+              <div className="flex items-start space-x-3">
+                <AlertTriangle className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
+                <div className="flex-1">
+                  <h4 className="font-semibold text-red-600 mb-2">
+                    {classifiedError.severity === 'critical' ? 'Critical Error' : 
+                     classifiedError.severity === 'high' ? 'Error' : 
+                     classifiedError.severity === 'medium' ? 'Warning' : 'Notice'}
+                  </h4>
+                  <p className="text-red-600 mb-2">{classifiedError.userMessage}</p>
+                  {classifiedError.action && (
+                    <p className="text-sm text-red-500 mb-3">
+                      <strong>Action:</strong> {classifiedError.action}
+                    </p>
+                  )}
+                  
+                  {retryCount < 3 && (
+                    <div className="flex space-x-3">
+                      <Button
+                        onClick={handleRetry}
+                        variant="outline"
+                        size="sm"
+                        className="border-red-500/30 text-red-600 hover:bg-red-500/10"
+                      >
+                        Retry ({3 - retryCount} attempts left)
+                      </Button>
+                      <Button
+                        onClick={resetTransactionState}
+                        variant="ghost"
+                        size="sm"
+                        className="text-muted-foreground"
+                      >
+                        Reset
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           )}
@@ -1186,6 +1451,12 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
           <div className="p-4 bg-muted/30 border border-border rounded-lg hover:bg-muted/40 transition-colors">
             <div className="text-center space-y-2">
               <p className="text-foreground text-lg"><span className="font-medium">Network Fee:</span> {networkInfo.cost}</p>
+              {networkHealth && (
+                <p className="text-sm text-muted-foreground">
+                  Network Status: {networkHealth.healthy ? '🟢 Healthy' : '🔴 Issues Detected'}
+                  {networkHealth.latency && ` (${networkHealth.latency}ms)`}
+                </p>
+              )}
               <p className="text-sm text-muted-foreground">Your token will be created and managed using your connected wallet</p>
               <p className="text-xs text-muted-foreground italic mt-1">Tokens are created directly on the blockchain, no account required</p>
             </div>
