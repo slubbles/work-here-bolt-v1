@@ -1,14 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { formatDistanceToNow } from 'date-fns';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 import { 
   Coins, 
   TrendingUp, 
@@ -27,61 +25,48 @@ import {
   ArrowRight,
   Download,
   FileDown,
-  ChevronDown, 
+  ChevronDown,
+  RefreshCw,
   Info,
-  RefreshCw
+  Loader2,
+  AlertTriangle,
+  ChevronRight,
+  Eye,
+  Star,
+  Shield,
+  Activity,
+  Clock,
+  Globe,
+  Search
 } from 'lucide-react';
 import Link from 'next/link';
 import { useAlgorandWallet } from '@/components/providers/AlgorandWalletProvider';
-import { 
-  Card, 
-  CardContent, 
-  CardHeader, 
-  CardTitle 
-} from '@/components/ui/card';
-import { 
-  getAlgorandEnhancedTokenInfo,
-  getAlgorandTransactionHistory,
-  getAlgorandWalletSummary,
-  AlgorandTokenInfo,
-  AlgorandTransactionInfo,
-  formatAlgorandTransactionForDisplay
-} from '@/lib/algorand-data';
-import { mintAlgorandAssets, burnAlgorandAssets, optInToAsset } from '@/lib/algorand';
-import { Tooltip } from '@/components/ui/tooltip';
-import { Callout } from '@/components/ui/callout'; 
+import { getAlgorandEnhancedTokenInfo, getAlgorandTransactionHistory, getAlgorandWalletSummary } from '@/lib/algorand-data';
 import { useToast } from '@/hooks/use-toast';
-import { getAlgorandNetwork } from '@/lib/algorand';
-import { Info, Loader2 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 export default function AlgorandDashboard() {
   const [selectedToken, setSelectedToken] = useState(0);
-  const [transferAmount, setTransferAmount] = useState('');
-  const [transferAddress, setTransferAddress] = useState('');
-  const [mintAmount, setMintAmount] = useState('');
-  const [burnAmount, setBurnAmount] = useState('');
-  const [assetIdToOptIn, setAssetIdToOptIn] = useState('');
-  const [isMintModalOpen, setIsMintModalOpen] = useState(false);
-  const [isBurnModalOpen, setIsBurnModalOpen] = useState(false);
-  const [isOptInModalOpen, setIsOptInModalOpen] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  
-  // Real data states
-  const [userTokens, setUserTokens] = useState<AlgorandTokenInfo[]>([]);
-  const [transactionData, setTransactionData] = useState<AlgorandTransactionInfo[]>([]);
-  const [walletSummary, setWalletSummary] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   
-  // Algorand wallet integration with sign transaction
-  const { connected, address, selectedNetwork, signTransaction } = useAlgorandWallet();
+  // Data states
+  const [userTokens, setUserTokens] = useState<any[]>([]);
+  const [transactionData, setTransactionData] = useState<any[]>([]);
+  const [walletSummary, setWalletSummary] = useState<any>(null);
   
-  // Toast notification
+  // Algorand wallet integration
+  const { 
+    connected, 
+    address, 
+    selectedNetwork, 
+    networkConfig,
+    balance 
+  } = useAlgorandWallet();
+  
   const { toast } = useToast();
-  
-  // Add mounted state for hydration
   const [mounted, setMounted] = useState(false);
   
   useEffect(() => {
@@ -91,10 +76,10 @@ export default function AlgorandDashboard() {
   // Fetch data when wallet connects
   useEffect(() => {
     if (connected && address) {
-      console.log('🔄 Wallet connected, fetching Algorand data...');
+      console.log('🔄 Algorand wallet connected, fetching data...');
       fetchDashboardData();
     } else {
-      console.log('❌ Wallet disconnected, resetting dashboard...');
+      console.log('❌ Algorand wallet disconnected, resetting dashboard...');
       setIsLoading(true);
       setUserTokens([]);
       setTransactionData([]);
@@ -104,7 +89,6 @@ export default function AlgorandDashboard() {
     }
   }, [connected, address, selectedNetwork]);
 
-  // Fetch all dashboard data
   const fetchDashboardData = async () => {
     if (!address) return;
     
@@ -112,19 +96,18 @@ export default function AlgorandDashboard() {
       setIsLoading(true);
       setError(null);
       
-      const walletAddress = address;
-      console.log(`📊 Fetching Algorand dashboard data for: ${walletAddress}`);
+      console.log(`📊 Fetching Algorand dashboard data for: ${address} on ${selectedNetwork}`);
       
-      // Show immediate loading feedback
+      // Reset data during loading
       setUserTokens([]);
       setTransactionData([]);
       setWalletSummary(null);
       
-      // Fetch data in parallel with better error handling
+      // Fetch data in parallel
       const [tokensResult, transactionsResult, summaryResult] = await Promise.allSettled([
-        getAlgorandEnhancedTokenInfo(walletAddress, selectedNetwork),
-        getAlgorandTransactionHistory(walletAddress, 10, selectedNetwork),
-        getAlgorandWalletSummary(walletAddress, selectedNetwork)
+        getAlgorandEnhancedTokenInfo(address, selectedNetwork),
+        getAlgorandTransactionHistory(address, 20, selectedNetwork),
+        getAlgorandWalletSummary(address, selectedNetwork)
       ]);
       
       // Handle tokens data
@@ -154,7 +137,7 @@ export default function AlgorandDashboard() {
         setWalletSummary({
           totalTokens: 0,
           totalValue: 0,
-          algoBalance: 0,
+          algoBalance: balance || 0,
           recentTransactions: 0
         });
       }
@@ -167,15 +150,14 @@ export default function AlgorandDashboard() {
       setWalletSummary({
         totalTokens: 0,
         totalValue: 0,
-        algoBalance: 0,
+        algoBalance: balance || 0,
         recentTransactions: 0
       });
     } finally {
       setIsLoading(false);
     }
   };
-  
-  // Manual refresh function
+
   const handleRefresh = async () => {
     if (!connected || !address || isRefreshing) return;
     
@@ -184,199 +166,6 @@ export default function AlgorandDashboard() {
     setIsRefreshing(false);
   };
 
-  // Generate chart data from transaction history
-  const chartData = [
-    { name: 'Week 1', value: transactionData.slice(0, 7).length },
-    { name: 'Week 2', value: transactionData.slice(7, 14).length },
-    { name: 'Week 3', value: transactionData.slice(14, 21).length },
-    { name: 'Week 4', value: transactionData.slice(21, 28).length },
-  ];
-
-  const handleTransfer = () => {
-    if (!transferAmount || !transferAddress || userTokens.length === 0) {
-      alert('Please fill in both amount and recipient address');
-      return;
-    }
-    
-    alert(`Successfully transferred ${transferAmount} ${userTokens[selectedToken]?.symbol || 'ASA'} to ${transferAddress}`);
-    setTransferAmount('');
-    setTransferAddress('');
-  };
-
-  // Handle mint ASA tokens
-  const handleMintTokens = async () => {
-    if (!mintAmount || parseFloat(mintAmount) <= 0 || userTokens.length === 0 || !address || !signTransaction) {
-      toast({
-        title: "Invalid input",
-        description: "Please enter a valid amount to mint",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setIsProcessing(true);
-    try {
-      const selectedTokenData = userTokens[selectedToken];
-      
-      // Check if user is the creator/manager of the asset
-      if (selectedTokenData.manager !== address) {
-        toast({
-          title: "Permission denied",
-          description: "Only the asset manager can mint additional assets",
-          variant: "destructive"
-        });
-        setIsProcessing(false);
-        return;
-      }
-      
-      const result = await mintAlgorandAssets(
-        address,
-        selectedTokenData.assetId,
-        parseFloat(mintAmount),
-        signTransaction,
-        selectedNetwork
-      );
-
-      if (result.success) {
-        toast({
-          title: "Success",
-          description: `Successfully minted ${mintAmount} ${selectedTokenData.symbol} tokens`,
-          variant: "default"
-        });
-        setIsMintModalOpen(false);
-        setMintAmount('');
-        // Refresh data to show updated balances
-        await fetchDashboardData();
-      } else {
-        toast({
-          title: "Mint failed",
-          description: result.error || "Failed to mint tokens. Please try again.",
-          variant: "destructive"
-        });
-      }
-    } catch (error) {
-      console.error('Error minting tokens:', error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "An unexpected error occurred",
-        variant: "destructive"
-      });
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  // Handle burn ASA tokens
-  const handleBurnTokens = async () => {
-    if (!burnAmount || parseFloat(burnAmount) <= 0 || userTokens.length === 0 || !address || !signTransaction) {
-      toast({
-        title: "Invalid input",
-        description: "Please enter a valid amount to burn",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    const selectedTokenData = userTokens[selectedToken];
-    if (parseFloat(burnAmount) > selectedTokenData.uiBalance) {
-      toast({
-        title: "Insufficient balance",
-        description: `You only have ${selectedTokenData.uiBalance} ${selectedTokenData.symbol} available to burn`,
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setIsProcessing(true);
-    try {
-      const result = await burnAlgorandAssets(
-        address,
-        selectedTokenData.assetId,
-        parseFloat(burnAmount),
-        signTransaction,
-        selectedNetwork
-      );
-
-      if (result.success) {
-        toast({
-          title: "Success",
-          description: `Successfully burned ${burnAmount} ${selectedTokenData.symbol} tokens`,
-          variant: "default"
-        });
-        setIsBurnModalOpen(false);
-        setBurnAmount('');
-        // Refresh data to show updated balances
-        await fetchDashboardData();
-      } else {
-        toast({
-          title: "Burn failed",
-          description: result.error || "Failed to burn tokens. Please try again.",
-          variant: "destructive"
-        });
-      }
-    } catch (error) {
-      console.error('Error burning tokens:', error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "An unexpected error occurred",
-        variant: "destructive"
-      });
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  // Handle opt-in to ASA
-  const handleOptInToAsset = async () => {
-    if (!assetIdToOptIn || isNaN(Number(assetIdToOptIn)) || !address || !signTransaction) {
-      toast({
-        title: "Invalid input",
-        description: "Please enter a valid Asset ID",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setIsProcessing(true);
-    try {
-      const assetId = Number(assetIdToOptIn);
-      const result = await optInToAsset(
-        address,
-        assetId,
-        signTransaction,
-        selectedNetwork
-      );
-
-      if (result.success) {
-        toast({
-          title: "Success",
-          description: `Successfully opted in to Asset ID ${assetId}`,
-          variant: "default"
-        });
-        setIsOptInModalOpen(false);
-        setAssetIdToOptIn('');
-        // Refresh data to show the new asset
-        await fetchDashboardData();
-      } else {
-        toast({
-          title: "Opt-in failed",
-          description: result.error || "Failed to opt in to asset. Please try again.",
-          variant: "destructive"
-        });
-      }
-    } catch (error) {
-      console.error('Error opting in to asset:', error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "An unexpected error occurred",
-        variant: "destructive"
-      });
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  // Export function for transactions
   const exportData = (type: 'transactions' | 'analytics' | 'all') => {
     let data;
     let filename;
@@ -387,12 +176,12 @@ export default function AlgorandDashboard() {
         filename = `algorand-transactions-${new Date().toISOString().split('T')[0]}.json`;
         break;
       case 'analytics':
-        data = chartData;
+        data = { tokens: userTokens, summary: walletSummary };
         filename = `algorand-analytics-${new Date().toISOString().split('T')[0]}.json`;
         break;
       case 'all':
         data = { tokens: userTokens, transactions: transactionData, summary: walletSummary };
-        filename = `algorand-dashboard-data-${new Date().toISOString().split('T')[0]}.json`;
+        filename = `algorand-dashboard-${new Date().toISOString().split('T')[0]}.json`;
         break;
     }
 
@@ -404,14 +193,18 @@ export default function AlgorandDashboard() {
     link.click();
     URL.revokeObjectURL(link.href);
     
-    alert(`${type} data exported successfully`);
+    toast({
+      title: "Export Complete",
+      description: `${type} data exported successfully`,
+    });
   };
 
-  // Get network info
-  const networkConfig = getAlgorandNetwork(selectedNetwork);
-  const networkColor = networkConfig.isMainnet ? 'text-[#00d4aa]' : 'text-[#76f935]';
-  const networkBgColor = networkConfig.isMainnet ? 'bg-[#00d4aa]/20' : 'bg-[#76f935]/20';
-  const networkBorderColor = networkConfig.isMainnet ? 'border-[#00d4aa]/30' : 'border-[#76f935]/30';
+  // Filter tokens based on search
+  const filteredTokens = userTokens.filter(token =>
+    token.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    token.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    token.assetId.toString().includes(searchQuery)
+  );
 
   // Don't render until mounted
   if (!mounted) {
@@ -419,845 +212,805 @@ export default function AlgorandDashboard() {
       <div className="min-h-screen app-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500 mx-auto"></div>
-            <p className="mt-4 text-muted-foreground">Loading dashboard...</p>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#76f935] mx-auto"></div>
+            <p className="mt-4 text-muted-foreground">Loading Algorand dashboard...</p>
           </div>
         </div>
       </div>
     );
   }
 
-  // Redirect to wallet connection if not connected
+  // Wallet connection prompt
   if (!connected) {
     return (
-      <div className="min-h-screen app-background flex items-center justify-center">
-        <div className="max-w-md mx-auto text-center">
-          <Card className="glass-card border-orange-500/30 bg-orange-500/5">
-            <CardHeader className="text-center">
-              <div className="w-16 h-16 rounded-full bg-red-500/20 flex items-center justify-center mx-auto">
-                <Wallet className="w-8 h-8 text-red-500" />
-              </div>
-              <div className="space-y-2">
-                <h2 className="text-2xl font-bold text-foreground">Wallet Required</h2>
-                <p className="text-muted-foreground">
-                  Connect your Algorand wallet to access your token dashboard
-                </p>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
-                <div className="flex items-start space-x-2">
-                  <AlertCircle className="w-5 h-5 text-blue-500 mt-0.5" />
-                  <div className="text-sm text-blue-600">
-                    <p className="font-semibold mb-1">To access your dashboard:</p>
-                    <ul className="list-disc list-inside space-y-1">
-                      <li>Click "Connect Wallet" in the top right</li>
-                      <li>Select Algorand wallet</li>
-                      <li>Approve the connection</li>
-                      <li>Your dashboard will load automatically</li>
-                    </ul>
+      <div className="min-h-screen app-background">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+          <div className="text-center space-y-8">
+            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#76f935] to-[#5dd128] flex items-center justify-center mx-auto shadow-2xl">
+              <Wallet className="w-10 h-10 text-white" />
+            </div>
+            
+            <div className="space-y-4">
+              <h1 className="text-4xl font-bold text-foreground">Connect Your Algorand Wallet</h1>
+              <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+                Access your Algorand Standard Assets (ASAs), transaction history, and portfolio analytics.
+              </p>
+            </div>
+
+            <div className="glass-card p-8 max-w-lg mx-auto">
+              <div className="space-y-6">
+                <div className="flex items-start space-x-4">
+                  <Shield className="w-6 h-6 text-[#76f935] mt-1" />
+                  <div className="text-left">
+                    <h3 className="font-semibold text-foreground mb-2">Ultra-Low Fees</h3>
+                    <p className="text-sm text-muted-foreground">Algorand transactions cost less than $0.001, making it perfect for token management.</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start space-x-4">
+                  <Activity className="w-6 h-6 text-blue-500 mt-1" />
+                  <div className="text-left">
+                    <h3 className="font-semibold text-foreground mb-2">Instant Finality</h3>
+                    <p className="text-sm text-muted-foreground">Transactions are confirmed in under 4 seconds with immediate finality.</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start space-x-4">
+                  <Settings className="w-6 h-6 text-purple-500 mt-1" />
+                  <div className="text-left">
+                    <h3 className="font-semibold text-foreground mb-2">Advanced Features</h3>
+                    <p className="text-sm text-muted-foreground">Built-in asset management, atomic swaps, and smart contract capabilities.</p>
                   </div>
                 </div>
               </div>
-              <div className="text-center">
-                <Link href="/" className="text-red-500 hover:text-red-600 text-sm inline-flex items-center">
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link href="/create">
+                <Button className="bg-gradient-to-r from-[#76f935] to-[#5dd128] hover:from-[#5dd128] hover:to-[#4bb01f] text-white px-8 py-3 text-lg font-semibold shadow-lg hover:shadow-xl transition-all">
+                  <Plus className="w-5 h-5 mr-2" />
+                  Create Your First Token
+                </Button>
+              </Link>
+              <Link href="/">
+                <Button variant="outline" className="border-border text-muted-foreground hover:bg-muted px-8 py-3 text-lg font-semibold">
+                  <ArrowRight className="w-5 h-5 mr-2" />
                   Back to Home
-                  <ArrowRight className="w-4 h-4 ml-1" />
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
+                </Button>
+              </Link>
+            </div>
+          </div>
         </div>
       </div>
     );
   }
-  
-  // Show loading state after wallet is connected
+
+  // Loading state
   if (isLoading) {
     return (
       <div className="min-h-screen app-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500 mx-auto"></div>
-            <p className="mt-4 text-muted-foreground">Loading your tokens and transaction data...</p>
+          <div className="space-y-8">
+            {/* Header Skeleton */}
+            <div className="flex justify-between items-center">
+              <div className="space-y-2">
+                <div className="h-8 w-64 bg-muted rounded animate-pulse"></div>
+                <div className="h-4 w-48 bg-muted rounded animate-pulse"></div>
+              </div>
+              <div className="h-10 w-32 bg-muted rounded animate-pulse"></div>
+            </div>
+
+            {/* Stats Skeleton */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="glass-card p-6">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-2 flex-1">
+                      <div className="h-4 w-20 bg-muted rounded animate-pulse"></div>
+                      <div className="h-8 w-16 bg-muted rounded animate-pulse"></div>
+                    </div>
+                    <div className="w-8 h-8 bg-muted rounded-full animate-pulse"></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Content Skeleton */}
+            <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
+              <div className="xl:col-span-4 glass-card p-6">
+                <div className="h-6 w-32 bg-muted rounded animate-pulse mb-6"></div>
+                <div className="space-y-4">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="h-20 bg-muted rounded animate-pulse"></div>
+                  ))}
+                </div>
+              </div>
+              <div className="xl:col-span-8 space-y-6">
+                <div className="glass-card p-6">
+                  <div className="h-6 w-40 bg-muted rounded animate-pulse mb-4"></div>
+                  <div className="h-64 bg-muted rounded animate-pulse"></div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
     );
   }
 
-  const renderContent = () => (
+  return (
     <div className="min-h-screen app-background">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-12">
-          <div>
-            <h1 className="text-4xl font-bold text-foreground mb-2">Algorand Dashboard</h1>
-            <p className="text-muted-foreground">Manage and monitor your Algorand Standard Assets</p>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Enhanced Header */}
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 mb-10">
+          <div className="space-y-3">
+            <div className="flex items-center space-x-3">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#76f935] to-[#5dd128] flex items-center justify-center shadow-lg">
+                <span className="text-white font-bold text-lg">A</span>
+              </div>
+              <div>
+                <h1 className="text-3xl lg:text-4xl font-bold text-foreground">Algorand Dashboard</h1>
+                <p className="text-muted-foreground text-lg">Manage your Algorand Standard Assets (ASAs)</p>
+              </div>
+            </div>
+            
             {address && (
-              <p className="text-sm text-muted-foreground mt-2">
-                Connected: {address.slice(0, 4)}...{address.slice(-4)}
-              </p>
+              <div className="flex items-center space-x-3 p-3 bg-[#76f935]/10 border border-[#76f935]/20 rounded-xl backdrop-blur-sm">
+                <div className="w-2 h-2 bg-[#76f935] rounded-full animate-pulse"></div>
+                <span className="text-[#76f935] text-sm font-medium">
+                  {address.slice(0, 4)}...{address.slice(-4)}
+                </span>
+                <Badge className={`text-xs font-semibold ${networkConfig?.isMainnet 
+                  ? 'bg-[#00d4aa]/20 text-[#00d4aa] border-[#00d4aa]/30' 
+                  : 'bg-[#76f935]/20 text-[#76f935] border-[#76f935]/30'
+                }`}>
+                  {networkConfig?.isMainnet ? 'Mainnet' : 'Testnet'}
+                </Badge>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => navigator.clipboard.writeText(address)}
+                  className="h-7 px-2 text-xs"
+                >
+                  <Copy className="w-3 h-3" />
+                </Button>
+              </div>
             )}
+            
             {error && (
-              <div className="flex items-center space-x-2 mt-2 text-red-500 text-sm">
-                <AlertCircle className="w-4 h-4" />
-                <span>{error}</span>
+              <div className="flex items-center space-x-2 p-3 bg-red-500/10 border border-red-500/20 rounded-xl">
+                <AlertCircle className="w-4 h-4 text-red-500" />
+                <span className="text-red-600 text-sm">{error}</span>
               </div>
             )}
           </div>
-          <div className="flex space-x-3">
+          
+          <div className="flex items-center space-x-3">
             <Button 
               variant="outline" 
               onClick={handleRefresh}
               disabled={isRefreshing || !connected}
-              className="border-border text-muted-foreground hover:bg-muted"
+              className="border-border hover:bg-muted"
             >
               <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
               {isRefreshing ? 'Refreshing...' : 'Refresh'}
             </Button>
+            
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="border-border hover:bg-muted">
+                  <Download className="w-4 h-4 mr-2" />
+                  Export
+                  <ChevronDown className="w-4 h-4 ml-2" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => exportData('transactions')}>
+                  <FileDown className="w-4 h-4 mr-2" />
+                  Export Transactions
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => exportData('analytics')}>
+                  <BarChart3 className="w-4 h-4 mr-2" />
+                  Export Analytics
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => exportData('all')}>
+                  <Download className="w-4 h-4 mr-2" />
+                  Export All Data
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            
             <Link href="/create">
-              <Button className="bg-red-500 hover:bg-red-600 text-white">
+              <Button className="bg-gradient-to-r from-[#76f935] to-[#5dd128] hover:from-[#5dd128] hover:to-[#4bb01f] text-white shadow-lg hover:shadow-xl transition-all">
                 <Plus className="w-4 h-4 mr-2" />
-                Create New Token
+                Create Token
               </Button>
             </Link>
           </div>
         </div>
 
-        {/* Network Badge */}
-        <div className="mb-6">
-          <Badge className={`${networkBgColor} ${networkColor} ${networkBorderColor} text-sm px-3 py-1 rounded-lg`}>
-            {networkConfig.isMainnet ? 'Algorand Mainnet' : 'Algorand Testnet'}
-          </Badge>
-        </div>
-
-        {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
-          <div className="glass-card p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-muted-foreground text-sm">Total Tokens</p>
-                <p className="text-2xl font-bold text-foreground">
-                  {walletSummary?.totalTokens || userTokens.length}
-                </p>
-              </div>
-              <Coins className="w-8 h-8 text-red-500" />
-            </div>
-          </div>
-          <div className="glass-card p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-muted-foreground text-sm">Total Value</p>
-                <p className="text-2xl font-bold text-foreground">${walletSummary?.totalValue?.toFixed(2) || '0.00'}</p>
-              </div>
-              <DollarSign className="w-8 h-8 text-red-500" />
-            </div>
-          </div>
-          <div className="glass-card p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-muted-foreground text-sm">ALGO Balance</p>
-                <p className="text-2xl font-bold text-foreground">{walletSummary?.algoBalance?.toFixed(4) || '0.0000'}</p>
-              </div>
-              <Wallet className="w-8 h-8 text-red-500" />
-            </div>
-          </div>
-          <div className="glass-card p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-muted-foreground text-sm">Recent Transactions</p>
-                <p className="text-2xl font-bold text-foreground">{walletSummary?.recentTransactions || transactionData.length}</p>
-              </div>
-              <BarChart3 className="w-8 h-8 text-red-500" />
-            </div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Token List */}
-          <div className="lg:col-span-1">
-            <div className="glass-card p-6">
-              <h2 className="text-xl font-bold text-foreground mb-6">Your Algorand Assets</h2>
-              {userTokens.length === 0 ? (
-                <div className="text-center py-8">
-                  <Coins className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground mb-4">
-                    No tokens found in your wallet
-                  </p>
-                  <Link href="/create">
-                    <Button className="bg-red-500 hover:bg-red-600 text-white">
-                      <Plus className="w-4 h-4 mr-2" />
-                      Create Your First Token
-                    </Button>
-                  </Link>
+        {/* Enhanced Stats Overview */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+          {[
+            { 
+              icon: Coins, 
+              label: 'Total Assets', 
+              value: walletSummary?.totalTokens || userTokens.length, 
+              color: 'text-[#76f935]',
+              bgColor: 'bg-[#76f935]/10',
+              borderColor: 'border-[#76f935]/20'
+            },
+            { 
+              icon: DollarSign, 
+              label: 'Portfolio Value', 
+              value: `$${walletSummary?.totalValue?.toFixed(2) || '0.00'}`, 
+              color: 'text-green-500',
+              bgColor: 'bg-green-500/10',
+              borderColor: 'border-green-500/20'
+            },
+            { 
+              icon: Wallet, 
+              label: 'ALGO Balance', 
+              value: `${walletSummary?.algoBalance?.toFixed(4) || balance?.toFixed(4) || '0.0000'} ALGO`, 
+              color: 'text-blue-500',
+              bgColor: 'bg-blue-500/10',
+              borderColor: 'border-blue-500/20'
+            },
+            { 
+              icon: Activity, 
+              label: 'Recent Activity', 
+              value: walletSummary?.recentTransactions || transactionData.length, 
+              color: 'text-purple-500',
+              bgColor: 'bg-purple-500/10',
+              borderColor: 'border-purple-500/20'
+            }
+          ].map((stat, index) => (
+            <Card key={index} className={`glass-card hover:scale-105 transition-all duration-300 ${stat.bgColor} ${stat.borderColor} border backdrop-blur-xl`}>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-2">
+                    <p className="text-muted-foreground text-sm font-medium">{stat.label}</p>
+                    <p className="text-2xl font-bold text-foreground">{stat.value}</p>
+                  </div>
+                  <div className={`w-12 h-12 rounded-xl ${stat.bgColor} flex items-center justify-center`}>
+                    <stat.icon className={`w-6 h-6 ${stat.color}`} />
+                  </div>
                 </div>
-              ) : (
-                <div className="space-y-4">
-                  {userTokens.map((token, index) => (
-                    <div 
-                      key={index}
-                      className={`p-4 rounded-lg cursor-pointer transition-all ${
-                        selectedToken === index 
-                          ? 'bg-[#76f935]/20 border border-[#76f935]/50' 
-                          : 'bg-muted/50 hover:bg-muted'
-                      }`}
-                      onClick={() => setSelectedToken(index)}
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center space-x-3">
-                          {token.image ? (
-                            <img 
-                              src={token.image} 
-                              alt={token.symbol}
-                              className="w-10 h-10 rounded-full"
-                              onError={(e) => {
-                                const target = e.target as HTMLImageElement;
-                                target.style.display = 'none';
-                                target.nextElementSibling?.classList.remove('hidden');
-                              }}
-                            />
-                          ) : null}
-                          <div className={`w-10 h-10 rounded-full bg-[#76f935] flex items-center justify-center text-white font-bold ${token.image ? 'hidden' : ''}`}>
-                            {token.symbol.slice(0, 2)}
-                          </div>
-                          <div>
-                            <p className="text-foreground font-medium">{token.name}</p>
-                            <p className="text-muted-foreground text-sm">{token.symbol}</p>
-                          </div>
-                        </div>
-                        {token.verified && (
-                          <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs">
-                            Verified
-                          </Badge>
-                        )}
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <p className="text-foreground font-semibold">{token.uiBalance.toLocaleString()}</p>
-                          <p className="text-muted-foreground text-sm">{token.value || 'N/A'}</p>
-                        </div>
-                        {token.change && (
-                          <Badge className={`${
-                            token.change.startsWith('+') 
-                              ? 'bg-green-500/20 text-green-400 border-green-500/30'
-                              : 'bg-red-500/20 text-red-400 border-red-500/30'
-                          }`}>
-                            {token.change}
-                          </Badge>
-                        )}
-                      </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
+          {/* Asset Portfolio - Left Sidebar */}
+          <div className="xl:col-span-4">
+            <Card className="glass-card h-full">
+              <CardHeader className="pb-4">
+                <div className="flex items-center justify-between mb-4">
+                  <CardTitle className="flex items-center space-x-2">
+                    <Coins className="w-5 h-5 text-[#76f935]" />
+                    <span>Asset Portfolio</span>
+                  </CardTitle>
+                  <Badge variant="secondary" className="bg-[#76f935]/10 text-[#76f935] border-[#76f935]/20">
+                    {filteredTokens.length}
+                  </Badge>
+                </div>
+                
+                {userTokens.length > 3 && (
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search assets..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-10 bg-muted/30 border-muted"
+                    />
+                  </div>
+                )}
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {filteredTokens.length === 0 ? (
+                  <div className="text-center py-12 space-y-4">
+                    <div className="w-16 h-16 rounded-full bg-muted/30 flex items-center justify-center mx-auto">
+                      <Coins className="w-8 h-8 text-muted-foreground" />
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Token Details */}
-          <div className="lg:col-span-2">
-            <Tabs defaultValue="overview" className="space-y-6">
-              <div className="glass-card p-6">
-                <div className="mb-4">
-                  <h3 className="text-lg font-semibold text-foreground">Algorand Asset Management</h3>
-                  <p className="text-sm text-muted-foreground">Manage and analyze your Algorand assets</p>
-                </div>
-                <TabsList className="enhanced-tabs grid w-full grid-cols-4">
-                  <TabsTrigger value="overview" className="enhanced-tab-trigger">
-                    <BarChart3 className="w-4 h-4 mr-2" />
-                    Overview
-                  </TabsTrigger>
-                  <TabsTrigger value="analytics" className="enhanced-tab-trigger">
-                    <TrendingUp className="w-4 h-4 mr-2" />
-                    Analytics
-                  </TabsTrigger>
-                  <TabsTrigger value="transactions" className="enhanced-tab-trigger">
-                    <Calendar className="w-4 h-4 mr-2" />
-                    Transactions
-                  </TabsTrigger>
-                  <TabsTrigger value="manage" className="enhanced-tab-trigger">
-                    <Settings className="w-4 h-4 mr-2" />
-                    Manage
-                  </TabsTrigger>
-                </TabsList>
-              </div>
-
-              <TabsContent value="overview" className="space-y-6">
-                {userTokens.length === 0 ? (
-                  <div className="glass-card p-6 text-center">
-                    <Coins className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-xl font-semibold text-foreground mb-2">No Assets Found</h3>
-                    <p className="text-muted-foreground mb-6">
-                      Connect your wallet and create your first Algorand asset to get started.
-                    </p>
-                    <Link href="/create">
-                      <Button className="bg-red-500 hover:bg-red-600 text-white">
-                        <Plus className="w-4 h-4 mr-2" />
-                        Create Your First Token
-                      </Button>
-                    </Link>
+                    <div className="space-y-2">
+                      <h3 className="font-semibold text-foreground">
+                        {userTokens.length === 0 ? 'No Assets Found' : 'No Matching Assets'}
+                      </h3>
+                      <p className="text-muted-foreground text-sm">
+                        {userTokens.length === 0 
+                          ? 'Create your first Algorand Standard Asset to get started.'
+                          : 'Try adjusting your search terms.'}
+                      </p>
+                    </div>
+                    {userTokens.length === 0 && (
+                      <Link href="/create">
+                        <Button className="bg-gradient-to-r from-[#76f935] to-[#5dd128] hover:from-[#5dd128] hover:to-[#4bb01f] text-white mt-4">
+                          <Plus className="w-4 h-4 mr-2" />
+                          Create First Asset
+                        </Button>
+                      </Link>
+                    )}
                   </div>
                 ) : (
-                  <div className="glass-card p-6">
-                    <div className="flex justify-between items-start mb-6">
-                      <div>
-                        <h3 className="text-2xl font-bold text-foreground">{userTokens[selectedToken]?.name || 'Select a token'}</h3>
-                        <p className="text-muted-foreground">{userTokens[selectedToken]?.symbol || 'ASA'}</p>
+                  <div className="space-y-3">
+                    {filteredTokens.map((token, index) => (
+                      <div 
+                        key={index}
+                        className={`group p-4 rounded-xl cursor-pointer transition-all duration-300 border-2 ${
+                          selectedToken === index 
+                            ? 'bg-[#76f935]/10 border-[#76f935]/30 shadow-lg' 
+                            : 'bg-muted/30 border-transparent hover:bg-muted/50 hover:border-[#76f935]/20'
+                        }`}
+                        onClick={() => setSelectedToken(index)}
+                      >
+                        <div className="flex items-center space-x-3">
+                          <div className="relative">
+                            {token.image ? (
+                              <img 
+                                src={token.image} 
+                                alt={token.symbol}
+                                className="w-12 h-12 rounded-full object-cover"
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  target.style.display = 'none';
+                                  target.nextElementSibling?.classList.remove('hidden');
+                                }}
+                              />
+                            ) : null}
+                            <div className={`w-12 h-12 rounded-full bg-gradient-to-br from-[#76f935] to-[#5dd128] flex items-center justify-center text-white font-bold ${token.image ? 'hidden' : ''}`}>
+                              {token.symbol.slice(0, 2)}
+                            </div>
+                            {token.verified && (
+                              <div className="absolute -top-1 -right-1 w-5 h-5 bg-[#76f935] rounded-full flex items-center justify-center">
+                                <Star className="w-3 h-3 text-white" fill="currentColor" />
+                              </div>
+                            )}
+                          </div>
+                          
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center space-x-2 mb-1">
+                              <h3 className="font-semibold text-foreground truncate">{token.name}</h3>
+                              <Badge variant="outline" className="text-xs font-mono">
+                                {token.symbol}
+                              </Badge>
+                            </div>
+                            
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="text-foreground font-semibold">
+                                  {token.uiBalance.toLocaleString()}
+                                </p>
+                                <p className="text-muted-foreground text-sm">
+                                  Asset ID: {token.assetId}
+                                </p>
+                              </div>
+                              
+                              {token.change && (
+                                <Badge className={`text-xs ${
+                                  token.change.startsWith('+') 
+                                    ? 'bg-green-500/20 text-green-600 border-green-500/30'
+                                    : 'bg-red-500/20 text-red-600 border-red-500/30'
+                                }`}>
+                                  {token.change}
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                          
+                          <ChevronRight className={`w-4 h-4 transition-transform ${
+                            selectedToken === index ? 'rotate-90 text-[#76f935]' : 'text-muted-foreground group-hover:text-foreground'
+                          }`} />
+                        </div>
                       </div>
-                      <div className="flex space-x-2">
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Asset Details and Management - Right Content */}
+          <div className="xl:col-span-8">
+            {filteredTokens.length === 0 ? (
+              <Card className="glass-card h-full">
+                <CardContent className="flex items-center justify-center py-20">
+                  <div className="text-center space-y-6 max-w-md">
+                    <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#76f935] to-[#5dd128] flex items-center justify-center mx-auto shadow-xl">
+                      <Coins className="w-10 h-10 text-white" />
+                    </div>
+                    <div className="space-y-2">
+                      <h2 className="text-2xl font-bold text-foreground">Welcome to Algorand Dashboard</h2>
+                      <p className="text-muted-foreground">
+                        Your Algorand Standard Asset management hub. Create, monitor, and manage your ASAs with ultra-low fees.
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-8">
+                      <Link href="/create">
+                        <Button className="w-full bg-gradient-to-r from-[#76f935] to-[#5dd128] hover:from-[#5dd128] hover:to-[#4bb01f] text-white h-12">
+                          <Plus className="w-4 h-4 mr-2" />
+                          Create Asset
+                        </Button>
+                      </Link>
+                      <Link href="/verify">
+                        <Button variant="outline" className="w-full h-12">
+                          <Shield className="w-4 h-4 mr-2" />
+                          Verify Asset
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <Tabs defaultValue="overview" className="space-y-6">
+                <Card className="glass-card">
+                  <CardHeader className="pb-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle className="flex items-center space-x-2">
+                          <Eye className="w-5 h-5 text-[#76f935]" />
+                          <span>{filteredTokens[selectedToken]?.name}</span>
+                        </CardTitle>
+                        <p className="text-muted-foreground mt-1">
+                          Manage and analyze your Algorand Standard Asset
+                        </p>
+                      </div>
+                      <div className="flex items-center space-x-2">
                         <Button 
                           variant="outline" 
-                          size="sm" 
-                          className="border-border text-muted-foreground"
-                          onClick={() => userTokens[selectedToken] && navigator.clipboard.writeText(userTokens[selectedToken].assetId.toString())}
+                          size="sm"
+                          onClick={() => navigator.clipboard.writeText(filteredTokens[selectedToken]?.assetId?.toString() || '')}
+                          className="border-border hover:bg-muted"
                         >
                           <Copy className="w-4 h-4" />
                         </Button>
                         <Button 
                           variant="outline" 
-                          size="sm" 
-                          className="border-border text-muted-foreground"
-                          onClick={() => userTokens[selectedToken] && window.open(userTokens[selectedToken].explorerUrl, '_blank')}
+                          size="sm"
+                          onClick={() => window.open(filteredTokens[selectedToken]?.explorerUrl, '_blank')}
+                          className="border-border hover:bg-muted"
                         >
                           <ExternalLink className="w-4 h-4" />
                         </Button>
                       </div>
                     </div>
-
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      <div className="bg-muted/50 rounded-lg p-4 text-center">
-                        <p className="text-muted-foreground text-sm">Balance</p>
-                        <p className="text-foreground font-bold">{userTokens[selectedToken]?.uiBalance.toLocaleString() || '0'}</p>
-                      </div>
-                      <div className="bg-muted/50 rounded-lg p-4 text-center">
-                        <p className="text-muted-foreground text-sm">Value</p>
-                        <p className="text-foreground font-bold">{userTokens[selectedToken]?.value || 'N/A'}</p>
-                      </div>
-                      <div className="bg-muted/50 rounded-lg p-4 text-center">
-                        <p className="text-muted-foreground text-sm">Decimals</p>
-                        <p className="text-foreground font-bold">{userTokens[selectedToken]?.decimals || '0'}</p>
-                      </div>
-                      <div className="bg-muted/50 rounded-lg p-4 text-center">
-                        <p className="text-muted-foreground text-sm">Asset ID</p>
-                        <p className="text-foreground font-bold text-xs">{userTokens[selectedToken]?.assetId || 'N/A'}</p>
-                      </div>
-                    </div>
                     
-                    {userTokens[selectedToken]?.description && (
-                      <div className="mt-6 p-4 bg-muted/30 rounded-lg">
-                        <h4 className="text-sm font-semibold text-foreground mb-2">Description</h4>
-                        <p className="text-muted-foreground text-sm">{userTokens[selectedToken].description}</p>
-                      </div>
-                    )}
-                  </div>
-                )}
+                    <TabsList className="enhanced-tabs grid grid-cols-3 w-full mt-4">
+                      <TabsTrigger value="overview" className="enhanced-tab-trigger">
+                        <BarChart3 className="w-4 h-4 mr-2" />
+                        Overview
+                      </TabsTrigger>
+                      <TabsTrigger value="transactions" className="enhanced-tab-trigger">
+                        <Clock className="w-4 h-4 mr-2" />
+                        History
+                      </TabsTrigger>
+                      <TabsTrigger value="manage" className="enhanced-tab-trigger">
+                        <Settings className="w-4 h-4 mr-2" />
+                        Manage
+                      </TabsTrigger>
+                    </TabsList>
+                  </CardHeader>
+                </Card>
 
-                {userTokens.length > 0 && (
-                  <div className="glass-card p-6">
-                    <h4 className="text-lg font-semibold text-foreground mb-4">Transaction Activity</h4>
-                    <div className="h-64">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={chartData}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="currentColor" opacity={0.3} strokeWidth={1} />
-                          <XAxis 
-                            dataKey="name" 
-                            stroke="currentColor" 
-                            opacity={0.7}
-                            tick={{ fontSize: 12 }}
-                            tickLine={{ stroke: 'currentColor', opacity: 0.5 }}
-                          />
-                          <YAxis 
-                            stroke="currentColor" 
-                            opacity={0.7}
-                            tick={{ fontSize: 12 }}
-                            tickLine={{ stroke: 'currentColor', opacity: 0.5 }}
-                          />
-                          <Tooltip />
-                          <Line 
-                            type="monotone" 
-                            dataKey="value" 
-                            stroke="#76f935" 
-                            strokeWidth={3}
-                            dot={{ fill: '#76f935', strokeWidth: 2, r: 4 }}
-                            activeDot={{ r: 6, fill: '#76f935', stroke: '#fff', strokeWidth: 2 }}
-                          />
-                        </LineChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </div>
-                )}
-              </TabsContent>
-
-              <TabsContent value="analytics" className="space-y-6">
-                {userTokens.length > 0 && (
-                  <div className="glass-card p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <h4 className="text-lg font-semibold text-foreground">Transaction Distribution</h4>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => exportData('analytics')}
-                        className="gap-2"
-                      >
-                        <FileDown className="w-4 h-4" />
-                        Export Analytics
-                      </Button>
-                    </div>
-                    <div className="h-64">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={chartData}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="currentColor" opacity={0.3} strokeWidth={1} />
-                          <XAxis 
-                            dataKey="name" 
-                            stroke="currentColor" 
-                            opacity={0.7}
-                            tick={{ fontSize: 12 }}
-                          />
-                          <YAxis 
-                            stroke="currentColor" 
-                            opacity={0.7}
-                            tick={{ fontSize: 12 }}
-                          />
-                          <Tooltip />
-                          <Bar 
-                            dataKey="value" 
-                            fill="#76f935"
-                            radius={[4, 4, 0, 0]}
-                          />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </div>
-                )}
-              </TabsContent>
-
-              <TabsContent value="transactions" className="space-y-6">
-                <div className="glass-card p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h4 className="text-lg font-semibold text-foreground">Recent Transactions</h4>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => exportData('transactions')}
-                      className="gap-2"
-                    >
-                      <Download className="w-4 h-4" />
-                      Export Transactions
-                    </Button>
-                  </div>
-                  {transactionData.length === 0 ? (
-                    <div className="text-center py-8">
-                      <Calendar className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                      <div className="space-y-3">
-                        <p className="text-muted-foreground">No recent transactions found</p>
-                        <p className="text-sm text-muted-foreground">Transactions will appear here as you use your wallet</p>
-                        
-                        {/* Beginner guidance */}
-                        <Callout variant="beginner" className="text-left mt-4">
-                          <p className="text-sm">
-                            <span className="font-semibold">New to Algorand?</span> To receive tokens, you need to "opt-in" to them first. To do this:
+                <TabsContent value="overview" className="space-y-6">
+                  {/* Asset Overview Stats */}
+                  <Card className="glass-card">
+                    <CardContent className="p-6">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                        <div className="text-center space-y-2">
+                          <p className="text-muted-foreground text-sm font-medium">Balance</p>
+                          <p className="text-2xl font-bold text-foreground">
+                            {filteredTokens[selectedToken]?.uiBalance.toLocaleString()}
                           </p>
-                          <ol className="text-xs mt-2 space-y-1 list-decimal list-inside">
-                            <li>Use the "Opt-in to Asset" button in the Manage tab</li>
-                            <li>Enter the Asset ID of the token</li>
-                            <li>Approve the transaction in your wallet</li>
-                          </ol>
-                        </Callout>
+                        </div>
+                        <div className="text-center space-y-2">
+                          <p className="text-muted-foreground text-sm font-medium">Asset ID</p>
+                          <p className="text-2xl font-bold text-foreground">
+                            {filteredTokens[selectedToken]?.assetId}
+                          </p>
+                        </div>
+                        <div className="text-center space-y-2">
+                          <p className="text-muted-foreground text-sm font-medium">Decimals</p>
+                          <p className="text-2xl font-bold text-foreground">
+                            {filteredTokens[selectedToken]?.decimals}
+                          </p>
+                        </div>
+                        <div className="text-center space-y-2">
+                          <p className="text-muted-foreground text-sm font-medium">Holders</p>
+                          <p className="text-2xl font-bold text-foreground">
+                            {filteredTokens[selectedToken]?.holders?.toLocaleString() || '0'}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {transactionData.map((tx, index) => {
-                        const displayTx = formatAlgorandTransactionForDisplay(tx);
-                        return (
-                          <div key={index} className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
-                            <div className="flex items-center space-x-3">
-                              <div className="w-8 h-8 rounded-full bg-[#76f935]/20 flex items-center justify-center">
-                                <Send className="w-4 h-4 text-[#76f935]" />
-                              </div>
-                              <div>
-                                <p className="text-foreground font-medium">{displayTx.type}</p>
-                                <p className="text-muted-foreground text-sm">{displayTx.amount} to {displayTx.to}</p>
-                                <button
-                                  onClick={() => window.open(`${networkConfig.explorer}/tx/${tx.id}`, '_blank')}
-                                  className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
-                                >
-                                  View on Explorer
-                                </button>
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <p className="text-muted-foreground text-sm">{displayTx.time}</p>
-                              <Badge className={`${
-                                displayTx.status === 'Completed' 
-                                  ? 'bg-green-500/20 text-green-400 border-green-500/30'
-                                  : displayTx.status === 'Failed'
-                                  ? 'bg-red-500/20 text-red-400 border-red-500/30'
-                                  : 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
-                              }`}>
-                                {displayTx.status}
-                              </Badge>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              </TabsContent>
+                    </CardContent>
+                  </Card>
 
-              <TabsContent value="manage" className="space-y-6">
-                {userTokens.length === 0 ? (
-                  <div className="glass-card p-6 text-center">
-                    <Settings className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-xl font-semibold text-foreground mb-2">No Assets to Manage</h3>
-                    <p className="text-muted-foreground mb-6">Create an asset first to access management features.</p>
-                    <Link href="/create">
-                      <Button className="bg-red-500 hover:bg-red-600 text-white">
-                        <Plus className="w-4 h-4 mr-2" />
-                        Create Asset
-                      </Button>
-                    </Link>
-                  </div>
-                ) : (
-                  <>
-                    {/* Token Transfer */}
-                    <div className="glass-card p-6">
-                      <h4 className="text-lg font-semibold text-foreground mb-6">Transfer ASA</h4>
-                      <div className="space-y-4">
-                        <div>
+                  {/* Asset Information */}
+                  <Card className="glass-card">
+                    <CardHeader>
+                      <CardTitle className="flex items-center space-x-2">
+                        <Info className="w-5 h-5 text-[#76f935]" />
+                        <span>Asset Information</span>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-3">
+                          <div>
+                            <Label className="text-sm font-medium text-muted-foreground">Asset Name</Label>
+                            <p className="text-foreground font-semibold">{filteredTokens[selectedToken]?.name}</p>
+                          </div>
+                          <div>
+                            <Label className="text-sm font-medium text-muted-foreground">Unit Name</Label>
+                            <p className="text-foreground font-semibold">{filteredTokens[selectedToken]?.symbol}</p>
+                          </div>
+                          <div>
+                            <Label className="text-sm font-medium text-muted-foreground">Creator</Label>
+                            <p className="text-foreground font-mono text-sm">
+                              {filteredTokens[selectedToken]?.creator ? 
+                                `${filteredTokens[selectedToken].creator.slice(0, 8)}...${filteredTokens[selectedToken].creator.slice(-8)}` :
+                                'N/A'
+                              }
+                            </p>
+                          </div>
+                        </div>
+                        <div className="space-y-3">
+                          <div>
+                            <Label className="text-sm font-medium text-muted-foreground">Asset ID</Label>
+                            <p className="text-foreground font-semibold">{filteredTokens[selectedToken]?.assetId}</p>
+                          </div>
+                          <div>
+                            <Label className="text-sm font-medium text-muted-foreground">Network</Label>
+                            <Badge className={`${networkConfig?.isMainnet 
+                              ? 'bg-[#00d4aa]/20 text-[#00d4aa] border-[#00d4aa]/30' 
+                              : 'bg-[#76f935]/20 text-[#76f935] border-[#76f935]/30'
+                            }`}>
+                              {networkConfig?.name}
+                            </Badge>
+                          </div>
+                          <div>
+                            <Label className="text-sm font-medium text-muted-foreground">Manager</Label>
+                            <p className="text-foreground font-mono text-sm">
+                              {filteredTokens[selectedToken]?.manager ? 
+                                `${filteredTokens[selectedToken].manager.slice(0, 8)}...${filteredTokens[selectedToken].manager.slice(-8)}` :
+                                'N/A'
+                              }
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                <TabsContent value="transactions" className="space-y-6">
+                  <Card className="glass-card">
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="flex items-center space-x-2">
+                          <Clock className="w-5 h-5 text-[#76f935]" />
+                          <span>Transaction History</span>
+                        </CardTitle>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => exportData('transactions')}
+                          className="gap-2"
+                        >
+                          <Download className="w-4 h-4" />
+                          Export
+                        </Button>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      {transactionData.length === 0 ? (
+                        <div className="text-center py-12 space-y-4">
+                          <Calendar className="w-16 h-16 text-muted-foreground mx-auto" />
+                          <div className="space-y-2">
+                            <h3 className="font-semibold text-foreground">No Recent Transactions</h3>
+                            <p className="text-muted-foreground text-sm">
+                              Transaction history will appear here as you use your wallet
+                            </p>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          {transactionData.map((tx, index) => (
+                            <div key={index} className="flex items-center justify-between p-4 bg-muted/30 rounded-xl hover:bg-muted/50 transition-colors">
+                              <div className="flex items-center space-x-4">
+                                <div className="w-10 h-10 rounded-full bg-[#76f935]/20 flex items-center justify-center">
+                                  <Send className="w-5 h-5 text-[#76f935]" />
+                                </div>
+                                <div>
+                                  <p className="font-medium text-foreground">{tx.type}</p>
+                                  <p className="text-muted-foreground text-sm">
+                                    {tx.amount} {tx.token}
+                                  </p>
+                                  <button
+                                    onClick={() => window.open(filteredTokens[selectedToken]?.explorerUrl, '_blank')}
+                                    className="text-xs text-[#76f935] hover:text-[#5dd128] transition-colors flex items-center space-x-1 mt-1"
+                                  >
+                                    <Globe className="w-3 h-3" />
+                                    <span>View on Explorer</span>
+                                  </button>
+                                </div>
+                              </div>
+                              <div className="text-right space-y-1">
+                                <p className="text-muted-foreground text-sm">
+                                  {new Date(tx.timestamp).toLocaleDateString()}
+                                </p>
+                                <Badge className={`${
+                                  tx.status === 'confirmed' 
+                                    ? 'bg-green-500/20 text-green-600 border-green-500/30'
+                                    : tx.status === 'failed'
+                                    ? 'bg-red-500/20 text-red-600 border-red-500/30'
+                                    : 'bg-yellow-500/20 text-yellow-600 border-yellow-500/30'
+                                }`}>
+                                  {tx.status === 'confirmed' ? 'Completed' : tx.status}
+                                </Badge>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                <TabsContent value="manage" className="space-y-6">
+                  {/* Quick Actions */}
+                  <Card className="glass-card">
+                    <CardHeader>
+                      <CardTitle className="flex items-center space-x-2">
+                        <Settings className="w-5 h-5 text-[#76f935]" />
+                        <span>Asset Management</span>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                        <Button 
+                          variant="outline" 
+                          className="h-16 border-border hover:bg-muted hover:border-[#76f935]/30 transition-all group"
+                          onClick={() => {
+                            toast({
+                              title: "Opt-in Required",
+                              description: "This feature requires opt-in to the asset first",
+                              variant: "default"
+                            });
+                          }}
+                        >
+                          <div className="flex flex-col items-center space-y-2">
+                            <Send className="w-5 h-5 text-[#76f935] group-hover:scale-110 transition-transform" />
+                            <span className="font-medium">Send Asset</span>
+                          </div>
+                        </Button>
+                        
+                        <Button 
+                          variant="outline" 
+                          className="h-16 border-border hover:bg-muted hover:border-[#76f935]/30 transition-all group"
+                          onClick={() => {
+                            toast({
+                              title: "Feature Coming Soon",
+                              description: "Asset freezing will be available in the next update",
+                              variant: "default"
+                            });
+                          }}
+                        >
+                          <div className="flex flex-col items-center space-y-2">
+                            <Flame className="w-5 h-5 text-orange-500 group-hover:scale-110 transition-transform" />
+                            <span className="font-medium">Freeze Asset</span>
+                          </div>
+                        </Button>
+                        
+                        <Button 
+                          variant="outline" 
+                          className="h-16 border-border hover:bg-muted hover:border-[#76f935]/30 transition-all group"
+                          onClick={() => window.open(filteredTokens[selectedToken]?.explorerUrl, '_blank')}
+                        >
+                          <div className="flex flex-col items-center space-y-2">
+                            <ExternalLink className="w-5 h-5 text-blue-500 group-hover:scale-110 transition-transform" />
+                            <span className="font-medium">View Explorer</span>
+                          </div>
+                        </Button>
+                        
+                        <Button 
+                          variant="outline" 
+                          className="h-16 border-border hover:bg-muted hover:border-[#76f935]/30 transition-all group"
+                          onClick={() => exportData('all')}
+                        >
+                          <div className="flex flex-col items-center space-y-2">
+                            <Download className="w-5 h-5 text-purple-500 group-hover:scale-110 transition-transform" />
+                            <span className="font-medium">Export Data</span>
+                          </div>
+                        </Button>
+                        
+                        <Button 
+                          variant="outline" 
+                          className="h-16 border-border hover:bg-muted hover:border-[#76f935]/30 transition-all group"
+                        >
+                          <div className="flex flex-col items-center space-y-2">
+                            <Settings className="w-5 h-5 text-gray-500 group-hover:scale-110 transition-transform" />
+                            <span className="font-medium">Settings</span>
+                          </div>
+                        </Button>
+                        
+                        <Button 
+                          variant="outline" 
+                          className="h-16 border-border hover:bg-muted hover:border-[#76f935]/30 transition-all group"
+                        >
+                          <div className="flex flex-col items-center space-y-2">
+                            <BarChart3 className="w-5 h-5 text-indigo-500 group-hover:scale-110 transition-transform" />
+                            <span className="font-medium">Analytics</span>
+                          </div>
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Transfer Section */}
+                  <Card className="glass-card">
+                    <CardHeader>
+                      <CardTitle className="flex items-center space-x-2">
+                        <Send className="w-5 h-5 text-[#76f935]" />
+                        <span>Transfer Asset</span>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
                           <Label htmlFor="transferAddress" className="text-foreground font-medium">Recipient Address</Label>
                           <Input
                             id="transferAddress"
                             placeholder="Enter Algorand wallet address"
-                            value={transferAddress}
-                            onChange={(e) => setTransferAddress(e.target.value)}
-                            className="input-enhanced mt-2"
+                            className="input-enhanced"
                           />
                         </div>
-                        <div>
+                        <div className="space-y-2">
                           <Label htmlFor="transferAmount" className="text-foreground font-medium">Amount</Label>
                           <Input
                             id="transferAmount"
                             type="number"
-                            placeholder={`Enter amount of ${userTokens[selectedToken]?.symbol || 'ASA'}`}
-                            value={transferAmount}
-                            onChange={(e) => setTransferAmount(e.target.value)}
-                            className="input-enhanced mt-2"
+                            placeholder={`Enter amount of ${filteredTokens[selectedToken]?.symbol}`}
+                            className="input-enhanced"
                           />
                         </div>
-                        <Button 
-                          onClick={handleTransfer}
-                          className="bg-[#76f935] hover:bg-[#5dd128] text-white w-full"
-                        >
-                          <Send className="w-4 h-4 mr-2" />
-                          Transfer {userTokens[selectedToken]?.symbol || 'Asset'}
-                        </Button>
                       </div>
-                    </div>
-
-                    {/* Asset Management */}
-                    <div className="glass-card p-6">
-                      <h4 className="text-lg font-semibold text-foreground mb-6">Asset Management</h4>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <Button 
-                          variant="outline" 
-                          className="border-border text-muted-foreground hover:bg-muted h-12"
-                          onClick={() => setIsOptInModalOpen(true)}
-                        >
-                          <Plus className="w-4 h-4 mr-2" />
-                          Opt-in to Asset
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          className="border-border text-muted-foreground hover:bg-muted h-12"
-                          onClick={() => setIsMintModalOpen(true)}
-                          disabled={!userTokens[selectedToken]?.manager || userTokens[selectedToken]?.manager !== address}
-                        >
-                          <Plus className="w-4 h-4 mr-2" />
-                          Mint Tokens
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          className="border-border text-muted-foreground hover:bg-muted h-12"
-                          onClick={() => setIsBurnModalOpen(true)}
-                        >
-                          <Flame className="w-4 h-4 mr-2" />
-                          Burn Tokens
-                        </Button>
-                        <Button variant="outline" className="border-border text-muted-foreground hover:bg-muted h-12">
-                          <Flame className="w-4 h-4 mr-2" />
-                          Opt-out of Asset
-                        </Button>
-                        <Button variant="outline" className="border-border text-muted-foreground hover:bg-muted h-12">
-                          <Settings className="w-4 h-4 mr-2" />
-                          Reconfigure Asset
-                        </Button>
-                        <Button variant="outline" className="border-border text-muted-foreground hover:bg-muted h-12">
-                          <BarChart3 className="w-4 h-4 mr-2" />
-                          View Analytics
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          onClick={() => exportData('all')}
-                          className="border-border text-muted-foreground hover:bg-muted h-12 gap-2"
-                        >
-                          <Download className="w-4 h-4" />
-                          Export All Data
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          onClick={() => userTokens[selectedToken] && window.open(userTokens[selectedToken].explorerUrl, '_blank')}
-                          className="border-border text-muted-foreground hover:bg-muted h-12 gap-2"
-                        >
-                          <ExternalLink className="w-4 h-4" />
-                          View on Explorer
-                        </Button>
+                      <Button 
+                        onClick={() => {
+                          toast({
+                            title: "Opt-in Required",
+                            description: "The recipient must opt-in to this asset before you can transfer it",
+                            variant: "default"
+                          });
+                        }}
+                        className="w-full bg-gradient-to-r from-[#76f935] to-[#5dd128] hover:from-[#5dd128] hover:to-[#4bb01f] text-white h-12"
+                      >
+                        <Send className="w-4 h-4 mr-2" />
+                        Transfer {filteredTokens[selectedToken]?.symbol}
+                      </Button>
+                      
+                      <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl">
+                        <div className="flex items-start space-x-3">
+                          <Info className="w-5 h-5 text-blue-500 mt-0.5" />
+                          <div>
+                            <p className="text-blue-600 font-medium">Algorand Asset Transfer</p>
+                            <p className="text-sm text-blue-500 mt-1">
+                              Recipients must opt-in to ASAs before they can receive them. This is a security feature of the Algorand blockchain.
+                            </p>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </>
-                )}
-              </TabsContent>
-            </Tabs>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              </Tabs>
+            )}
           </div>
         </div>
       </div>
     </div>
-  );
-  
-  return (
-    <>
-      {renderContent()}
-      <OptInDialog />
-    </>
-  );
-  
-  // Mint Modal Component
-  const MintModal = () => (
-    <Dialog open={isMintModalOpen} onOpenChange={setIsMintModalOpen}>
-      <DialogContent className="glass-card">
-        <DialogHeader>
-          <DialogTitle className="text-2xl font-bold">
-            Mint {userTokens[selectedToken]?.symbol || ''} Tokens
-          </DialogTitle>
-          <DialogDescription>
-            Create new tokens and add them to the total supply.
-            {userTokens[selectedToken]?.manager === address ? (
-              <div className="mt-2 text-sm text-green-500">You have permission to mint this token.</div>
-            ) : (
-              <div className="mt-2 text-sm text-red-500">
-                Only the asset manager can mint additional tokens.
-              </div>
-            )}
-          </DialogDescription>
-        </DialogHeader>
-        
-        <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <Label htmlFor="mintAmount">Amount to Mint</Label>
-            <Input
-              id="mintAmount"
-              type="number"
-              value={mintAmount}
-              onChange={(e) => setMintAmount(e.target.value)}
-              placeholder={`Enter amount of ${userTokens[selectedToken]?.symbol || 'tokens'}`}
-              className="input-enhanced"
-              disabled={isProcessing || userTokens[selectedToken]?.manager !== address}
-            />
-          </div>
-          
-          <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
-            <p className="text-sm text-blue-600">
-              <Info className="w-4 h-4 inline-block mr-1" />
-              Minting will create new tokens and increase the total supply.
-            </p>
-          </div>
-        </div>
-        
-        <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => setIsMintModalOpen(false)}
-            disabled={isProcessing}
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={handleMintTokens}
-            disabled={
-              !mintAmount || 
-              parseFloat(mintAmount) <= 0 || 
-              isProcessing || 
-              userTokens[selectedToken]?.manager !== address
-            }
-            className="bg-[#76f935] hover:bg-[#5dd128] text-white"
-          >
-            {isProcessing ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Processing...
-              </>
-            ) : (
-              <>
-                <Plus className="w-4 h-4 mr-2" />
-                Mint Tokens
-              </>
-            )}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-  
-  // Burn Modal Component
-  const BurnModal = () => (
-    <Dialog open={isBurnModalOpen} onOpenChange={setIsBurnModalOpen}>
-      <DialogContent className="glass-card">
-        <DialogHeader>
-          <DialogTitle className="text-2xl font-bold">
-            Burn {userTokens[selectedToken]?.symbol || ''} Tokens
-          </DialogTitle>
-          <DialogDescription>
-            Permanently remove tokens from circulation, reducing the total supply.
-          </DialogDescription>
-        </DialogHeader>
-        
-        <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <Label htmlFor="burnAmount">Amount to Burn</Label>
-            <Input
-              id="burnAmount"
-              type="number"
-              value={burnAmount}
-              onChange={(e) => setBurnAmount(e.target.value)}
-              placeholder={`Enter amount of ${userTokens[selectedToken]?.symbol || 'tokens'}`}
-              className="input-enhanced"
-              disabled={isProcessing}
-            />
-            <p className="text-sm text-muted-foreground">
-              Available balance: {userTokens[selectedToken]?.uiBalance.toLocaleString() || '0'} {userTokens[selectedToken]?.symbol || ''}
-            </p>
-          </div>
-          
-          <div className="p-3 bg-orange-500/10 border border-orange-500/30 rounded-lg">
-            <p className="text-sm text-orange-600">
-              <AlertTriangle className="w-4 h-4 inline-block mr-1" />
-              Warning: Burning tokens is permanent and cannot be undone.
-            </p>
-          </div>
-        </div>
-        
-        <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => setIsBurnModalOpen(false)}
-            disabled={isProcessing}
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={handleBurnTokens}
-            disabled={
-              !burnAmount || 
-              parseFloat(burnAmount) <= 0 || 
-              (userTokens[selectedToken] && parseFloat(burnAmount) > userTokens[selectedToken].uiBalance) || 
-              isProcessing
-            }
-            className="bg-[#76f935] hover:bg-[#5dd128] text-white"
-          >
-            {isProcessing ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Processing...
-              </>
-            ) : (
-              <>
-                <Flame className="w-4 h-4 mr-2" />
-                Burn Tokens
-              </>
-            )}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-  
-  // Opt-In Modal Component
-  const OptInModal = () => (
-    <Dialog open={isOptInModalOpen} onOpenChange={setIsOptInModalOpen}>
-      <DialogContent className="glass-card">
-        <DialogHeader>
-          <DialogTitle className="text-2xl font-bold">
-            Opt-in to Algorand Asset
-          </DialogTitle>
-          <DialogDescription>
-            You must opt-in to an asset before you can receive it in your wallet.
-          </DialogDescription>
-        </DialogHeader>
-        
-        <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <Label htmlFor="assetId">Asset ID</Label>
-            <Input
-              id="assetId"
-              type="text"
-              value={assetIdToOptIn}
-              onChange={(e) => setAssetIdToOptIn(e.target.value)}
-              placeholder="Enter Algorand Asset ID"
-              className="input-enhanced"
-              disabled={isProcessing}
-            />
-          </div>
-          
-          <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
-            <p className="text-sm text-blue-600">
-              <Info className="w-4 h-4 inline-block mr-1" />
-              Opting in creates a 0-balance entry in your account and requires a small transaction fee.
-            </p>
-          </div>
-        </div>
-        
-        <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => setIsOptInModalOpen(false)}
-            disabled={isProcessing}
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={handleOptInToAsset}
-            disabled={!assetIdToOptIn || isProcessing || isNaN(Number(assetIdToOptIn))}
-            className="bg-[#76f935] hover:bg-[#5dd128] text-white"
-          >
-            {isProcessing ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Processing...
-              </>
-            ) : (
-              <>
-                <Plus className="w-4 h-4 mr-2" />
-                Opt-in to Asset
-              </>
-            )}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-  
-  // Render all components
-  return (
-    <>
-      {renderDashboardContent()}
-      {userTokens.length > 0 && (
-        <>
-          <MintModal />
-          <BurnModal />
-        </>
-      )}
-      <OptInModal />
-    </>
   );
 }
