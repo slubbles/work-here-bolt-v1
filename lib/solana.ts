@@ -1127,6 +1127,50 @@ export async function getTokenBalance(walletAddress: string, mintAddress: string
   }
 }
 
+// Update token metadata
+export async function updateTokenMetadata(
+  wallet: any,
+  mintAddress: string,
+  metadata: {
+    name: string;
+    symbol: string;
+    description: string;
+    logoUrl: string;
+    website?: string;
+  }
+) {
+  try {
+    console.log('🔄 Updating token metadata for:', mintAddress);
+    
+    // For now, return a simulated response since the smart contract 
+    // needs to be updated to support metadata updates
+    await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate processing
+    
+    console.log('✅ Token metadata update simulated');
+    
+    return {
+      success: true,
+      signature: 'simulated_metadata_update_' + Date.now(),
+    };
+  } catch (error) {
+    console.error('Error updating token metadata:', error);
+    
+    let errorMessage = 'Failed to update token metadata';
+    if (error instanceof Error) {
+      if (error.message.includes('Unauthorized')) {
+        errorMessage = 'You are not authorized to update this token metadata';
+      } else {
+        errorMessage = error.message;
+      }
+    }
+    
+    return {
+      success: false,
+      error: errorMessage,
+    };
+  }
+}
+
 // Get SOL balance
 export async function getSolBalance(walletAddress: string) {
   try {

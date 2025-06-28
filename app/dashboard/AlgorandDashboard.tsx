@@ -7,6 +7,16 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { 
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 import { 
   Coins, 
@@ -48,6 +58,8 @@ import {
   AlgorandTransactionInfo,
   formatAlgorandTransactionForDisplay
 } from '@/lib/algorand-data';
+import { mintAlgorandAssets, burnAlgorandAssets, updateAlgorandAssetMetadata } from '@/lib/algorand';
+import { useToast } from '@/hooks/use-toast';
 
 export default function AlgorandDashboard() {
   const [selectedToken, setSelectedToken] = useState(0);
@@ -55,6 +67,19 @@ export default function AlgorandDashboard() {
   const [transferAddress, setTransferAddress] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  
+  // Management action states
+  const [showMintDialog, setShowMintDialog] = useState(false);
+  const [showBurnDialog, setShowBurnDialog] = useState(false);
+  const [showUpdateDialog, setShowUpdateDialog] = useState(false);
+  const [mintAmount, setMintAmount] = useState('');
+  const [burnAmount, setBurnAmount] = useState('');
+  const [updateName, setUpdateName] = useState('');
+  const [updateSymbol, setUpdateSymbol] = useState('');
+  const [updateDescription, setUpdateDescription] = useState('');
+  const [updateLogoUrl, setUpdateLogoUrl] = useState('');
+  const [updateWebsite, setUpdateWebsite] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
   
   // Real data states
   const [userTokens, setUserTokens] = useState<AlgorandTokenInfo[]>([]);
@@ -70,9 +95,11 @@ export default function AlgorandDashboard() {
   const { 
     connected: algorandConnected, 
     address: algorandAddress,
+    signTransaction: algorandSignTransaction,
     selectedNetwork: algorandNetwork,
     networkConfig: algorandNetworkConfig
   } = useAlgorandWallet();
+  const { toast } = useToast();
 
   useEffect(() => {
     setMounted(true);
@@ -201,6 +228,152 @@ export default function AlgorandDashboard() {
     alert(`Successfully transferred ${transferAmount} ${tokenSymbol} to ${transferAddress}`);
     setTransferAmount('');
     setTransferAddress('');
+  };
+  
+  // Handle mint assets
+  const handleMintAlgorand = async () => {
+    if (!mintAmount || !userTokens[selectedToken] || !algorandSignTransaction) {
+      toast({
+        title: "Error",
+        description: "Please enter a valid amount to mint",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setIsProcessing(true);
+    try {
+      const selectedTokenData = userTokens[selectedToken];
+      const result = await mintAlgorandAssets(
+        algorandAddress!,
+        selectedTokenData.assetId,
+        parseFloat(mintAmount),
+        algorandSignTransaction,
+        algorandNetwork
+      );
+      
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: `Successfully minted ${mintAmount} ${selectedTokenData.symbol}`,
+        });
+        setMintAmount('');
+        setShowMintDialog(false);
+        // Refresh data
+        await fetchDashboardData();
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to mint assets",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+  
+  // Handle burn assets
+  const handleBurnAlgorand = async () => {
+    if (!burnAmount || !userTokens[selectedToken] || !algorandSignTransaction) {
+      toast({
+        title: "Error",
+        description: "Please enter a valid amount to burn",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setIsProcessing(true);
+    try {
+      const selectedTokenData = userTokens[selectedToken];
+      const result = await burnAlgorandAssets(
+        algorandAddress!,
+        selectedTokenData.assetId,
+        parseFloat(burnAmount),
+        algorandSignTransaction,
+        algorandNetwork
+      );
+      
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: `Successfully burned ${burnAmount} ${selectedTokenData.symbol}`,
+        });
+        setBurnAmount('');
+        setShowBurnDialog(false);
+        // Refresh data
+        await fetchDashboardData();
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to burn assets",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+  
+  // Handle update metadata
+  const handleUpdateMetadataAlgorand = async () => {
+    if (!updateName || !updateSymbol || !userTokens[selectedToken] || !algorandSignTransaction) {
+      toast({
+        title: "Error",
+        description: "Please fill in at least name and symbol",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setIsProcessing(true);
+    try {
+      const selectedTokenData = userTokens[selectedToken];
+      const result = await updateAlgorandAssetMetadata(
+        algorandAddress!,
+        selectedTokenData.assetId,
+        {
+          name: updateName,
+          symbol: updateSymbol,
+          description: updateDescription,
+          logoUrl: updateLogoUrl,
+          website: updateWebsite
+        },
+        algorandSignTransaction,
+        algorandNetwork
+      );
+      
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: `Successfully updated metadata for ${selectedTokenData.symbol}`,
+        });
+        // Reset form
+        setUpdateName('');
+        setUpdateSymbol('');
+        setUpdateDescription('');
+        setUpdateLogoUrl('');
+        setUpdateWebsite('');
+        setShowUpdateDialog(false);
+        // Refresh data
+        await fetchDashboardData();
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to update metadata",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   // Export function
@@ -834,18 +1007,192 @@ export default function AlgorandDashboard() {
                     <div className="glass-card p-6">
                       <h4 className="text-lg font-semibold text-foreground mb-6">Asset Management</h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <Button variant="outline" className="border-border text-muted-foreground hover:bg-muted h-12">
-                          <Plus className="w-4 h-4 mr-2" />
-                          Mint Assets
-                        </Button>
-                        <Button variant="outline" className="border-border text-muted-foreground hover:bg-muted h-12">
-                          <Flame className="w-4 h-4 mr-2" />
-                          Burn Assets
-                        </Button>
-                        <Button variant="outline" className="border-border text-muted-foreground hover:bg-muted h-12">
-                          <Settings className="w-4 h-4 mr-2" />
-                          Update Metadata
-                        </Button>
+                        {/* Mint Assets Dialog */}
+                        <Dialog open={showMintDialog} onOpenChange={setShowMintDialog}>
+                          <DialogTrigger asChild>
+                            <Button variant="outline" className="border-border text-muted-foreground hover:bg-muted h-12">
+                              <Plus className="w-4 h-4 mr-2" />
+                              Mint Assets
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Mint Assets</DialogTitle>
+                              <DialogDescription>
+                                Create additional assets for {userTokens[selectedToken]?.symbol}
+                              </DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-4">
+                              <div>
+                                <Label htmlFor="mintAmount">Amount to Mint</Label>
+                                <Input
+                                  id="mintAmount"
+                                  type="number"
+                                  placeholder="Enter amount"
+                                  value={mintAmount}
+                                  onChange={(e) => setMintAmount(e.target.value)}
+                                  className="mt-2"
+                                />
+                              </div>
+                            </div>
+                            <DialogFooter>
+                              <Button variant="outline" onClick={() => setShowMintDialog(false)}>
+                                Cancel
+                              </Button>
+                              <Button onClick={handleMintAlgorand} disabled={isProcessing}>
+                                {isProcessing ? (
+                                  <>
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                    Minting...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Plus className="w-4 h-4 mr-2" />
+                                    Mint Assets
+                                  </>
+                                )}
+                              </Button>
+                            </DialogFooter>
+                          </DialogContent>
+                        </Dialog>
+                        
+                        {/* Burn Assets Dialog */}
+                        <Dialog open={showBurnDialog} onOpenChange={setShowBurnDialog}>
+                          <DialogTrigger asChild>
+                            <Button variant="outline" className="border-border text-muted-foreground hover:bg-muted h-12">
+                              <Flame className="w-4 h-4 mr-2" />
+                              Burn Assets
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Burn Assets</DialogTitle>
+                              <DialogDescription>
+                                Permanently destroy assets from circulation for {userTokens[selectedToken]?.symbol}
+                              </DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-4">
+                              <div>
+                                <Label htmlFor="burnAmount">Amount to Burn</Label>
+                                <Input
+                                  id="burnAmount"
+                                  type="number"
+                                  placeholder="Enter amount"
+                                  value={burnAmount}
+                                  onChange={(e) => setBurnAmount(e.target.value)}
+                                  className="mt-2"
+                                />
+                              </div>
+                            </div>
+                            <DialogFooter>
+                              <Button variant="outline" onClick={() => setShowBurnDialog(false)}>
+                                Cancel
+                              </Button>
+                              <Button onClick={handleBurnAlgorand} disabled={isProcessing} variant="destructive">
+                                {isProcessing ? (
+                                  <>
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                    Burning...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Flame className="w-4 h-4 mr-2" />
+                                    Burn Assets
+                                  </>
+                                )}
+                              </Button>
+                            </DialogFooter>
+                          </DialogContent>
+                        </Dialog>
+                        
+                        {/* Update Metadata Dialog */}
+                        <Dialog open={showUpdateDialog} onOpenChange={setShowUpdateDialog}>
+                          <DialogTrigger asChild>
+                            <Button variant="outline" className="border-border text-muted-foreground hover:bg-muted h-12">
+                              <Settings className="w-4 h-4 mr-2" />
+                              Update Metadata
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-md">
+                            <DialogHeader>
+                              <DialogTitle>Update Metadata</DialogTitle>
+                              <DialogDescription>
+                                Update asset information for {userTokens[selectedToken]?.symbol}
+                              </DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-4 max-h-96 overflow-y-auto">
+                              <div>
+                                <Label htmlFor="updateName">Asset Name</Label>
+                                <Input
+                                  id="updateName"
+                                  placeholder="Asset name"
+                                  value={updateName}
+                                  onChange={(e) => setUpdateName(e.target.value)}
+                                  className="mt-2"
+                                />
+                              </div>
+                              <div>
+                                <Label htmlFor="updateSymbol">Unit Name</Label>
+                                <Input
+                                  id="updateSymbol"
+                                  placeholder="Asset unit name"
+                                  value={updateSymbol}
+                                  onChange={(e) => setUpdateSymbol(e.target.value)}
+                                  className="mt-2"
+                                />
+                              </div>
+                              <div>
+                                <Label htmlFor="updateDescription">Description</Label>
+                                <Textarea
+                                  id="updateDescription"
+                                  placeholder="Asset description"
+                                  value={updateDescription}
+                                  onChange={(e) => setUpdateDescription(e.target.value)}
+                                  className="mt-2"
+                                />
+                              </div>
+                              <div>
+                                <Label htmlFor="updateLogoUrl">Logo URL</Label>
+                                <Input
+                                  id="updateLogoUrl"
+                                  placeholder="https://..."
+                                  value={updateLogoUrl}
+                                  onChange={(e) => setUpdateLogoUrl(e.target.value)}
+                                  className="mt-2"
+                                />
+                              </div>
+                              <div>
+                                <Label htmlFor="updateWebsite">Website</Label>
+                                <Input
+                                  id="updateWebsite"
+                                  placeholder="https://..."
+                                  value={updateWebsite}
+                                  onChange={(e) => setUpdateWebsite(e.target.value)}
+                                  className="mt-2"
+                                />
+                              </div>
+                            </div>
+                            <DialogFooter>
+                              <Button variant="outline" onClick={() => setShowUpdateDialog(false)}>
+                                Cancel
+                              </Button>
+                              <Button onClick={handleUpdateMetadataAlgorand} disabled={isProcessing}>
+                                {isProcessing ? (
+                                  <>
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                    Updating...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Settings className="w-4 h-4 mr-2" />
+                                    Update Metadata
+                                  </>
+                                )}
+                              </Button>
+                            </DialogFooter>
+                          </DialogContent>
+                        </Dialog>
+                        
                         <Button variant="outline" className="border-border text-muted-foreground hover:bg-muted h-12">
                           <BarChart3 className="w-4 h-4 mr-2" />
                           View Analytics

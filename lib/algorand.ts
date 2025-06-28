@@ -470,6 +470,263 @@ export async function optInToAsset(
   }
 }
 
+// Mint Algorand assets
+export async function mintAlgorandAssets(
+  address: string,
+  assetId: number,
+  amount: number,
+  signTransaction: (txn: any) => Promise<Uint8Array>,
+  network: string
+) {
+  try {
+    console.log(`🪙 Minting ${amount} units of asset ${assetId} on ${network}`);
+    
+    const algodClient = getAlgorandClient(network);
+    
+    // Get suggested transaction parameters
+    const suggestedParams = await algodClient.getTransactionParams().do();
+    
+    // Get asset information to check if minting is allowed
+    const assetInfo = await getAlgorandAssetInfo(assetId, network);
+    if (!assetInfo.success || !assetInfo.data) {
+      throw new Error('Asset not found');
+    }
+    
+    const assetData = assetInfo.data;
+    
+    // Check if the address is the manager (required for minting)
+    if (assetData.manager !== address) {
+      throw new Error('Only the asset manager can mint additional assets');
+    }
+    
+    // Convert amount to base units
+    const amountInBaseUnits = Math.floor(amount * Math.pow(10, assetData.decimals || 0));
+    
+    // Create asset configuration transaction to increase total supply
+    const assetConfigTxn = algosdk.makeAssetConfigTxnWithSuggestedParamsFromObject({
+      sender: address,
+      suggestedParams,
+      assetIndex: assetId,
+      manager: assetData.manager,
+      reserve: assetData.reserve,
+      freeze: assetData.freeze,
+      clawback: assetData.clawback,
+      total: (assetData.totalSupply || 0) + amountInBaseUnits,
+      defaultFrozen: assetData.defaultFrozen,
+      assetName: assetData.assetName,
+      unitName: assetData.unitName,
+      assetURL: assetData.url,
+      assetMetadataHash: assetData.metadataHash,
+    });
+    
+    console.log('📝 Signing mint transaction...');
+    const signedTxn = await signTransaction(assetConfigTxn);
+    
+    console.log('📡 Sending mint transaction...');
+    const response = await algodClient.sendRawTransaction(signedTxn).do();
+    const txId = response.txid;
+    
+    console.log('⏳ Waiting for mint confirmation...');
+    await waitForConfirmationWithRetry(algodClient, txId, 20, network);
+    
+    console.log(`✅ Successfully minted ${amount} units of asset ${assetId}`);
+    
+    return {
+      success: true,
+      transactionId: txId
+    };
+    
+  } catch (error) {
+    console.error(`❌ Error minting Algorand assets on ${network}:`, error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to mint assets'
+    };
+  }
+}
+
+// Burn Algorand assets
+export async function burnAlgorandAssets(
+  address: string,
+  assetId: number,
+  amount: number,
+  signTransaction: (txn: any) => Promise<Uint8Array>,
+  network: string
+) {
+  try {
+    console.log(`🔥 Burning ${amount} units of asset ${assetId} on ${network}`);
+    
+    const algodClient = getAlgorandClient(network);
+    
+    // Get suggested transaction parameters
+    const suggestedParams = await algodClient.getTransactionParams().do();
+    
+    // Get asset information
+    const assetInfo = await getAlgorandAssetInfo(assetId, network);
+    if (!assetInfo.success || !assetInfo.data) {
+      throw new Error('Asset not found');
+    }
+    
+    const assetData = assetInfo.data;
+    
+    // Check if burning is allowed (clawback address should be set)
+    if (!assetData.clawback || assetData.clawback !== address) {
+      throw new Error('Only the clawback address can burn assets');
+    }
+    
+    // Convert amount to base units
+    const amountInBaseUnits = Math.floor(amount * Math.pow(10, assetData.decimals || 0));
+    
+    // Get the user's associated token account
+    const tokenAccount = await getAssociatedTokenAddress(new PublicKey(address), new PublicKey(address));
+    
+    // Create asset transfer transaction to burn address (clawback to zero address)
+    const burnTxn = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
+      sender: address,
+      receiver: assetData.clawback, // Send to clawback address
+      assetIndex: assetId,
+      amount: amountInBaseUnits,
+      suggestedParams,
+      revocationTarget: address // This makes it a clawback transaction
+    });
+    
+    console.log('📝 Signing burn transaction...');
+    const signedTxn = await signTransaction(burnTxn);
+    
+    console.log('📡 Sending burn transaction...');
+    const response = await algodClient.sendRawTransaction(signedTxn).do();
+    const txId = response.txid;
+    
+    console.log('⏳ Waiting for burn confirmation...');
+    await waitForConfirmationWithRetry(algodClient, txId, 20, network);
+    
+    console.log(`✅ Successfully burned ${amount} units of asset ${assetId}`);
+    
+    return {
+      success: true,
+      transactionId: txId
+    };
+    
+  } catch (error) {
+    console.error(`❌ Error burning Algorand assets on ${network}:`, error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to burn assets'
+    };
+  }
+}
+
+// Update Algorand asset metadata
+export async function updateAlgorandAssetMetadata(
+  address: string,
+  assetId: number,
+  metadata: {
+    name: string;
+    symbol: string;
+    description: string;
+    logoUrl: string;
+    website?: string;
+  },
+  signTransaction: (txn: any) => Promise<Uint8Array>,
+  network: string
+) {
+  try {
+    console.log(`📝 Updating metadata for asset ${assetId} on ${network}`);
+    
+    const algodClient = getAlgorandClient(network);
+    
+    // Get suggested transaction parameters
+    const suggestedParams = await algodClient.getTransactionParams().do();
+    
+    // Get current asset information
+    const assetInfo = await getAlgorandAssetInfo(assetId, network);
+    if (!assetInfo.success || !assetInfo.data) {
+      throw new Error('Asset not found');
+    }
+    
+    const assetData = assetInfo.data;
+    
+    // Check if the address is the manager (required for metadata updates)
+    if (assetData.manager !== address) {
+      throw new Error('Only the asset manager can update metadata');
+    }
+    
+    // Prepare ARC-3 compliant metadata
+    const arc3Metadata = {
+      name: metadata.name,
+      description: metadata.description,
+      image: metadata.logoUrl,
+      external_url: metadata.website || '',
+      properties: {
+        symbol: metadata.symbol,
+        website: metadata.website || '',
+        network: network
+      }
+    };
+    
+    // Upload new metadata
+    const metadataUploadResult = await supabaseHelpers.uploadMetadataToStorage(
+      arc3Metadata,
+      'algorand-metadata',
+      `${metadata.symbol.toLowerCase()}-updated-${Date.now()}.json`
+    );
+    
+    if (!metadataUploadResult.success) {
+      throw new Error(`Metadata upload failed: ${metadataUploadResult.error}`);
+    }
+    
+    let metadataUrl = metadataUploadResult.url!;
+    
+    // Validate URL length for Algorand compatibility
+    if (metadataUrl.length > 96) {
+      console.warn(`⚠️ Metadata URL is ${metadataUrl.length} characters, using fallback.`);
+      metadataUrl = 'https://token.info';
+    }
+    
+    // Create asset configuration transaction to update metadata
+    const assetConfigTxn = algosdk.makeAssetConfigTxnWithSuggestedParamsFromObject({
+      sender: address,
+      suggestedParams,
+      assetIndex: assetId,
+      manager: assetData.manager,
+      reserve: assetData.reserve,
+      freeze: assetData.freeze,
+      clawback: assetData.clawback,
+      total: assetData.totalSupply,
+      defaultFrozen: assetData.defaultFrozen,
+      assetName: metadata.name,
+      unitName: metadata.symbol,
+      assetURL: metadataUrl,
+      assetMetadataHash: undefined
+    });
+    
+    console.log('📝 Signing metadata update transaction...');
+    const signedTxn = await signTransaction(assetConfigTxn);
+    
+    console.log('📡 Sending metadata update transaction...');
+    const response = await algodClient.sendRawTransaction(signedTxn).do();
+    const txId = response.txid;
+    
+    console.log('⏳ Waiting for metadata update confirmation...');
+    await waitForConfirmationWithRetry(algodClient, txId, 20, network);
+    
+    console.log(`✅ Successfully updated metadata for asset ${assetId}`);
+    
+    return {
+      success: true,
+      transactionId: txId,
+      metadataUrl: metadataUrl
+    };
+    
+  } catch (error) {
+    console.error(`❌ Error updating Algorand asset metadata on ${network}:`, error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to update metadata'
+    };
+  }
+}
+
 // Check wallet connection and balance
 export async function checkWalletConnection(address: string, network: string) {
   try {

@@ -7,6 +7,16 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { 
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 import { 
   Coins, 
@@ -45,6 +55,8 @@ import {
   EnhancedTokenInfo,
   TransactionInfo
 } from '@/lib/solana-data';
+import { mintTokens, burnTokens, updateTokenMetadata } from '@/lib/solana';
+import { useToast } from '@/hooks/use-toast';
 
 export default function SolanaDashboard() {
   const [selectedToken, setSelectedToken] = useState(0);
@@ -52,6 +64,19 @@ export default function SolanaDashboard() {
   const [transferAddress, setTransferAddress] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  
+  // Management action states
+  const [showMintDialog, setShowMintDialog] = useState(false);
+  const [showBurnDialog, setShowBurnDialog] = useState(false);
+  const [showUpdateDialog, setShowUpdateDialog] = useState(false);
+  const [mintAmount, setMintAmount] = useState('');
+  const [burnAmount, setBurnAmount] = useState('');
+  const [updateName, setUpdateName] = useState('');
+  const [updateSymbol, setUpdateSymbol] = useState('');
+  const [updateDescription, setUpdateDescription] = useState('');
+  const [updateLogoUrl, setUpdateLogoUrl] = useState('');
+  const [updateWebsite, setUpdateWebsite] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
   
   // Real data states
   const [userTokens, setUserTokens] = useState<EnhancedTokenInfo[]>([]);
@@ -61,6 +86,7 @@ export default function SolanaDashboard() {
   
   // Solana wallet integration
   const { connected, publicKey } = useWallet();
+  const { toast } = useToast();
   
   // Add mounted state for hydration
   const [mounted, setMounted] = useState(false);
@@ -195,6 +221,148 @@ export default function SolanaDashboard() {
     alert(`Successfully transferred ${transferAmount} ${userTokens[selectedToken].symbol} to ${transferAddress}`);
     setTransferAmount('');
     setTransferAddress('');
+  };
+  
+  // Handle mint tokens
+  const handleMintSolana = async () => {
+    if (!mintAmount || !userTokens[selectedToken]) {
+      toast({
+        title: "Error",
+        description: "Please enter a valid amount to mint",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setIsProcessing(true);
+    try {
+      const selectedTokenData = userTokens[selectedToken];
+      const result = await mintTokens(
+        { publicKey, signTransaction: () => Promise.reject('Not implemented') }, // wallet mock
+        selectedTokenData.mint,
+        parseFloat(mintAmount),
+        selectedTokenData.decimals
+      );
+      
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: `Successfully minted ${mintAmount} ${selectedTokenData.symbol}`,
+        });
+        setMintAmount('');
+        setShowMintDialog(false);
+        // Refresh data
+        await fetchDashboardData();
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to mint tokens",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+  
+  // Handle burn tokens
+  const handleBurnSolana = async () => {
+    if (!burnAmount || !userTokens[selectedToken]) {
+      toast({
+        title: "Error",
+        description: "Please enter a valid amount to burn",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setIsProcessing(true);
+    try {
+      const selectedTokenData = userTokens[selectedToken];
+      const result = await burnTokens(
+        { publicKey, signTransaction: () => Promise.reject('Not implemented') }, // wallet mock
+        selectedTokenData.mint,
+        parseFloat(burnAmount),
+        selectedTokenData.decimals
+      );
+      
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: `Successfully burned ${burnAmount} ${selectedTokenData.symbol}`,
+        });
+        setBurnAmount('');
+        setShowBurnDialog(false);
+        // Refresh data
+        await fetchDashboardData();
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to burn tokens",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+  
+  // Handle update metadata
+  const handleUpdateMetadataSolana = async () => {
+    if (!updateName || !updateSymbol || !userTokens[selectedToken]) {
+      toast({
+        title: "Error",
+        description: "Please fill in at least name and symbol",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setIsProcessing(true);
+    try {
+      const selectedTokenData = userTokens[selectedToken];
+      const result = await updateTokenMetadata(
+        { publicKey, signTransaction: () => Promise.reject('Not implemented') }, // wallet mock
+        selectedTokenData.mint,
+        {
+          name: updateName,
+          symbol: updateSymbol,
+          description: updateDescription,
+          logoUrl: updateLogoUrl,
+          website: updateWebsite
+        }
+      );
+      
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: `Successfully updated metadata for ${selectedTokenData.symbol}`,
+        });
+        // Reset form
+        setUpdateName('');
+        setUpdateSymbol('');
+        setUpdateDescription('');
+        setUpdateLogoUrl('');
+        setUpdateWebsite('');
+        setShowUpdateDialog(false);
+        // Refresh data
+        await fetchDashboardData();
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to update metadata",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   // Simplified export function
@@ -754,18 +922,192 @@ export default function SolanaDashboard() {
                     <div className="glass-card p-6">
                       <h4 className="text-lg font-semibold text-foreground mb-6">Token Management</h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <Button variant="outline" className="border-border text-muted-foreground hover:bg-muted h-12">
-                          <Plus className="w-4 h-4 mr-2" />
-                          Mint Tokens
-                        </Button>
-                        <Button variant="outline" className="border-border text-muted-foreground hover:bg-muted h-12">
-                          <Flame className="w-4 h-4 mr-2" />
-                          Burn Tokens
-                        </Button>
-                        <Button variant="outline" className="border-border text-muted-foreground hover:bg-muted h-12">
-                          <Settings className="w-4 h-4 mr-2" />
-                          Update Metadata
-                        </Button>
+                        {/* Mint Tokens Dialog */}
+                        <Dialog open={showMintDialog} onOpenChange={setShowMintDialog}>
+                          <DialogTrigger asChild>
+                            <Button variant="outline" className="border-border text-muted-foreground hover:bg-muted h-12">
+                              <Plus className="w-4 h-4 mr-2" />
+                              Mint Tokens
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Mint Tokens</DialogTitle>
+                              <DialogDescription>
+                                Create additional tokens for {userTokens[selectedToken]?.symbol}
+                              </DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-4">
+                              <div>
+                                <Label htmlFor="mintAmount">Amount to Mint</Label>
+                                <Input
+                                  id="mintAmount"
+                                  type="number"
+                                  placeholder="Enter amount"
+                                  value={mintAmount}
+                                  onChange={(e) => setMintAmount(e.target.value)}
+                                  className="mt-2"
+                                />
+                              </div>
+                            </div>
+                            <DialogFooter>
+                              <Button variant="outline" onClick={() => setShowMintDialog(false)}>
+                                Cancel
+                              </Button>
+                              <Button onClick={handleMintSolana} disabled={isProcessing}>
+                                {isProcessing ? (
+                                  <>
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                    Minting...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Plus className="w-4 h-4 mr-2" />
+                                    Mint Tokens
+                                  </>
+                                )}
+                              </Button>
+                            </DialogFooter>
+                          </DialogContent>
+                        </Dialog>
+                        
+                        {/* Burn Tokens Dialog */}
+                        <Dialog open={showBurnDialog} onOpenChange={setShowBurnDialog}>
+                          <DialogTrigger asChild>
+                            <Button variant="outline" className="border-border text-muted-foreground hover:bg-muted h-12">
+                              <Flame className="w-4 h-4 mr-2" />
+                              Burn Tokens
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Burn Tokens</DialogTitle>
+                              <DialogDescription>
+                                Permanently destroy tokens from circulation for {userTokens[selectedToken]?.symbol}
+                              </DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-4">
+                              <div>
+                                <Label htmlFor="burnAmount">Amount to Burn</Label>
+                                <Input
+                                  id="burnAmount"
+                                  type="number"
+                                  placeholder="Enter amount"
+                                  value={burnAmount}
+                                  onChange={(e) => setBurnAmount(e.target.value)}
+                                  className="mt-2"
+                                />
+                              </div>
+                            </div>
+                            <DialogFooter>
+                              <Button variant="outline" onClick={() => setShowBurnDialog(false)}>
+                                Cancel
+                              </Button>
+                              <Button onClick={handleBurnSolana} disabled={isProcessing} variant="destructive">
+                                {isProcessing ? (
+                                  <>
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                    Burning...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Flame className="w-4 h-4 mr-2" />
+                                    Burn Tokens
+                                  </>
+                                )}
+                              </Button>
+                            </DialogFooter>
+                          </DialogContent>
+                        </Dialog>
+                        
+                        {/* Update Metadata Dialog */}
+                        <Dialog open={showUpdateDialog} onOpenChange={setShowUpdateDialog}>
+                          <DialogTrigger asChild>
+                            <Button variant="outline" className="border-border text-muted-foreground hover:bg-muted h-12">
+                              <Settings className="w-4 h-4 mr-2" />
+                              Update Metadata
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-md">
+                            <DialogHeader>
+                              <DialogTitle>Update Metadata</DialogTitle>
+                              <DialogDescription>
+                                Update token information for {userTokens[selectedToken]?.symbol}
+                              </DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-4 max-h-96 overflow-y-auto">
+                              <div>
+                                <Label htmlFor="updateName">Token Name</Label>
+                                <Input
+                                  id="updateName"
+                                  placeholder="Token name"
+                                  value={updateName}
+                                  onChange={(e) => setUpdateName(e.target.value)}
+                                  className="mt-2"
+                                />
+                              </div>
+                              <div>
+                                <Label htmlFor="updateSymbol">Symbol</Label>
+                                <Input
+                                  id="updateSymbol"
+                                  placeholder="Token symbol"
+                                  value={updateSymbol}
+                                  onChange={(e) => setUpdateSymbol(e.target.value)}
+                                  className="mt-2"
+                                />
+                              </div>
+                              <div>
+                                <Label htmlFor="updateDescription">Description</Label>
+                                <Textarea
+                                  id="updateDescription"
+                                  placeholder="Token description"
+                                  value={updateDescription}
+                                  onChange={(e) => setUpdateDescription(e.target.value)}
+                                  className="mt-2"
+                                />
+                              </div>
+                              <div>
+                                <Label htmlFor="updateLogoUrl">Logo URL</Label>
+                                <Input
+                                  id="updateLogoUrl"
+                                  placeholder="https://..."
+                                  value={updateLogoUrl}
+                                  onChange={(e) => setUpdateLogoUrl(e.target.value)}
+                                  className="mt-2"
+                                />
+                              </div>
+                              <div>
+                                <Label htmlFor="updateWebsite">Website</Label>
+                                <Input
+                                  id="updateWebsite"
+                                  placeholder="https://..."
+                                  value={updateWebsite}
+                                  onChange={(e) => setUpdateWebsite(e.target.value)}
+                                  className="mt-2"
+                                />
+                              </div>
+                            </div>
+                            <DialogFooter>
+                              <Button variant="outline" onClick={() => setShowUpdateDialog(false)}>
+                                Cancel
+                              </Button>
+                              <Button onClick={handleUpdateMetadataSolana} disabled={isProcessing}>
+                                {isProcessing ? (
+                                  <>
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                    Updating...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Settings className="w-4 h-4 mr-2" />
+                                    Update Metadata
+                                  </>
+                                )}
+                              </Button>
+                            </DialogFooter>
+                          </DialogContent>
+                        </Dialog>
+                        
                         <Button variant="outline" className="border-border text-muted-foreground hover:bg-muted h-12">
                           <BarChart3 className="w-4 h-4 mr-2" />
                           View Analytics
