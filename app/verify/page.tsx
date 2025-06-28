@@ -22,6 +22,7 @@ import { getAlgorandAssetInfo, getAlgorandNetwork, ALGORAND_NETWORKS } from '@/l
 import { Connection, PublicKey } from '@solana/web3.js';
 import { connection } from '@/lib/solana';
 import { getTokenMetadata } from '@/lib/solana-data';
+import { getTokenMarketData, calculateSecurityScore, getTokenMetrics } from '@/lib/market-data';
 
 interface VerificationResult {
   assetId?: number;
@@ -37,6 +38,9 @@ interface VerificationResult {
   creator?: string;
   manager?: string;
   explorerUrl: string;
+  marketData?: any;
+  securityFactors?: any;
+  metrics?: any;
 }
 
 export default function VerifyPage() {
@@ -215,19 +219,46 @@ export default function VerifyPage() {
         setVerificationProgress(90);
         setCurrentVerificationStep('Generating verification results...');
         
+        // Get enhanced market data and security analysis
+        let marketData, securityResult, metricsData;
+        try {
+          const [marketResult, securityRes, metricsRes] = await Promise.allSettled([
+            getTokenMarketData(mintAddress),
+            calculateSecurityScore(mintAddress),
+            getTokenMetrics(mintAddress)
+          ]);
+          
+          if (marketResult.status === 'fulfilled' && marketResult.value.success) {
+            marketData = marketResult.value.data;
+          }
+          
+          if (securityRes.status === 'fulfilled' && securityRes.value.success) {
+            securityResult = securityRes.value;
+          }
+          
+          if (metricsRes.status === 'fulfilled' && metricsRes.value.success) {
+            metricsData = metricsRes.value.data;
+          }
+        } catch (enhancedError) {
+          console.warn('Failed to get enhanced verification data:', enhancedError);
+        }
+        
         // Create verification result
         const result: VerificationResult = {
           mintAddress: mintAddress,
           name: metadata.name || 'Unknown Token',
           symbol: metadata.symbol || 'UNK',
-          verified: metadata.verified || false,
-          securityScore: metadata.verified ? 95 : 70,
+          verified: metadata.verified || (marketData?.isListed || false),
+          securityScore: securityResult?.score || (metadata.verified ? 95 : 70),
           network: 'solana-devnet',
           totalSupply: totalSupply,
-          holders: Math.floor(Math.random() * 1000) + 50, // Mock data
+          holders: marketData?.holders || 0,
           decimals: decimals,
           creator: metadata.mint,
-          explorerUrl: `https://explorer.solana.com/address/${mintAddress}?cluster=devnet`
+          explorerUrl: `https://explorer.solana.com/address/${mintAddress}?cluster=devnet`,
+          marketData: marketData,
+          securityFactors: securityResult?.factors,
+          metrics: metricsData
         };
         
         setVerificationProgress(100);
@@ -471,6 +502,35 @@ export default function VerifyPage() {
                   </div>
 
                   {/* Token Metrics */}
+                  {verificationResult.marketData && (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="text-center p-4 bg-muted/30 rounded-lg">
+                        <Label className="text-sm font-medium text-muted-foreground">Price</Label>
+                        <p className="text-foreground font-bold text-xl">
+                          ${verificationResult.marketData.price > 0 
+                            ? verificationResult.marketData.price.toFixed(6)
+                            : 'N/A'
+                          }
+                        </p>
+                      </div>
+                      <div className="text-center p-4 bg-muted/30 rounded-lg">
+                        <Label className="text-sm font-medium text-muted-foreground">24h Change</Label>
+                        <p className={`font-bold text-xl ${
+                          verificationResult.marketData.priceChange24h >= 0 ? 'text-green-500' : 'text-red-500'
+                        }`}>
+                          {verificationResult.marketData.priceChange24h >= 0 ? '+' : ''}
+                          {verificationResult.marketData.priceChange24h.toFixed(1)}%
+                        </p>
+                      </div>
+                      <div className="text-center p-4 bg-muted/30 rounded-lg">
+                        <Label className="text-sm font-medium text-muted-foreground">24h Volume</Label>
+                        <p className="text-foreground font-bold text-xl">
+                          ${verificationResult.marketData.volume24h.toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="text-center p-4 bg-muted/30 rounded-lg">
                       <Label className="text-sm font-medium text-muted-foreground">Total Supply</Label>
@@ -485,6 +545,99 @@ export default function VerifyPage() {
                       <p className="text-foreground font-bold text-xl">{verificationResult.decimals}</p>
                     </div>
                   </div>
+                  
+                  {/* Security Analysis */}
+                  {verificationResult.securityFactors && (
+                    <div className="space-y-4">
+                      <h4 className="text-lg font-semibold text-foreground">Security Analysis</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="p-4 bg-muted/30 rounded-lg">
+                          <div className="flex justify-between items-center mb-2">
+                            <Label className="text-sm font-medium text-muted-foreground">Liquidity Score</Label>
+                            <span className="text-foreground font-bold">
+                              {verificationResult.securityFactors.liquidityScore.toFixed(0)}/100
+                            </span>
+                          </div>
+                          <div className="w-full bg-muted rounded-full h-2">
+                            <div 
+                              className="bg-blue-500 h-2 rounded-full transition-all duration-500"
+                              style={{ width: `${verificationResult.securityFactors.liquidityScore}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                        
+                        <div className="p-4 bg-muted/30 rounded-lg">
+                          <div className="flex justify-between items-center mb-2">
+                            <Label className="text-sm font-medium text-muted-foreground">Holder Distribution</Label>
+                            <span className="text-foreground font-bold">
+                              {verificationResult.securityFactors.holderDistribution.toFixed(0)}/100
+                            </span>
+                          </div>
+                          <div className="w-full bg-muted rounded-full h-2">
+                            <div 
+                              className="bg-green-500 h-2 rounded-full transition-all duration-500"
+                              style={{ width: `${verificationResult.securityFactors.holderDistribution}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                        
+                        <div className="p-4 bg-muted/30 rounded-lg">
+                          <div className="flex justify-between items-center mb-2">
+                            <Label className="text-sm font-medium text-muted-foreground">Trading Activity</Label>
+                            <span className="text-foreground font-bold">
+                              {verificationResult.securityFactors.tradingActivity.toFixed(0)}/100
+                            </span>
+                          </div>
+                          <div className="w-full bg-muted rounded-full h-2">
+                            <div 
+                              className="bg-purple-500 h-2 rounded-full transition-all duration-500"
+                              style={{ width: `${verificationResult.securityFactors.tradingActivity}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                        
+                        <div className="p-4 bg-muted/30 rounded-lg">
+                          <div className="flex justify-between items-center mb-2">
+                            <Label className="text-sm font-medium text-muted-foreground">Contract Verification</Label>
+                            <span className="text-foreground font-bold">
+                              {verificationResult.securityFactors.contractVerification.toFixed(0)}/100
+                            </span>
+                          </div>
+                          <div className="w-full bg-muted rounded-full h-2">
+                            <div 
+                              className="bg-orange-500 h-2 rounded-full transition-all duration-500"
+                              style={{ width: `${verificationResult.securityFactors.contractVerification}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Token Metrics */}
+                  {verificationResult.metrics && (
+                    <div className="space-y-4">
+                      <h4 className="text-lg font-semibold text-foreground">Trading Metrics (24h)</h4>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="text-center p-4 bg-muted/30 rounded-lg">
+                          <p className="text-2xl font-bold text-foreground">{verificationResult.metrics.transactions24h}</p>
+                          <p className="text-sm text-muted-foreground">Transactions</p>
+                        </div>
+                        <div className="text-center p-4 bg-muted/30 rounded-lg">
+                          <p className="text-2xl font-bold text-foreground">{verificationResult.metrics.activeTraders}</p>
+                          <p className="text-sm text-muted-foreground">Active Traders</p>
+                        </div>
+                        <div className="text-center p-4 bg-muted/30 rounded-lg">
+                          <p className="text-2xl font-bold text-foreground">{verificationResult.metrics.volatility.toFixed(1)}%</p>
+                          <p className="text-sm text-muted-foreground">Volatility</p>
+                        </div>
+                        <div className="text-center p-4 bg-muted/30 rounded-lg">
+                          <p className="text-2xl font-bold text-foreground">{verificationResult.metrics.liquidityScore.toFixed(0)}</p>
+                          <p className="text-sm text-muted-foreground">Liquidity Score</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Chain-specific Info */}
                   {verificationResult.network.startsWith('algorand') && verificationResult.creator && (
