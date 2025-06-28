@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Menu, X, Sun, Moon, Wallet, ChevronDown, Copy, Check, AlertTriangle } from 'lucide-react';
+import { Menu, X, Sun, Moon, Wallet, ChevronDown, Copy, Check, AlertTriangle, Send, Phone, Clock, Info, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useWallet } from '@solana/wallet-adapter-react';
@@ -191,6 +191,37 @@ export default function Navbar() {
                 }`}></div>
               </Link>
             )}
+             
+             {/* Bolt.new Badge for Mobile */}
+             <div className="py-4 border-t border-border">
+               <a 
+                 href="https://bolt.new" 
+                 target="_blank" 
+                 rel="noopener noreferrer" 
+                 className="flex items-center justify-center space-x-2 text-muted-foreground hover:text-foreground transition-colors py-2"
+                 onClick={() => setIsMenuOpen(false)}
+               >
+                 <div className="w-5 h-5 rounded-full flex items-center justify-center bg-black">
+                   <span className="text-white font-bold text-[10px]">b</span>
+                 </div>
+                 <span className="font-medium">Made with Bolt</span>
+                 <ExternalLink className="w-3 h-3" />
+               </a>
+             </div>
+             
+             {/* Bolt.new Badge */}
+             <a 
+               href="https://bolt.new" 
+               target="_blank" 
+               rel="noopener noreferrer" 
+               className="flex items-center space-x-1 text-sm text-muted-foreground hover:text-foreground transition-colors bg-background/80 border border-border rounded-full px-3 py-1 hover:border-red-500/30"
+             >
+               <div className="w-4 h-4 rounded-full flex items-center justify-center bg-black">
+                 <span className="text-white font-bold text-[10px]">b</span>
+               </div>
+               <span className="font-medium">Made with Bolt</span>
+               <ExternalLink className="w-3 h-3" />
+             </a>
           </div>
 
           {/* Desktop Controls */}
