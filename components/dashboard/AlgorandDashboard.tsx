@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { 
@@ -60,9 +59,13 @@ export default function AlgorandDashboard() {
   const [isTransferring, setIsTransferring] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isMintModalOpen, setIsMintModalOpen] = useState(false);
+  const [isBurnModalOpen, setIsBurnModalOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [transferAddress, setTransferAddress] = useState('');
   const [transferAmount, setTransferAmount] = useState('');
+  const [mintAmount, setMintAmount] = useState('');
+  const [burnAmount, setBurnAmount] = useState('');
   const [optInAssetId, setOptInAssetId] = useState('');
   
   // Data states
@@ -1189,6 +1192,10 @@ export default function AlgorandDashboard() {
           </div>
         </div>
       </div>
+      
+      {/* Render modals */}
+      <MintModal />
+      <BurnModal />
     </div>
   );
 }
