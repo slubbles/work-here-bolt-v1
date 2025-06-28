@@ -117,15 +117,30 @@ export async function getAlgorandAccountInfo(address: string, network: string) {
 // Get asset information from Algorand Indexer
 export async function getAlgorandAssetInfo(assetId: number, network: string) {
   try {
-    console.log(`📡 Fetching Algorand asset info for asset ID ${assetId} on ${network}`);
+    console.log(`📡 Fetching Algorand asset info for asset ID ${assetId} on ${network}`); 
+    console.log('Indexer client:', getAlgorandIndexerClient(network));
     
     const indexerClient = getAlgorandIndexerClient(network);
-    const assetInfo = await indexerClient.lookupAssetByID(assetId).do();
     
-    if (!assetInfo || !assetInfo.asset) {
+    let assetInfo;
+    try {
+      assetInfo = await indexerClient.lookupAssetByID(assetId).do();
+      console.log('Asset lookup response:', assetInfo);
+      
+      if (!assetInfo || !assetInfo.asset) {
+        console.log('Asset not found, response:', assetInfo);
+        return {
+          success: false,
+          error: 'Asset not found',
+          data: null // Ensure data is null, not undefined
+        };
+      }
+    } catch (lookupError) {
+      console.error('Error in asset lookup:', lookupError);
       return {
         success: false,
-        error: 'Asset not found'
+        error: lookupError instanceof Error ? lookupError.message : 'Asset lookup failed',
+        data: null
       };
     }
 
@@ -208,7 +223,7 @@ export async function createAlgorandToken(
   signTransaction: (txn: any) => Promise<Uint8Array>,
   uploadMetadataToStorage: (metadata: any, bucket?: string, fileName?: string) => Promise<{ success: boolean; url?: string; error?: string }>,
   network: string,
-  options?: {
+  options?: { 
     onStepUpdate?: (step: string, status: string, details?: any) => void;
   }
 ) {
@@ -264,6 +279,10 @@ export async function createAlgorandToken(
     let metadataUrl = metadataUploadResult.url!;
     console.log('✅ Metadata uploaded:', metadataUrl);
     
+    if (onStepUpdate) {
+      onStepUpdate('metadata-upload', 'completed', { message: 'Token metadata uploaded successfully' });
+    }
+    
     // Validate URL length for Algorand compatibility (96 character limit)
     if (metadataUrl.length > 96) {
       console.warn(`⚠️ Metadata URL is ${metadataUrl.length} characters, but Algorand limit is 96. Using truncated URL.`);
@@ -275,6 +294,10 @@ export async function createAlgorandToken(
     
     // Get suggested transaction parameters
     const suggestedParams = await algodClient.getTransactionParams().do();
+    
+    if (onStepUpdate) {
+      onStepUpdate('transaction-preparation', 'completed', { message: 'Transaction parameters prepared' });
+    }
     
     // Calculate total supply with decimals using BigInt for safety
     const baseSupply = BigInt(tokenData.totalSupply);
@@ -334,9 +357,15 @@ export async function createAlgorandToken(
     console.log('📡 Sending transaction to network...');
     const response = await algodClient.sendRawTransaction(signedTxn).do();
     const txId = response.txid;
-    
+
+    console.log('✅ Transaction sent! TxID:', txId);
+
     if (onStepUpdate) {
-      onStepUpdate('transaction-broadcast', 'completed', { txId, message: `Transaction broadcasted: ${txId}` });
+      onStepUpdate('transaction-broadcast', 'completed', { 
+        txId, 
+        message: `Transaction broadcasted: ${txId}`,
+        explorerUrl: `${networkConfig.explorer}/tx/${txId}`
+      });
       onStepUpdate('confirmation', 'in-progress', { message: 'Waiting for network confirmation...' });
     }
     
@@ -348,7 +377,7 @@ export async function createAlgorandToken(
     } catch (confirmError) {
       console.error(`❌ Transaction confirmation failed on ${network}:`, confirmError);
       throw new Error(`Transaction submitted but not confirmed on ${network}. Please check the explorer for transaction status. TX ID: ${txId}`);
-    }
+    await new Promise(resolve => setTimeout(resolve, 3000));
     
     if (onStepUpdate) {
       onStepUpdate('confirmation', 'completed', { message: 'Transaction confirmed on blockchain' });
@@ -356,7 +385,7 @@ export async function createAlgorandToken(
     }
     
     // Extract asset ID from transaction confirmation with robust fallback logic
-    console.log('🔍 Examining confirmed transaction for asset ID...');
+    console.log('🔍 Examining confirmed transaction for asset ID:', confirmedTxn);
     
     // Log entire transaction response for debugging
     console.log('Confirmed transaction:', JSON.stringify(confirmedTxn, null, 2));
@@ -383,7 +412,7 @@ export async function createAlgorandToken(
     }
 
     // Check in global-state-delta or logs
-    if (!assetId && confirmedTxn['global-state-delta']) {
+    if (!assetId && confirmedTxn['global-state-delta'] && Array.isArray(confirmedTxn['global-state-delta'])) {
       const deltaEntries = confirmedTxn['global-state-delta'];
       for (const entry of deltaEntries) {
         if (entry.key === 'asset-id' || entry.key === 'assetId') {
@@ -399,31 +428,44 @@ export async function createAlgorandToken(
       
       try {
         // First try the indexer for more recent data
-        const indexerClient = getAlgorandIndexerClient(network);
+      setIsPeraWalletReady(true);
         
         // Look up the transaction to get asset ID
         try {
-          console.log('🔄 Searching for transaction ID:', txId);
-          const txnInfo = await indexerClient.lookupTransaction(txId).do();
-          if (txnInfo.transaction && txnInfo.transaction['created-asset-index']) {
-            assetId = txnInfo.transaction['created-asset-index'];
-            console.log('✅ Found asset ID from indexer transaction lookup:', assetId);
+          console.log('🔄 Searching for transaction ID in indexer:', txId);
+          // Wrap in try/catch as this might fail during indexer sync
+          try {
+            const txnInfo = await indexerClient.lookupTransaction(txId).do();
+            console.log('Transaction info from indexer:', txnInfo);
+            if (txnInfo.transaction && txnInfo.transaction['created-asset-index']) {
+              assetId = txnInfo.transaction['created-asset-index'];
+              console.log('✅ Found asset ID from indexer transaction lookup:', assetId);
+            }
+          } catch (lookupError) {
+            console.log('Indexer lookup failed (may be normal during sync):', lookupError);
+          }
+          
+          // If still no asset ID, try account info as fallback
+          if (!assetId) {
+            console.log('Trying account assets lookup as fallback...');
+          
+            const accountInfo = await algodClient.accountInformation(creatorAddress).do();
+            console.log('Account info retrieved:', accountInfo);
+            
+            const assets = accountInfo.createdAssets || [];
+          
+            if (assets.length > 0) {
+              console.log('Created assets found:', assets);
+              // Get the asset with the highest ID (most recently created)
+              const latestAsset = assets.reduce((prev: any, current: any) => 
+                (current.index > prev.index) ? current : prev
+              );
+              assetId = latestAsset.index;
+              console.log('✅ Found asset ID from account assets:', assetId);
+            }
           }
         } catch (indexerError) {
-          console.log('Indexer lookup failed, trying account info...');
-          
-          // Fallback to account info
-          const accountInfo = await algodClient.accountInformation(creatorAddress).do();
-          const assets = accountInfo.createdAssets || [];
-          
-          if (assets.length > 0) {
-            // Get the asset with the highest ID (most recently created)
-            const latestAsset = assets.reduce((prev: any, current: any) => 
-              (current.index > prev.index) ? current : prev
-            );
-            assetId = latestAsset.index;
-            console.log('✅ Found asset ID from account assets:', assetId);
-          }
+          console.log('Error during asset ID lookup:', indexerError);
         }
       } catch (accountError) {
         console.warn('Could not retrieve account info for asset ID lookup:', accountError);
@@ -454,6 +496,7 @@ export async function createAlgorandToken(
     console.log(`✅ Token created successfully on ${network}!`);
     console.log('- Transaction ID:', txId);
     console.log('- Asset ID:', assetId || 'Unknown (check explorer)');
+    console.log('- Explorer URL:', `${networkConfig.explorer}/asset/${assetId}`);
     
     const explorerUrl = `${networkConfig.explorer}/asset/${assetId}`;
     
@@ -461,17 +504,26 @@ export async function createAlgorandToken(
       // If we couldn't extract the asset ID, provide a helpful message
       console.log('⚠️ Asset ID not found in transaction response. Please check the explorer for details.');
       return {
-        success: true,
+        success: true, 
         transactionId: txId,
         assetId: null, // We'll handle this null case in the UI
         message: 'Transaction successful, but asset ID couldn\'t be automatically determined. Check explorer for details.',
         details: {
           network: network,
           explorerUrl: `${networkConfig.explorer}/tx/${txId}`,
-          metadataUrl: metadataUrl,
+          metadataUrl: metadataUrl, 
           createdAt: new Date().toISOString()
         }
       };
+    }
+
+    // Final step complete notification
+    if (onStepUpdate) {
+      onStepUpdate('asset-verification', 'completed', { 
+        assetId,
+        explorerUrl,
+        message: `Asset ${assetId} created successfully` 
+      });
     }
     
     return {
@@ -482,12 +534,14 @@ export async function createAlgorandToken(
         network: network,
         explorerUrl: explorerUrl,
         metadataUrl: metadataUrl,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
+        name: tokenData.name,
+        symbol: tokenData.symbol
       }
     };
     
   } catch (error) {
-    console.error(`❌ Error creating Algorand token on ${network}:`, error);
+    console.error(`❌ Error creating Algorand token on ${network}:`, error instanceof Error ? error.message : error);
     
     if (options?.onStepUpdate) {
       options.onStepUpdate('wallet-approval', 'failed', { error: error instanceof Error ? error.message : 'Unknown error' });
