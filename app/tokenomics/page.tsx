@@ -247,11 +247,7 @@ Visit: https://snarbles.xyz for more information
       // Helper function to add text with word wrapping
       const addText = (text: string, fontSize = 12, isBold = false, align = 'left') => {
         doc.setFontSize(fontSize);
-        if (isBold) {
-          doc.setFont('helvetica', 'bold');
-        } else {
-          doc.setFont('helvetica', 'normal');
-        }
+        doc.setFont('helvetica', isBold ? 'bold' : 'normal');
         
         const lines = doc.splitTextToSize(text, pageWidth - 2 * margin);
         
@@ -329,18 +325,9 @@ Visit: https://snarbles.xyz for more information
       });
       yPosition += 10;
 
-      // Visual Distribution Chart (text-based)
-      addSectionHeader('DISTRIBUTION VISUALIZATION');
-      Object.entries(distribution).forEach(([key, data]) => {
-        const barLength = Math.floor(data.value / 2);
-        const bar = '█'.repeat(barLength) + '░'.repeat(50 - barLength);
-        addText(`${data.label.padEnd(15)} ${data.value.toString().padStart(3)}% ${bar}`, 9);
-      });
-      yPosition += 10;
-
       // Strategic Recommendations
       addSectionHeader('STRATEGIC RECOMMENDATIONS');
-      addText('Based on comprehensive analysis of market conditions and industry best practices:', 12, true);
+      addText('Based on comprehensive analysis of market conditions and industry best practices:', 12, true, 'left');
       yPosition += 5;
       
       getStrengths().forEach(strength => {
@@ -349,54 +336,54 @@ Visit: https://snarbles.xyz for more information
       
       if (getImprovements().length > 0) {
         yPosition += 5;
-        addText('AREAS FOR OPTIMIZATION:', 12, true);
+        addText('AREAS FOR OPTIMIZATION:', 12, true, 'left');
         getImprovements().forEach(improvement => {
-          addText(`• RECOMMENDATION: ${improvement}`, 10);
+          addText(`• RECOMMENDATION: ${improvement}`, 10, false, 'left');
         });
       }
       
       // Implementation Roadmap
       addSectionHeader('IMPLEMENTATION ROADMAP');
       addText('Phase 1 (Months 1-3): Token Launch & Initial Distribution', 12, true);
-      addText('• Deploy smart contract with specified parameters');
-      addText('• Execute initial community distribution (30% of allocation)');
-      addText('• Implement basic governance mechanisms');
-      addText('• Establish token utility framework');
+      addText('• Deploy smart contract with specified parameters', 10, false, 'left');
+      addText('• Execute initial community distribution (30% of allocation)', 10, false, 'left');
+      addText('• Implement basic governance mechanisms', 10, false, 'left');
+      addText('• Establish token utility framework', 10, false, 'left');
       yPosition += 5;
       
       addText('Phase 2 (Months 4-6): Growth & Expansion', 12, true);
-      addText('• Scale marketing and community engagement');
-      addText('• Onboard strategic partnerships');
-      addText('• Enhance governance participation');
-      addText('• Monitor and optimize tokenomics performance');
+      addText('• Scale marketing and community engagement', 10, false, 'left');
+      addText('• Onboard strategic partnerships', 10, false, 'left');
+      addText('• Enhance governance participation', 10, false, 'left');
+      addText('• Monitor and optimize tokenomics performance', 10, false, 'left');
       yPosition += 5;
       
       addText('Phase 3 (Months 7-12): Maturation & Optimization', 12, true);
-      addText('• Complete planned token distribution');
-      addText('• Evaluate performance against KPIs');
-      addText('• Implement advanced utility mechanisms');
-      addText('• Plan for long-term sustainability');
+      addText('• Complete planned token distribution', 10, false, 'left');
+      addText('• Evaluate performance against KPIs', 10, false, 'left');
+      addText('• Implement advanced utility mechanisms', 10, false, 'left');
+      addText('• Plan for long-term sustainability', 10, false, 'left');
       yPosition += 10;
       
       // Risk Assessment
       addSectionHeader('RISK ASSESSMENT & MITIGATION');
       addText('LOW RISK FACTORS:', 11, true);
-      addText('• Balanced distribution prevents centralization risks');
-      addText('• Community-first approach builds sustainable adoption');
-      addText('• Adequate development funding ensures long-term viability');
+      addText('• Balanced distribution prevents centralization risks', 10, false, 'left');
+      addText('• Community-first approach builds sustainable adoption', 10, false, 'left');
+      addText('• Adequate development funding ensures long-term viability', 10, false, 'left');
       yPosition += 5;
       
       addText('MEDIUM RISK FACTORS:', 11, true);
-      addText('• Market volatility may impact token valuation');
-      addText('• Regulatory changes could affect distribution mechanisms');
-      addText('• Competitive landscape may require strategy adjustments');
+      addText('• Market volatility may impact token valuation', 10, false, 'left');
+      addText('• Regulatory changes could affect distribution mechanisms', 10, false, 'left');
+      addText('• Competitive landscape may require strategy adjustments', 10, false, 'left');
       yPosition += 5;
       
       addText('MITIGATION STRATEGIES:', 11, true);
-      addText('• Implement vesting schedules for team and advisor tokens');
-      addText('• Maintain regulatory compliance across all jurisdictions');
-      addText('• Build strong community governance mechanisms');
-      addText('• Establish emergency response protocols');
+      addText('• Implement vesting schedules for team and advisor tokens', 10, false, 'left');
+      addText('• Maintain regulatory compliance across all jurisdictions', 10, false, 'left');
+      addText('• Build strong community governance mechanisms', 10, false, 'left');
+      addText('• Establish emergency response protocols', 10, false, 'left');
 
       // Professional Footer
       if (yPosition > pageHeight - 80) {
@@ -406,11 +393,11 @@ Visit: https://snarbles.xyz for more information
       
       yPosition = pageHeight - 60;
       addLine();
-      addText('DISCLAIMER & LEGAL NOTICE', 10, true, 'center');
+      addText('DISCLAIMER & LEGAL NOTICE', 11, true, 'center');
       addText('This analysis is for informational purposes only and does not constitute financial, legal, or investment advice.', 8, false, 'center');
       addText('Token distributions should be reviewed by qualified professionals and comply with applicable regulations.', 8, false, 'center');
       yPosition += 10;
-      addText('Generated by Snarbles Professional Token Creation Platform', 8, false, 'center');
+      addText('Generated by Snarbles Professional Token Creation Platform', 8, true, 'center');
       addText('Visit https://snarbles.xyz for comprehensive token solutions', 8, false, 'center');
 
       // Save the PDF
