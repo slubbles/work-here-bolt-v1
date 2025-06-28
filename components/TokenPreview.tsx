@@ -247,6 +247,7 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
                   </Link>
                 </div>
               </>
+              </>
           )}
         </div>
 
