@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 import { 
@@ -39,17 +40,24 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
-  getEnhancedTokenInfo, 
+  getEnhancedTokenInfo,
   getWalletTransactionHistory, 
   getWalletSummary,
   EnhancedTokenInfo,
   TransactionInfo
 } from '@/lib/solana-data';
+import { mintTokens, burnTokens } from '@/lib/solana';
+import { useToast } from '@/hooks/use-toast';
 
 export default function SolanaDashboard() {
   const [selectedToken, setSelectedToken] = useState(0);
   const [transferAmount, setTransferAmount] = useState('');
   const [transferAddress, setTransferAddress] = useState('');
+  const [mintAmount, setMintAmount] = useState('');
+  const [burnAmount, setBurnAmount] = useState('');
+  const [isMintModalOpen, setIsMintModalOpen] = useState(false);
+  const [isBurnModalOpen, setIsBurnModalOpen] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   
@@ -61,6 +69,9 @@ export default function SolanaDashboard() {
   
   // Solana wallet integration
   const { connected, publicKey } = useWallet();
+  
+  // Toast notification
+  const { toast } = useToast();
   
   // Add mounted state for hydration
   const [mounted, setMounted] = useState(false);
@@ -195,6 +206,115 @@ export default function SolanaDashboard() {
     alert(`Successfully transferred ${transferAmount} ${userTokens[selectedToken].symbol} to ${transferAddress}`);
     setTransferAmount('');
     setTransferAddress('');
+  };
+
+  // Handle mint tokens
+  const handleMintTokens = async () => {
+    if (!mintAmount || parseFloat(mintAmount) <= 0 || userTokens.length === 0 || !wallet) {
+      toast({
+        title: "Invalid input",
+        description: "Please enter a valid amount to mint",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      const selectedTokenData = userTokens[selectedToken];
+      const result = await mintTokens(
+        wallet,
+        selectedTokenData.mint, // Using mint address as token address
+        parseFloat(mintAmount),
+        selectedTokenData.decimals
+      );
+
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: `Successfully minted ${mintAmount} ${selectedTokenData.symbol} tokens`,
+          variant: "default"
+        });
+        setIsMintModalOpen(false);
+        setMintAmount('');
+        // Refresh data to show updated balances
+        await fetchDashboardData();
+      } else {
+        toast({
+          title: "Mint failed",
+          description: result.error || "Failed to mint tokens. Please try again.",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Error minting tokens:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "An unexpected error occurred",
+        variant: "destructive"
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // Handle burn tokens
+  const handleBurnTokens = async () => {
+    if (!burnAmount || parseFloat(burnAmount) <= 0 || userTokens.length === 0 || !wallet) {
+      toast({
+        title: "Invalid input",
+        description: "Please enter a valid amount to burn",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const selectedTokenData = userTokens[selectedToken];
+    if (parseFloat(burnAmount) > selectedTokenData.uiBalance) {
+      toast({
+        title: "Insufficient balance",
+        description: `You only have ${selectedTokenData.uiBalance} ${selectedTokenData.symbol} available to burn`,
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      const result = await burnTokens(
+        wallet,
+        selectedTokenData.mint, // Using mint address as token address
+        parseFloat(burnAmount),
+        selectedTokenData.decimals
+      );
+
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: `Successfully burned ${burnAmount} ${selectedTokenData.symbol} tokens`,
+          variant: "default"
+        });
+        setIsBurnModalOpen(false);
+        setBurnAmount('');
+        // Refresh data to show updated balances
+        await fetchDashboardData();
+      } else {
+        toast({
+          title: "Burn failed",
+          description: result.error || "Failed to burn tokens. Please try again.",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Error burning tokens:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "An unexpected error occurred",
+        variant: "destructive"
+      });
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   // Simplified export function
@@ -759,7 +879,23 @@ export default function SolanaDashboard() {
                           Mint Tokens
                         </Button>
                         <Button variant="outline" className="border-border text-muted-foreground hover:bg-muted h-12">
-                          <Flame className="w-4 h-4 mr-2" />
+                          <Button 
+                            variant="outline" 
+                            className="border-border text-muted-foreground hover:bg-muted h-12"
+                            onClick={() => setIsMintModalOpen(true)}
+                            disabled={!userTokens[selectedToken]?.marketData}
+                          >
+                            <Plus className="w-4 h-4 mr-2" />
+                            Mint Tokens
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            className="border-border text-muted-foreground hover:bg-muted h-12"
+                            onClick={() => setIsBurnModalOpen(true)}
+                          >
+                            <Flame className="w-4 h-4 mr-2" />
+                            Burn Tokens
+                          </Button>
                           Burn Tokens
                         </Button>
                         <Button variant="outline" className="border-border text-muted-foreground hover:bg-muted h-12">
@@ -796,5 +932,163 @@ export default function SolanaDashboard() {
         </div>
       </div>
     </div>
+  );
+  
+  // Mint Modal Component
+  const MintModal = () => (
+    <Dialog open={isMintModalOpen} onOpenChange={setIsMintModalOpen}>
+      <DialogContent className="glass-card">
+        <DialogHeader>
+          <DialogTitle className="text-2xl font-bold">
+            Mint {userTokens[selectedToken]?.symbol || ''} Tokens
+          </DialogTitle>
+          <DialogDescription>
+            Create new tokens and add them to the total supply.
+            {userTokens[selectedToken]?.marketData ? (
+              <div className="mt-2 text-sm text-green-500">Token can be minted.</div>
+            ) : (
+              <div className="mt-2 text-sm text-red-500">
+                Token does not have minting enabled or you don't have permission to mint.
+              </div>
+            )}
+          </DialogDescription>
+        </DialogHeader>
+        
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label htmlFor="mintAmount">Amount to Mint</Label>
+            <Input
+              id="mintAmount"
+              type="number"
+              value={mintAmount}
+              onChange={(e) => setMintAmount(e.target.value)}
+              placeholder={`Enter amount of ${userTokens[selectedToken]?.symbol || 'tokens'}`}
+              className="input-enhanced"
+              disabled={isProcessing}
+            />
+          </div>
+          
+          <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+            <p className="text-sm text-blue-600">
+              <Info className="w-4 h-4 inline-block mr-1" />
+              Minting will create new tokens and increase the total supply.
+            </p>
+          </div>
+        </div>
+        
+        <DialogFooter>
+          <Button
+            variant="outline"
+            onClick={() => setIsMintModalOpen(false)}
+            disabled={isProcessing}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleMintTokens}
+            disabled={!mintAmount || parseFloat(mintAmount) <= 0 || isProcessing || !userTokens[selectedToken]?.marketData}
+            className="bg-red-500 hover:bg-red-600 text-white"
+          >
+            {isProcessing ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Processing...
+              </>
+            ) : (
+              <>
+                <Plus className="w-4 h-4 mr-2" />
+                Mint Tokens
+              </>
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+  
+  // Burn Modal Component
+  const BurnModal = () => (
+    <Dialog open={isBurnModalOpen} onOpenChange={setIsBurnModalOpen}>
+      <DialogContent className="glass-card">
+        <DialogHeader>
+          <DialogTitle className="text-2xl font-bold">
+            Burn {userTokens[selectedToken]?.symbol || ''} Tokens
+          </DialogTitle>
+          <DialogDescription>
+            Permanently remove tokens from circulation, reducing the total supply.
+          </DialogDescription>
+        </DialogHeader>
+        
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label htmlFor="burnAmount">Amount to Burn</Label>
+            <Input
+              id="burnAmount"
+              type="number"
+              value={burnAmount}
+              onChange={(e) => setBurnAmount(e.target.value)}
+              placeholder={`Enter amount of ${userTokens[selectedToken]?.symbol || 'tokens'}`}
+              className="input-enhanced"
+              disabled={isProcessing}
+            />
+            <p className="text-sm text-muted-foreground">
+              Available balance: {userTokens[selectedToken]?.uiBalance.toLocaleString() || '0'} {userTokens[selectedToken]?.symbol || ''}
+            </p>
+          </div>
+          
+          <div className="p-3 bg-orange-500/10 border border-orange-500/30 rounded-lg">
+            <p className="text-sm text-orange-600">
+              <AlertTriangle className="w-4 h-4 inline-block mr-1" />
+              Warning: Burning tokens is permanent and cannot be undone.
+            </p>
+          </div>
+        </div>
+        
+        <DialogFooter>
+          <Button
+            variant="outline"
+            onClick={() => setIsBurnModalOpen(false)}
+            disabled={isProcessing}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleBurnTokens}
+            disabled={
+              !burnAmount || 
+              parseFloat(burnAmount) <= 0 || 
+              (userTokens[selectedToken] && parseFloat(burnAmount) > userTokens[selectedToken].uiBalance) || 
+              isProcessing
+            }
+            className="bg-red-500 hover:bg-red-600 text-white"
+          >
+            {isProcessing ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Processing...
+              </>
+            ) : (
+              <>
+                <Flame className="w-4 h-4 mr-2" />
+                Burn Tokens
+              </>
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+  
+  // Render mint and burn modals
+  return (
+    <>
+      {renderContent()}
+      {userTokens.length > 0 && (
+        <>
+          <MintModal />
+          <BurnModal />
+        </>
+      )}
+    </>
   );
 }

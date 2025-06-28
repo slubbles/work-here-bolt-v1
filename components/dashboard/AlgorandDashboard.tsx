@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 import { 
@@ -26,7 +27,8 @@ import {
   ArrowRight,
   Download,
   FileDown,
-  ChevronDown,
+  ChevronDown, 
+  Info,
   RefreshCw
 } from 'lucide-react';
 import Link from 'next/link';
@@ -45,14 +47,23 @@ import {
   AlgorandTransactionInfo,
   formatAlgorandTransactionForDisplay
 } from '@/lib/algorand-data';
+import { mintAlgorandAssets, burnAlgorandAssets, optInToAsset } from '@/lib/algorand';
 import { Tooltip } from '@/components/ui/tooltip';
 import { Callout } from '@/components/ui/callout';
 import { getAlgorandNetwork } from '@/lib/algorand';
+import { useToast } from '@/hooks/use-toast';
 
 export default function AlgorandDashboard() {
   const [selectedToken, setSelectedToken] = useState(0);
   const [transferAmount, setTransferAmount] = useState('');
   const [transferAddress, setTransferAddress] = useState('');
+  const [mintAmount, setMintAmount] = useState('');
+  const [burnAmount, setBurnAmount] = useState('');
+  const [assetIdToOptIn, setAssetIdToOptIn] = useState('');
+  const [isMintModalOpen, setIsMintModalOpen] = useState(false);
+  const [isBurnModalOpen, setIsBurnModalOpen] = useState(false);
+  const [isOptInModalOpen, setIsOptInModalOpen] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   
@@ -62,8 +73,11 @@ export default function AlgorandDashboard() {
   const [walletSummary, setWalletSummary] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   
-  // Algorand wallet integration
-  const { connected, address, selectedNetwork } = useAlgorandWallet();
+  // Algorand wallet integration with sign transaction
+  const { connected, address, selectedNetwork, signTransaction } = useAlgorandWallet();
+  
+  // Toast notification
+  const { toast } = useToast();
   
   // Add mounted state for hydration
   const [mounted, setMounted] = useState(false);
@@ -185,6 +199,179 @@ export default function AlgorandDashboard() {
     alert(`Successfully transferred ${transferAmount} ${userTokens[selectedToken]?.symbol || 'ASA'} to ${transferAddress}`);
     setTransferAmount('');
     setTransferAddress('');
+  };
+
+  // Handle mint ASA tokens
+  const handleMintTokens = async () => {
+    if (!mintAmount || parseFloat(mintAmount) <= 0 || userTokens.length === 0 || !address || !signTransaction) {
+      toast({
+        title: "Invalid input",
+        description: "Please enter a valid amount to mint",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      const selectedTokenData = userTokens[selectedToken];
+      
+      // Check if user is the creator/manager of the asset
+      if (selectedTokenData.manager !== address) {
+        toast({
+          title: "Permission denied",
+          description: "Only the asset manager can mint additional assets",
+          variant: "destructive"
+        });
+        setIsProcessing(false);
+        return;
+      }
+      
+      const result = await mintAlgorandAssets(
+        address,
+        selectedTokenData.assetId,
+        parseFloat(mintAmount),
+        signTransaction,
+        selectedNetwork
+      );
+
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: `Successfully minted ${mintAmount} ${selectedTokenData.symbol} tokens`,
+          variant: "default"
+        });
+        setIsMintModalOpen(false);
+        setMintAmount('');
+        // Refresh data to show updated balances
+        await fetchDashboardData();
+      } else {
+        toast({
+          title: "Mint failed",
+          description: result.error || "Failed to mint tokens. Please try again.",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Error minting tokens:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "An unexpected error occurred",
+        variant: "destructive"
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // Handle burn ASA tokens
+  const handleBurnTokens = async () => {
+    if (!burnAmount || parseFloat(burnAmount) <= 0 || userTokens.length === 0 || !address || !signTransaction) {
+      toast({
+        title: "Invalid input",
+        description: "Please enter a valid amount to burn",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const selectedTokenData = userTokens[selectedToken];
+    if (parseFloat(burnAmount) > selectedTokenData.uiBalance) {
+      toast({
+        title: "Insufficient balance",
+        description: `You only have ${selectedTokenData.uiBalance} ${selectedTokenData.symbol} available to burn`,
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      const result = await burnAlgorandAssets(
+        address,
+        selectedTokenData.assetId,
+        parseFloat(burnAmount),
+        signTransaction,
+        selectedNetwork
+      );
+
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: `Successfully burned ${burnAmount} ${selectedTokenData.symbol} tokens`,
+          variant: "default"
+        });
+        setIsBurnModalOpen(false);
+        setBurnAmount('');
+        // Refresh data to show updated balances
+        await fetchDashboardData();
+      } else {
+        toast({
+          title: "Burn failed",
+          description: result.error || "Failed to burn tokens. Please try again.",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Error burning tokens:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "An unexpected error occurred",
+        variant: "destructive"
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // Handle opt-in to ASA
+  const handleOptInToAsset = async () => {
+    if (!assetIdToOptIn || isNaN(Number(assetIdToOptIn)) || !address || !signTransaction) {
+      toast({
+        title: "Invalid input",
+        description: "Please enter a valid Asset ID",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      const assetId = Number(assetIdToOptIn);
+      const result = await optInToAsset(
+        address,
+        assetId,
+        signTransaction,
+        selectedNetwork
+      );
+
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: `Successfully opted in to Asset ID ${assetId}`,
+          variant: "default"
+        });
+        setIsOptInModalOpen(false);
+        setAssetIdToOptIn('');
+        // Refresh data to show the new asset
+        await fetchDashboardData();
+      } else {
+        toast({
+          title: "Opt-in failed",
+          description: result.error || "Failed to opt in to asset. Please try again.",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Error opting in to asset:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "An unexpected error occurred",
+        variant: "destructive"
+      });
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   // Export function for transactions
@@ -771,9 +958,30 @@ export default function AlgorandDashboard() {
                     <div className="glass-card p-6">
                       <h4 className="text-lg font-semibold text-foreground mb-6">Asset Management</h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <Button variant="outline" className="border-border text-muted-foreground hover:bg-muted h-12">
+                        <Button 
+                          variant="outline" 
+                          className="border-border text-muted-foreground hover:bg-muted h-12"
+                          onClick={() => setIsOptInModalOpen(true)}
+                        >
                           <Plus className="w-4 h-4 mr-2" />
                           Opt-in to Asset
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          className="border-border text-muted-foreground hover:bg-muted h-12"
+                          onClick={() => setIsMintModalOpen(true)}
+                          disabled={!userTokens[selectedToken]?.manager || userTokens[selectedToken]?.manager !== address}
+                        >
+                          <Plus className="w-4 h-4 mr-2" />
+                          Mint Tokens
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          className="border-border text-muted-foreground hover:bg-muted h-12"
+                          onClick={() => setIsBurnModalOpen(true)}
+                        >
+                          <Flame className="w-4 h-4 mr-2" />
+                          Burn Tokens
                         </Button>
                         <Button variant="outline" className="border-border text-muted-foreground hover:bg-muted h-12">
                           <Flame className="w-4 h-4 mr-2" />
@@ -813,5 +1021,234 @@ export default function AlgorandDashboard() {
         </div>
       </div>
     </div>
+  );
+  
+  // Mint Modal Component
+  const MintModal = () => (
+    <Dialog open={isMintModalOpen} onOpenChange={setIsMintModalOpen}>
+      <DialogContent className="glass-card">
+        <DialogHeader>
+          <DialogTitle className="text-2xl font-bold">
+            Mint {userTokens[selectedToken]?.symbol || ''} Tokens
+          </DialogTitle>
+          <DialogDescription>
+            Create new tokens and add them to the total supply.
+            {userTokens[selectedToken]?.manager === address ? (
+              <div className="mt-2 text-sm text-green-500">You have permission to mint this token.</div>
+            ) : (
+              <div className="mt-2 text-sm text-red-500">
+                Only the asset manager can mint additional tokens.
+              </div>
+            )}
+          </DialogDescription>
+        </DialogHeader>
+        
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label htmlFor="mintAmount">Amount to Mint</Label>
+            <Input
+              id="mintAmount"
+              type="number"
+              value={mintAmount}
+              onChange={(e) => setMintAmount(e.target.value)}
+              placeholder={`Enter amount of ${userTokens[selectedToken]?.symbol || 'tokens'}`}
+              className="input-enhanced"
+              disabled={isProcessing || userTokens[selectedToken]?.manager !== address}
+            />
+          </div>
+          
+          <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+            <p className="text-sm text-blue-600">
+              <Info className="w-4 h-4 inline-block mr-1" />
+              Minting will create new tokens and increase the total supply.
+            </p>
+          </div>
+        </div>
+        
+        <DialogFooter>
+          <Button
+            variant="outline"
+            onClick={() => setIsMintModalOpen(false)}
+            disabled={isProcessing}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleMintTokens}
+            disabled={
+              !mintAmount || 
+              parseFloat(mintAmount) <= 0 || 
+              isProcessing || 
+              userTokens[selectedToken]?.manager !== address
+            }
+            className="bg-[#76f935] hover:bg-[#5dd128] text-white"
+          >
+            {isProcessing ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Processing...
+              </>
+            ) : (
+              <>
+                <Plus className="w-4 h-4 mr-2" />
+                Mint Tokens
+              </>
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+  
+  // Burn Modal Component
+  const BurnModal = () => (
+    <Dialog open={isBurnModalOpen} onOpenChange={setIsBurnModalOpen}>
+      <DialogContent className="glass-card">
+        <DialogHeader>
+          <DialogTitle className="text-2xl font-bold">
+            Burn {userTokens[selectedToken]?.symbol || ''} Tokens
+          </DialogTitle>
+          <DialogDescription>
+            Permanently remove tokens from circulation, reducing the total supply.
+          </DialogDescription>
+        </DialogHeader>
+        
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label htmlFor="burnAmount">Amount to Burn</Label>
+            <Input
+              id="burnAmount"
+              type="number"
+              value={burnAmount}
+              onChange={(e) => setBurnAmount(e.target.value)}
+              placeholder={`Enter amount of ${userTokens[selectedToken]?.symbol || 'tokens'}`}
+              className="input-enhanced"
+              disabled={isProcessing}
+            />
+            <p className="text-sm text-muted-foreground">
+              Available balance: {userTokens[selectedToken]?.uiBalance.toLocaleString() || '0'} {userTokens[selectedToken]?.symbol || ''}
+            </p>
+          </div>
+          
+          <div className="p-3 bg-orange-500/10 border border-orange-500/30 rounded-lg">
+            <p className="text-sm text-orange-600">
+              <AlertTriangle className="w-4 h-4 inline-block mr-1" />
+              Warning: Burning tokens is permanent and cannot be undone.
+            </p>
+          </div>
+        </div>
+        
+        <DialogFooter>
+          <Button
+            variant="outline"
+            onClick={() => setIsBurnModalOpen(false)}
+            disabled={isProcessing}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleBurnTokens}
+            disabled={
+              !burnAmount || 
+              parseFloat(burnAmount) <= 0 || 
+              (userTokens[selectedToken] && parseFloat(burnAmount) > userTokens[selectedToken].uiBalance) || 
+              isProcessing
+            }
+            className="bg-[#76f935] hover:bg-[#5dd128] text-white"
+          >
+            {isProcessing ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Processing...
+              </>
+            ) : (
+              <>
+                <Flame className="w-4 h-4 mr-2" />
+                Burn Tokens
+              </>
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+  
+  // Opt-In Modal Component
+  const OptInModal = () => (
+    <Dialog open={isOptInModalOpen} onOpenChange={setIsOptInModalOpen}>
+      <DialogContent className="glass-card">
+        <DialogHeader>
+          <DialogTitle className="text-2xl font-bold">
+            Opt-in to Algorand Asset
+          </DialogTitle>
+          <DialogDescription>
+            You must opt-in to an asset before you can receive it in your wallet.
+          </DialogDescription>
+        </DialogHeader>
+        
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label htmlFor="assetId">Asset ID</Label>
+            <Input
+              id="assetId"
+              type="text"
+              value={assetIdToOptIn}
+              onChange={(e) => setAssetIdToOptIn(e.target.value)}
+              placeholder="Enter Algorand Asset ID"
+              className="input-enhanced"
+              disabled={isProcessing}
+            />
+          </div>
+          
+          <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+            <p className="text-sm text-blue-600">
+              <Info className="w-4 h-4 inline-block mr-1" />
+              Opting in creates a 0-balance entry in your account and requires a small transaction fee.
+            </p>
+          </div>
+        </div>
+        
+        <DialogFooter>
+          <Button
+            variant="outline"
+            onClick={() => setIsOptInModalOpen(false)}
+            disabled={isProcessing}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleOptInToAsset}
+            disabled={!assetIdToOptIn || isProcessing || isNaN(Number(assetIdToOptIn))}
+            className="bg-[#76f935] hover:bg-[#5dd128] text-white"
+          >
+            {isProcessing ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Processing...
+              </>
+            ) : (
+              <>
+                <Plus className="w-4 h-4 mr-2" />
+                Opt-in to Asset
+              </>
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+  
+  // Render all components
+  return (
+    <>
+      {renderDashboardContent()}
+      {userTokens.length > 0 && (
+        <>
+          <MintModal />
+          <BurnModal />
+        </>
+      )}
+      <OptInModal />
+    </>
   );
 }
