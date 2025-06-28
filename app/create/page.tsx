@@ -1,9 +1,14 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import TokenForm from '@/components/TokenForm';
 import TokenPreview from '@/components/TokenPreview';
-import { CheckCircle, Zap } from 'lucide-react';
+import { CheckCircle, Zap, AlertTriangle } from 'lucide-react';
+import { NewUserGuide } from '@/components/NewUserGuide';
+import { Callout } from '@/components/ui/callout';
+import { NetworkBadge } from '@/components/GuideBadge';
+import { useWallet } from '@solana/wallet-adapter-react';
+import { useAlgorandWallet } from '@/components/providers/AlgorandWalletProvider';
 
 export default function CreateTokenPage() {
   const [tokenData, setTokenData] = useState({
@@ -17,22 +22,21 @@ export default function CreateTokenPage() {
     github: '',
     twitter: '',
     mintable: true,
-    burnable: false,
+    burnable: false, 
     pausable: false,
-    network: 'algorand-testnet',
+    network: 'algorand-testnet', 
   });
   
-  const [showTips, setShowTips] = useState(true);
+  const [showTips, setShowTips] = useState(false);
+  const { connected: solanaConnected } = useWallet();
+  const { connected: algorandConnected } = useAlgorandWallet();
   
-  // Hide tips after 15 seconds
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowTips(false);
-    }, 15000);
-    
-    return () => clearTimeout(timer);
-  }, []);
-
+  // Check if any wallet is connected
+  const isAnyWalletConnected = solanaConnected || algorandConnected;
+  // Check if a wallet is needed for the current network
+  const needsWalletConnection = (tokenData.network.includes('algorand') && !algorandConnected) ||
+                               (tokenData.network.includes('solana') && !solanaConnected);
+  
   return (
     <div className="min-h-screen app-background pb-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -41,10 +45,36 @@ export default function CreateTokenPage() {
           <h1 className="text-4xl md:text-5xl font-bold mb-4">
             Create Your Token <span className="text-red-500">Instantly</span>
           </h1>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Design and deploy your cryptocurrency token in just minutes - no coding required
-          </p>
+          <div className="space-y-2">
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+              Design and deploy your cryptocurrency token in just minutes - no coding required
+            </p>
+            <div className="flex justify-center gap-2 mt-2">
+              <NetworkBadge network="algorand-testnet" />
+              <NetworkBadge network="algorand-mainnet" />
+              <NetworkBadge network="solana-devnet" />
+            </div>
+          </div>
         </div>
+        
+        {/* New User Guide */}
+        <NewUserGuide type="token-creation" />
+        
+        {/* Wallet Connection Notice */}
+        {needsWalletConnection && (
+          <div className="mb-8">
+            <Callout 
+              variant="warn" 
+              title="Wallet Connection Required" 
+              icon="warn"
+            >
+              <div className="flex items-center">
+                <AlertTriangle className="h-4 w-4 text-yellow-500 mr-2" />
+                <p>Connect your {tokenData.network.includes('algorand') ? 'Algorand' : 'Solana'} wallet from the top navigation bar before deploying your token.</p>
+              </div>
+            </Callout>
+          </div>
+        )}
         
         {showTips && (
           <div className="mb-8 glass-card p-6 border-blue-500/30 hover:border-blue-500/50 transition-all">
