@@ -43,8 +43,6 @@ import {
   Activity,
   Clock,
   Globe
-} from 'lucide-react';
-import Link from 'next/link';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { 
   DropdownMenu,
