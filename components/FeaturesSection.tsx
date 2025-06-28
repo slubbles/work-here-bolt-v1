@@ -133,20 +133,18 @@ export default function FeaturesSection() {
               <div className={`absolute inset-0 ${feature.bgColor} opacity-0 group-hover:opacity-100 transition-opacity duration-300`}></div>
               
               <div className="relative z-10">
-                Ready to Launch Your Token Empire?
                 <div className={`w-16 h-16 mx-auto mb-6 p-4 rounded-xl ${feature.bgColor} ${feature.color} transition-all duration-300 group-hover:scale-110 relative`}>
                   <feature.icon className="w-full h-full" />
-                Join thousands of innovators who've transformed their ideas into thriving token ecosystems.
+                  {hoveredFeature === index && (
                     <div className="absolute inset-0 rounded-xl border-2 border-current opacity-50 animate-ping"></div>
                   )}
                 </div>
                 
-                    Launch Your Token Now
                 <h3 className="text-lg font-bold text-foreground mb-3 group-hover:text-current transition-colors duration-300">
                   {feature.title}
                 </h3>
                 
-                    Explore Dashboard
+                <p className="text-sm text-muted-foreground leading-relaxed">
                   {feature.description}
                 </p>
               </div>
