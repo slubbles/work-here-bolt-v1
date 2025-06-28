@@ -1,11 +1,13 @@
-import UnifiedDashboard from './UnifiedDashboard';
-import SolanaDashboard from './SolanaDashboard';
+'use client';
+
+import { useState, useEffect } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useAlgorandWallet } from '@/components/providers/AlgorandWalletProvider';
-import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Wallet, Network, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
+import SolanaDashboard from './SolanaDashboard';
+import AlgorandDashboard from './AlgorandDashboard';
 
 export default function DashboardPage() {
   const [mounted, setMounted] = useState(false);
@@ -81,7 +83,18 @@ export default function DashboardPage() {
     return <SolanaDashboard />;
   } else if (algorandConnected) {
     return <AlgorandDashboard />;
-  } else {
-    return <UnifiedDashboard />; // Fallback, but should not reach here
   }
+
+  // This should not be reached, but provide a fallback
+  return (
+    <div className="min-h-screen app-background flex items-center justify-center">
+      <div className="max-w-md mx-auto text-center">
+        <Card className="glass-card">
+          <CardContent className="p-6">
+            <p className="text-muted-foreground">Loading dashboard...</p>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
 }

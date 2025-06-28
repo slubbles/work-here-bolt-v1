@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { formatDistanceToNow } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -27,11 +28,10 @@ import {
   FileDown,
   ChevronDown,
   RefreshCw,
-  Network,
+  Check,
   AlertTriangle
 } from 'lucide-react';
 import Link from 'next/link';
-import { useWallet } from '@solana/wallet-adapter-react';
 import { useAlgorandWallet } from '@/components/providers/AlgorandWalletProvider';
 import { 
   DropdownMenu,
@@ -40,17 +40,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-
-// Import data fetching functions
 import { 
-  getEnhancedTokenInfo, 
-  getWalletTransactionHistory, 
-  getWalletSummary,
-  EnhancedTokenInfo,
-  TransactionInfo
-} from '@/lib/solana-data';
-
-import {
   getAlgorandEnhancedTokenInfo,
   getAlgorandTransactionHistory,
   getAlgorandWalletSummary,
@@ -59,92 +49,114 @@ import {
   formatAlgorandTransactionForDisplay
 } from '@/lib/algorand-data';
 
-// Unified types
-type UnifiedTokenInfo = EnhancedTokenInfo | AlgorandTokenInfo;
-type UnifiedTransactionInfo = TransactionInfo | AlgorandTransactionInfo;
-
-export default function UnifiedDashboard() {
+export default function AlgorandDashboard() {
   const [selectedToken, setSelectedToken] = useState(0);
   const [transferAmount, setTransferAmount] = useState('');
   const [transferAddress, setTransferAddress] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [mounted, setMounted] = useState(false);
   
   // Real data states
-  const [userTokens, setUserTokens] = useState<UnifiedTokenInfo[]>([]);
-  const [transactionData, setTransactionData] = useState<UnifiedTransactionInfo[]>([]);
+  const [userTokens, setUserTokens] = useState<AlgorandTokenInfo[]>([]);
+  const [transactionData, setTransactionData] = useState<AlgorandTransactionInfo[]>([]);
   const [walletSummary, setWalletSummary] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
-  const [activeNetwork, setActiveNetwork] = useState<'solana' | 'algorand' | null>(null);
+  const [copiedAddress, setCopiedAddress] = useState<string | null>(null);
   
-  // Wallet connections
-  const { connected: solanaConnected, publicKey: solanaPublicKey } = useWallet();
+  // Add mounted state for hydration
+  const [mounted, setMounted] = useState(false);
+  
+  // Algorand wallet integration
   const { 
     connected: algorandConnected, 
     address: algorandAddress,
-    selectedNetwork: algorandNetwork 
+    selectedNetwork: algorandNetwork,
+    networkConfig: algorandNetworkConfig
   } = useAlgorandWallet();
 
-  // Handle hydration
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Determine active network and fetch data
+  // Fetch real data when wallet connects
   useEffect(() => {
-    if (!mounted) return;
+    if (algorandConnected && algorandAddress) {
+      console.log('🔄 Algorand wallet connected, fetching real data...');
+      fetchDashboardData();
+    } else {
+      console.log('❌ Algorand wallet disconnected, resetting dashboard...');
+      setIsLoading(true);
+      setUserTokens([]);
+      setTransactionData([]);
+      setWalletSummary(null);
+      setError(null);
+      setSelectedToken(0);
+    }
+  }, [algorandConnected, algorandAddress, algorandNetwork]);
 
-    let newActiveNetwork: 'solana' | 'algorand' | null = null;
+  // Fetch all dashboard data
+  const fetchDashboardData = async () => {
+    if (!algorandAddress) return;
     
-    if (solanaConnected && solanaPublicKey) {
-      newActiveNetwork = 'solana';
-    } else if (algorandConnected && algorandAddress) {
-      newActiveNetwork = 'algorand';
-    }
-
-    if (newActiveNetwork !== activeNetwork) {
-      setActiveNetwork(newActiveNetwork);
-      if (newActiveNetwork) {
-        console.log(`🔄 Switching to ${newActiveNetwork} dashboard`);
-        fetchDashboardData(newActiveNetwork);
-      } else {
-        console.log('❌ No wallet connected, resetting dashboard...');
-        resetDashboard();
-      }
-    }
-  }, [mounted, solanaConnected, solanaPublicKey, algorandConnected, algorandAddress, activeNetwork]);
-
-  // Reset dashboard data
-  const resetDashboard = () => {
-    setIsLoading(true);
-    setUserTokens([]);
-    setTransactionData([]);
-    setWalletSummary(null);
-    setError(null);
-    setSelectedToken(0);
-    setActiveNetwork(null);
-  };
-
-  // Fetch dashboard data based on active network
-  const fetchDashboardData = async (network: 'solana' | 'algorand') => {
     try {
       setIsLoading(true);
       setError(null);
       
-      if (network === 'solana' && solanaPublicKey) {
-        await fetchSolanaData(solanaPublicKey.toString());
-      } else if (network === 'algorand' && algorandAddress) {
-        await fetchAlgorandData(algorandAddress, algorandNetwork);
+      const walletAddress = algorandAddress;
+      console.log(`📊 Fetching Algorand dashboard data for: ${walletAddress} on ${algorandNetwork}`);
+      
+      // Show immediate loading feedback
+      setUserTokens([]);
+      setTransactionData([]);
+      setWalletSummary(null);
+      
+      // Fetch Algorand data
+      const [tokensResult, transactionsResult, summaryResult] = await Promise.allSettled([
+        getAlgorandEnhancedTokenInfo(walletAddress, algorandNetwork),
+        getAlgorandTransactionHistory(walletAddress, 10, algorandNetwork),
+        getAlgorandWalletSummary(walletAddress, algorandNetwork)
+      ]);
+      
+      // Handle tokens data
+      if (tokensResult.status === 'fulfilled' && tokensResult.value.success && tokensResult.value.data) {
+        setUserTokens(tokensResult.value.data);
+        console.log(`✅ Loaded ${tokensResult.value.data.length} Algorand assets`);
+      } else {
+        console.warn('⚠️ Failed to load Algorand assets');
+        setUserTokens([]);
+      }
+      
+      // Handle transactions data
+      if (transactionsResult.status === 'fulfilled' && transactionsResult.value.success && transactionsResult.value.data) {
+        setTransactionData(transactionsResult.value.data);
+        console.log(`✅ Loaded ${transactionsResult.value.data.length} Algorand transactions`);
+      } else {
+        console.warn('⚠️ Failed to load Algorand transactions');
+        setTransactionData([]);
+      }
+      
+      // Handle summary data
+      if (summaryResult.status === 'fulfilled' && summaryResult.value.success && summaryResult.value.data) {
+        setWalletSummary(summaryResult.value.data);
+        console.log('✅ Algorand wallet summary loaded');
+      } else {
+        console.warn('⚠️ Failed to load Algorand wallet summary');
+        setWalletSummary({
+          totalTokens: 0,
+          totalValue: 0,
+          algoBalance: 0,
+          recentTransactions: 0
+        });
       }
       
     } catch (err) {
-      console.error(`❌ Error fetching ${network} dashboard data:`, err);
-      setError(`Failed to load ${network} data. Some features may be limited.`);
+      console.error('❌ Error fetching Algorand dashboard data:', err);
+      setError('Failed to load some dashboard data. Some features may be limited.');
+      
+      // Set default values even on error
       setWalletSummary({
         totalTokens: 0,
         totalValue: 0,
-        solBalance: 0,
         algoBalance: 0,
         recentTransactions: 0
       });
@@ -152,93 +164,13 @@ export default function UnifiedDashboard() {
       setIsLoading(false);
     }
   };
-
-  // Fetch Solana data
-  const fetchSolanaData = async (walletAddress: string) => {
-    console.log(`📊 Fetching Solana data for: ${walletAddress}`);
-    
-    const [tokensResult, transactionsResult, summaryResult] = await Promise.allSettled([
-      getEnhancedTokenInfo(walletAddress),
-      getWalletTransactionHistory(walletAddress, 10),
-      getWalletSummary(walletAddress)
-    ]);
-    
-    // Handle tokens
-    if (tokensResult.status === 'fulfilled' && tokensResult.value.success && tokensResult.value.data) {
-      setUserTokens(tokensResult.value.data);
-      console.log(`✅ Loaded ${tokensResult.value.data.length} Solana tokens`);
-    } else {
-      setUserTokens([]);
-    }
-    
-    // Handle transactions
-    if (transactionsResult.status === 'fulfilled' && transactionsResult.value.success && transactionsResult.value.data) {
-      setTransactionData(transactionsResult.value.data);
-      console.log(`✅ Loaded ${transactionsResult.value.data.length} Solana transactions`);
-    } else {
-      setTransactionData([]);
-    }
-    
-    // Handle summary
-    if (summaryResult.status === 'fulfilled' && summaryResult.value.success && summaryResult.value.data) {
-      setWalletSummary(summaryResult.value.data);
-      console.log('✅ Solana summary loaded');
-    } else {
-      setWalletSummary({
-        totalTokens: 0,
-        totalValue: 0,
-        solBalance: 0,
-        recentTransactions: 0
-      });
-    }
-  };
-
-  // Fetch Algorand data
-  const fetchAlgorandData = async (walletAddress: string, network: string) => {
-    console.log(`📊 Fetching Algorand data for: ${walletAddress} on ${network}`);
-    
-    const [tokensResult, transactionsResult, summaryResult] = await Promise.allSettled([
-      getAlgorandEnhancedTokenInfo(walletAddress, network),
-      getAlgorandTransactionHistory(walletAddress, 10, network),
-      getAlgorandWalletSummary(walletAddress, network)
-    ]);
-    
-    // Handle tokens
-    if (tokensResult.status === 'fulfilled' && tokensResult.value.success && tokensResult.value.data) {
-      setUserTokens(tokensResult.value.data);
-      console.log(`✅ Loaded ${tokensResult.value.data.length} Algorand assets`);
-    } else {
-      setUserTokens([]);
-    }
-    
-    // Handle transactions
-    if (transactionsResult.status === 'fulfilled' && transactionsResult.value.success && transactionsResult.value.data) {
-      setTransactionData(transactionsResult.value.data);
-      console.log(`✅ Loaded ${transactionsResult.value.data.length} Algorand transactions`);
-    } else {
-      setTransactionData([]);
-    }
-    
-    // Handle summary
-    if (summaryResult.status === 'fulfilled' && summaryResult.value.success && summaryResult.value.data) {
-      setWalletSummary(summaryResult.value.data);
-      console.log('✅ Algorand summary loaded');
-    } else {
-      setWalletSummary({
-        totalTokens: 0,
-        totalValue: 0,
-        algoBalance: 0,
-        recentTransactions: 0
-      });
-    }
-  };
   
   // Manual refresh function
   const handleRefresh = async () => {
-    if (!activeNetwork || isRefreshing) return;
+    if (!algorandConnected || !algorandAddress || isRefreshing) return;
     
     setIsRefreshing(true);
-    await fetchDashboardData(activeNetwork);
+    await fetchDashboardData();
     setIsRefreshing(false);
   };
 
@@ -250,23 +182,9 @@ export default function UnifiedDashboard() {
     { name: 'Week 4', value: transactionData.slice(21, 28).length },
   ];
 
-  // Format transaction data for display (unified)
-  const formatTransactionForDisplay = (tx: UnifiedTransactionInfo) => {
-    if (activeNetwork === 'algorand') {
-      return formatAlgorandTransactionForDisplay(tx as AlgorandTransactionInfo);
-    } else {
-      // Solana transaction formatting
-      const solTx = tx as TransactionInfo;
-      const timeAgo = new Date(solTx.timestamp).toLocaleDateString();
-      
-      return {
-        type: solTx.type,
-        amount: `${solTx.amount} ${solTx.token}`,
-        to: solTx.to ? `${solTx.to.slice(0, 4)}...${solTx.to.slice(-4)}` : 'Unknown',
-        time: timeAgo,
-        status: solTx.status === 'confirmed' ? 'Completed' : solTx.status === 'failed' ? 'Failed' : 'Pending'
-      };
-    }
+  // Format transaction data for display
+  const formatTransactionForDisplay = (tx: AlgorandTransactionInfo) => {
+    return formatAlgorandTransactionForDisplay(tx);
   };
 
   const handleTransfer = () => {
@@ -278,8 +196,7 @@ export default function UnifiedDashboard() {
     const selectedTokenData = userTokens[selectedToken];
     if (!selectedTokenData) return;
 
-    // Both EnhancedTokenInfo and AlgorandTokenInfo have symbol property
-    const tokenSymbol = selectedTokenData.symbol || ('assetId' in selectedTokenData ? 'ASA' : 'TOKEN');
+    const tokenSymbol = selectedTokenData.symbol || 'ASA';
     
     alert(`Successfully transferred ${transferAmount} ${tokenSymbol} to ${transferAddress}`);
     setTransferAmount('');
@@ -294,15 +211,15 @@ export default function UnifiedDashboard() {
     switch (type) {
       case 'transactions':
         data = transactionData;
-        filename = `${activeNetwork}-transactions-${new Date().toISOString().split('T')[0]}.json`;
+        filename = `algorand-transactions-${new Date().toISOString().split('T')[0]}.json`;
         break;
       case 'analytics':
         data = chartData;
-        filename = `${activeNetwork}-analytics-${new Date().toISOString().split('T')[0]}.json`;
+        filename = `algorand-analytics-${new Date().toISOString().split('T')[0]}.json`;
         break;
       case 'all':
-        data = { tokens: userTokens, transactions: transactionData, summary: walletSummary, network: activeNetwork };
-        filename = `${activeNetwork}-dashboard-data-${new Date().toISOString().split('T')[0]}.json`;
+        data = { tokens: userTokens, transactions: transactionData, summary: walletSummary, network: algorandNetwork };
+        filename = `algorand-dashboard-data-${new Date().toISOString().split('T')[0]}.json`;
         break;
     }
 
@@ -317,6 +234,27 @@ export default function UnifiedDashboard() {
     alert(`${type} data exported successfully`);
   };
 
+  const copyToClipboard = async (address: string, walletType: string) => {
+    try {
+      await navigator.clipboard.writeText(address);
+      setCopiedAddress(address);
+      
+      alert(`${walletType} address copied to clipboard`);
+      
+      // Reset the copied state after 2 seconds
+      setTimeout(() => {
+        setCopiedAddress(null);
+      }, 2000);
+    } catch (error) {
+      console.error('Failed to copy address:', error);
+    }
+  };
+
+  const formatAddress = (address: string) => {
+    if (address.length <= 12) return address;
+    return `${address.slice(0, 4)}...${address.slice(-4)}`;
+  };
+
   // Don't render until mounted
   if (!mounted) {
     return (
@@ -324,7 +262,7 @@ export default function UnifiedDashboard() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500 mx-auto"></div>
-            <p className="mt-4 text-muted-foreground">Initializing dashboard...</p>
+            <p className="mt-4 text-muted-foreground">Loading Algorand dashboard...</p>
           </div>
         </div>
       </div>
@@ -339,7 +277,7 @@ export default function UnifiedDashboard() {
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500 mx-auto"></div>
             <p className="mt-4 text-muted-foreground">
-              Loading your {activeNetwork === 'algorand' ? 'Algorand assets' : 'Solana tokens'} and transaction data...
+              Loading your Algorand assets and transaction data...
             </p>
           </div>
         </div>
@@ -347,8 +285,8 @@ export default function UnifiedDashboard() {
     );
   }
 
-  // Redirect to wallet connection if no wallet connected
-  if (!activeNetwork) {
+  // Redirect to wallet connection if not connected
+  if (!algorandConnected) {
     return (
       <div className="min-h-screen app-background flex items-center justify-center">
         <div className="max-w-md mx-auto text-center">
@@ -358,23 +296,24 @@ export default function UnifiedDashboard() {
               <Wallet className="w-8 h-8 text-red-500" />
             </div>
               <div className="space-y-2">
-                <h2 className="text-2xl font-bold text-foreground">Wallet Required</h2>
+                <h2 className="text-2xl font-bold text-foreground">Algorand Wallet Required</h2>
                 <p className="text-muted-foreground">
-                  Connect your Solana or Algorand wallet to access your token dashboard
+                  Connect your Algorand wallet to access your asset dashboard
                 </p>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
                 <div className="flex items-start space-x-2">
-                  <Network className="w-5 h-5 text-blue-500 mt-0.5" />
+                  <AlertCircle className="w-5 h-5 text-blue-500 mt-0.5" />
                   <div className="text-sm text-blue-600">
-                    <p className="font-semibold mb-1">Multi-Chain Dashboard</p>
+                    <p className="font-semibold mb-1">To access your Algorand dashboard:</p>
                     <ul className="list-disc list-inside space-y-1">
-                      <li>Connect Solana wallet for SPL tokens</li>
-                      <li>Connect Algorand wallet for ASA tokens</li>
-                      <li>View unified portfolio and analytics</li>
-                      <li>Manage tokens across both networks</li>
+                      <li>Click "Connect Wallet" in the top right</li>
+                      <li>Select your Algorand wallet (Pera Wallet)</li>
+                      <li>Choose Mainnet or Testnet network</li>
+                      <li>Approve the connection</li>
+                      <li>Your dashboard will load automatically</li>
                     </ul>
                   </div>
                 </div>
@@ -392,19 +331,19 @@ export default function UnifiedDashboard() {
     );
   }
 
-  // Get network-specific info
+  // Get network display info
   const getNetworkInfo = () => {
-    if (activeNetwork === 'algorand') {
+    if (algorandNetworkConfig?.isMainnet) {
       return {
-        name: algorandNetwork === 'algorand-mainnet' ? 'Algorand Mainnet' : 'Algorand Testnet',
-        color: algorandNetwork === 'algorand-mainnet' ? 'text-[#00d4aa]' : 'text-[#76f935]',
+        name: 'Algorand Mainnet',
+        color: 'text-[#00d4aa]',
         currency: 'ALGO'
       };
     } else {
       return {
-        name: 'Solana Devnet',
-        color: 'text-blue-500',
-        currency: 'SOL'
+        name: 'Algorand Testnet',
+        color: 'text-[#76f935]',
+        currency: 'ALGO'
       };
     }
   };
@@ -418,19 +357,31 @@ export default function UnifiedDashboard() {
         <div className="flex justify-between items-center mb-12">
           <div>
             <div className="flex items-center space-x-3 mb-2">
-              <h1 className="text-4xl font-bold text-foreground">Multi-Chain Dashboard</h1>
+              <h1 className="text-4xl font-bold text-foreground">Algorand Dashboard</h1>
               <Badge className={`${networkInfo.color} bg-current/20 border-current/30`}>
                 {networkInfo.name}
               </Badge>
             </div>
-            <p className="text-muted-foreground">Manage and monitor your {activeNetwork === 'algorand' ? 'Algorand assets' : 'Solana tokens'}</p>
-            {(solanaPublicKey || algorandAddress) && (
-              <p className="text-sm text-muted-foreground mt-2">
-                Connected: {activeNetwork === 'algorand' 
-                  ? `${algorandAddress?.slice(0, 4)}...${algorandAddress?.slice(-4)}`
-                  : `${solanaPublicKey?.toBase58().slice(0, 4)}...${solanaPublicKey?.toBase58().slice(-4)}`
-                }
-              </p>
+            <p className="text-muted-foreground">Manage and monitor your Algorand Standard Assets</p>
+            {algorandAddress && (
+              <div className="flex items-center space-x-2 mt-2">
+                <p className="text-sm text-muted-foreground">
+                  Connected: {formatAddress(algorandAddress)}
+                </p>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => copyToClipboard(algorandAddress, 'Algorand')}
+                  className="p-1 h-auto"
+                  title="Copy full address"
+                >
+                  {copiedAddress === algorandAddress ? (
+                    <Check className="w-3 h-3 text-green-500" />
+                  ) : (
+                    <Copy className="w-3 h-3 text-[#76f935]" />
+                  )}
+                </Button>
+              </div>
             )}
             {error && (
               <div className="flex items-center space-x-2 mt-2 text-yellow-500 text-sm">
@@ -443,7 +394,7 @@ export default function UnifiedDashboard() {
             <Button 
               variant="outline" 
               onClick={handleRefresh}
-              disabled={isRefreshing || !activeNetwork}
+              disabled={isRefreshing || !algorandConnected}
               className="border-border text-muted-foreground hover:bg-muted"
             >
               <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
@@ -452,7 +403,7 @@ export default function UnifiedDashboard() {
             <Link href="/create">
               <Button className="bg-red-500 hover:bg-red-600 text-white">
                 <Plus className="w-4 h-4 mr-2" />
-                Create New Token
+                Create New Asset
               </Button>
             </Link>
           </div>
@@ -463,7 +414,7 @@ export default function UnifiedDashboard() {
           <div className="glass-card p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-muted-foreground text-sm">Total {activeNetwork === 'algorand' ? 'Assets' : 'Tokens'}</p>
+                <p className="text-muted-foreground text-sm">Total Assets</p>
                 <p className="text-2xl font-bold text-foreground">
                   {walletSummary?.totalTokens || userTokens.length}
                 </p>
@@ -485,10 +436,7 @@ export default function UnifiedDashboard() {
               <div>
                 <p className="text-muted-foreground text-sm">{networkInfo.currency} Balance</p>
                 <p className="text-2xl font-bold text-foreground">
-                  {activeNetwork === 'algorand' 
-                    ? walletSummary?.algoBalance?.toFixed(4) || '0.0000'
-                    : walletSummary?.solBalance?.toFixed(4) || '0.0000'
-                  }
+                  {walletSummary?.algoBalance?.toFixed(4) || '0.0000'}
                 </p>
               </div>
               <Wallet className="w-8 h-8 text-red-500" />
@@ -506,103 +454,92 @@ export default function UnifiedDashboard() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Token List */}
+          {/* Asset List */}
           <div className="lg:col-span-1">
             <div className="glass-card p-6">
-              <h2 className="text-xl font-bold text-foreground mb-6">Your {activeNetwork === 'algorand' ? 'Assets' : 'Tokens'}</h2>
+              <h2 className="text-xl font-bold text-foreground mb-6">Your Assets</h2>
               {userTokens.length === 0 ? (
                 <div className="text-center py-8">
                   <Coins className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                   <p className="text-muted-foreground mb-4">
-                    No {activeNetwork === 'algorand' ? 'assets' : 'tokens'} found in your wallet
+                    No assets found in your Algorand wallet
                   </p>
                   <Link href="/create">
                     <Button className="bg-red-500 hover:bg-red-600 text-white">
                       <Plus className="w-4 h-4 mr-2" />
-                      Create Your First Token
+                      Create Your First Asset
                     </Button>
                   </Link>
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {userTokens.map((token, index) => {
-                    const isAlgorand = 'assetId' in token;
-                    const name = isAlgorand ? (token as AlgorandTokenInfo).name : (token as EnhancedTokenInfo).name;
-                    const symbol = isAlgorand ? (token as AlgorandTokenInfo).symbol : (token as EnhancedTokenInfo).symbol;
-                    const uiBalance = isAlgorand ? (token as AlgorandTokenInfo).uiBalance : (token as EnhancedTokenInfo).uiBalance;
-                    const value = isAlgorand ? (token as AlgorandTokenInfo).value : (token as EnhancedTokenInfo).value;
-                    const change = isAlgorand ? (token as AlgorandTokenInfo).change : (token as EnhancedTokenInfo).change;
-                    const verified = token.verified;
-                    const image = token.image;
-                    
-                    return (
-                      <div 
-                        key={index}
-                        className={`p-4 rounded-lg cursor-pointer transition-all ${
-                          selectedToken === index 
-                            ? 'bg-red-500/20 border border-red-500/50' 
-                            : 'bg-muted/50 hover:bg-muted'
-                        }`}
-                        onClick={() => setSelectedToken(index)}
-                      >
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center space-x-3">
-                            {image ? (
-                              <img 
-                                src={image} 
-                                alt={symbol}
-                                className="w-10 h-10 rounded-full"
-                                onError={(e) => {
-                                  const target = e.target as HTMLImageElement;
-                                  target.style.display = 'none';
-                                  target.nextElementSibling?.classList.remove('hidden');
-                                }}
-                              />
-                            ) : null}
-                            <div className={`w-10 h-10 rounded-full ${networkInfo.color} bg-current/20 flex items-center justify-center text-current font-bold ${image ? 'hidden' : ''}`}>
-                              {symbol.slice(0, 2)}
-                            </div>
-                            <div>
-                              <p className="text-foreground font-medium">{name}</p>
-                              <p className="text-muted-foreground text-sm">{symbol}</p>
-                            </div>
+                  {userTokens.map((token, index) => (
+                    <div 
+                      key={index}
+                      className={`p-4 rounded-lg cursor-pointer transition-all ${
+                        selectedToken === index 
+                          ? 'bg-red-500/20 border border-red-500/50' 
+                          : 'bg-muted/50 hover:bg-muted'
+                      }`}
+                      onClick={() => setSelectedToken(index)}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center space-x-3">
+                          {token.image ? (
+                            <img 
+                              src={token.image} 
+                              alt={token.symbol}
+                              className="w-10 h-10 rounded-full"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                                target.nextElementSibling?.classList.remove('hidden');
+                              }}
+                            />
+                          ) : null}
+                          <div className={`w-10 h-10 rounded-full ${networkInfo.color} bg-current/20 flex items-center justify-center text-current font-bold ${token.image ? 'hidden' : ''}`}>
+                            {token.symbol.slice(0, 2)}
                           </div>
-                          {verified && (
-                            <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs">
-                              Verified
-                            </Badge>
-                          )}
-                        </div>
-                        <div className="flex justify-between items-center">
                           <div>
-                            <p className="text-foreground font-semibold">{uiBalance.toLocaleString()}</p>
-                            <p className="text-muted-foreground text-sm">{value || 'N/A'}</p>
+                            <p className="text-foreground font-medium">{token.name}</p>
+                            <p className="text-muted-foreground text-sm">{token.symbol}</p>
                           </div>
-                          {change && (
-                            <Badge className={`${
-                              change.startsWith('+') 
-                                ? 'bg-green-500/20 text-green-400 border-green-500/30'
-                                : 'bg-red-500/20 text-red-400 border-red-500/30'
-                            }`}>
-                              {change}
-                            </Badge>
-                          )}
                         </div>
+                        {token.verified && (
+                          <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs">
+                            Verified
+                          </Badge>
+                        )}
                       </div>
-                    );
-                  })}
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <p className="text-foreground font-semibold">{token.uiBalance.toLocaleString()}</p>
+                          <p className="text-muted-foreground text-sm">{token.value || 'N/A'}</p>
+                        </div>
+                        {token.change && (
+                          <Badge className={`${
+                            token.change.startsWith('+') 
+                              ? 'bg-green-500/20 text-green-400 border-green-500/30'
+                              : 'bg-red-500/20 text-red-400 border-red-500/30'
+                          }`}>
+                            {token.change}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
           </div>
 
-          {/* Token Details */}
+          {/* Asset Details */}
           <div className="lg:col-span-2">
             <Tabs defaultValue="overview" className="space-y-6">
               <div className="glass-card p-6">
                 <div className="mb-4">
-                  <h3 className="text-lg font-semibold text-foreground">{activeNetwork === 'algorand' ? 'Asset' : 'Token'} Management</h3>
-                  <p className="text-sm text-muted-foreground">Manage and analyze your {activeNetwork} {activeNetwork === 'algorand' ? 'assets' : 'tokens'}</p>
+                  <h3 className="text-lg font-semibold text-foreground">Asset Management</h3>
+                  <p className="text-sm text-muted-foreground">Manage and analyze your Algorand assets</p>
                 </div>
                 <TabsList className="enhanced-tabs grid w-full grid-cols-4">
                   <TabsTrigger value="overview" className="enhanced-tab-trigger">
@@ -628,14 +565,14 @@ export default function UnifiedDashboard() {
                 {userTokens.length === 0 ? (
                   <div className="glass-card p-6 text-center">
                     <Coins className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-xl font-semibold text-foreground mb-2">No {activeNetwork === 'algorand' ? 'Assets' : 'Tokens'} Found</h3>
+                    <h3 className="text-xl font-semibold text-foreground mb-2">No Assets Found</h3>
                     <p className="text-muted-foreground mb-6">
-                      Connect your {activeNetwork} wallet and create your first {activeNetwork === 'algorand' ? 'asset' : 'token'} to get started.
+                      Connect your Algorand wallet and create your first asset to get started.
                     </p>
                     <Link href="/create">
                       <Button className="bg-red-500 hover:bg-red-600 text-white">
                         <Plus className="w-4 h-4 mr-2" />
-                        Create Your First {activeNetwork === 'algorand' ? 'Asset' : 'Token'}
+                        Create Your First Asset
                       </Button>
                     </Link>
                   </div>
@@ -643,18 +580,8 @@ export default function UnifiedDashboard() {
                   <div className="glass-card p-6">
                     <div className="flex justify-between items-start mb-6">
                       <div>
-                        {(() => {
-                          const selectedTokenData = userTokens[selectedToken];
-                          const isAlgorand = 'assetId' in selectedTokenData;
-                          const name = isAlgorand ? (selectedTokenData as AlgorandTokenInfo).name : (selectedTokenData as EnhancedTokenInfo).name;
-                          const symbol = isAlgorand ? (selectedTokenData as AlgorandTokenInfo).symbol : (selectedTokenData as EnhancedTokenInfo).symbol;
-                          return (
-                            <>
-                              <h3 className="text-2xl font-bold text-foreground">{name}</h3>
-                              <p className="text-muted-foreground">{symbol}</p>
-                            </>
-                          );
-                        })()}
+                        <h3 className="text-2xl font-bold text-foreground">{userTokens[selectedToken].name}</h3>
+                        <p className="text-muted-foreground">{userTokens[selectedToken].symbol}</p>
                       </div>
                       <div className="flex space-x-2">
                         <Button 
@@ -663,9 +590,7 @@ export default function UnifiedDashboard() {
                           className="border-border text-muted-foreground"
                           onClick={() => {
                             const selectedTokenData = userTokens[selectedToken];
-                            const identifier = 'assetId' in selectedTokenData 
-                              ? (selectedTokenData as AlgorandTokenInfo).assetId.toString()
-                              : (selectedTokenData as EnhancedTokenInfo).mint;
+                            const identifier = selectedTokenData.assetId.toString();
                             navigator.clipboard.writeText(identifier);
                           }}
                         >
@@ -677,11 +602,7 @@ export default function UnifiedDashboard() {
                           className="border-border text-muted-foreground"
                           onClick={() => {
                             const selectedTokenData = userTokens[selectedToken];
-                            if ('explorerUrl' in selectedTokenData) {
-                              window.open((selectedTokenData as AlgorandTokenInfo).explorerUrl, '_blank');
-                            } else {
-                              window.open(`https://explorer.solana.com/address/${(selectedTokenData as EnhancedTokenInfo).mint}`, '_blank');
-                            }
+                            window.open(selectedTokenData.explorerUrl, '_blank');
                           }}
                         >
                           <ExternalLink className="w-4 h-4" />
@@ -689,37 +610,31 @@ export default function UnifiedDashboard() {
                       </div>
                     </div>
 
-                    {(() => {
-                      const selectedTokenData = userTokens[selectedToken];
-                      const isAlgorand = 'assetId' in selectedTokenData;
-                      const uiBalance = isAlgorand ? (selectedTokenData as AlgorandTokenInfo).uiBalance : (selectedTokenData as EnhancedTokenInfo).uiBalance;
-                      const value = isAlgorand ? (selectedTokenData as AlgorandTokenInfo).value : (selectedTokenData as EnhancedTokenInfo).value;
-                      const decimals = selectedTokenData.decimals;
-                      const identifier = isAlgorand 
-                        ? (selectedTokenData as AlgorandTokenInfo).assetId.toString()
-                        : (selectedTokenData as EnhancedTokenInfo).mint;
-
-                      return (
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                          <div className="bg-muted/50 rounded-lg p-4 text-center">
-                            <p className="text-muted-foreground text-sm">Balance</p>
-                            <p className="text-foreground font-bold">{uiBalance.toLocaleString()}</p>
-                          </div>
-                          <div className="bg-muted/50 rounded-lg p-4 text-center">
-                            <p className="text-muted-foreground text-sm">Value</p>
-                            <p className="text-foreground font-bold">{value || 'N/A'}</p>
-                          </div>
-                          <div className="bg-muted/50 rounded-lg p-4 text-center">
-                            <p className="text-muted-foreground text-sm">Decimals</p>
-                            <p className="text-foreground font-bold">{decimals}</p>
-                          </div>
-                          <div className="bg-muted/50 rounded-lg p-4 text-center">
-                            <p className="text-muted-foreground text-sm">{isAlgorand ? 'Asset ID' : 'Mint Address'}</p>
-                            <p className="text-foreground font-bold text-xs">{identifier.slice(0, 8)}...</p>
-                          </div>
-                        </div>
-                      );
-                    })()}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="bg-muted/50 rounded-lg p-4 text-center">
+                        <p className="text-muted-foreground text-sm">Balance</p>
+                        <p className="text-foreground font-bold">{userTokens[selectedToken].uiBalance.toLocaleString()}</p>
+                      </div>
+                      <div className="bg-muted/50 rounded-lg p-4 text-center">
+                        <p className="text-muted-foreground text-sm">Value</p>
+                        <p className="text-foreground font-bold">{userTokens[selectedToken].value || 'N/A'}</p>
+                      </div>
+                      <div className="bg-muted/50 rounded-lg p-4 text-center">
+                        <p className="text-muted-foreground text-sm">Decimals</p>
+                        <p className="text-foreground font-bold">{userTokens[selectedToken].decimals}</p>
+                      </div>
+                      <div className="bg-muted/50 rounded-lg p-4 text-center">
+                        <p className="text-muted-foreground text-sm">Asset ID</p>
+                        <p className="text-foreground font-bold text-xs">{userTokens[selectedToken].assetId}</p>
+                      </div>
+                    </div>
+                    
+                    {userTokens[selectedToken].description && (
+                      <div className="mt-6 p-4 bg-muted/30 rounded-lg">
+                        <h4 className="text-sm font-semibold text-foreground mb-2">Description</h4>
+                        <p className="text-muted-foreground text-sm">{userTokens[selectedToken].description}</p>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -826,10 +741,7 @@ export default function UnifiedDashboard() {
                     <div className="space-y-4">
                       {transactionData.map((tx, index) => {
                         const displayTx = formatTransactionForDisplay(tx);
-                        const txId = 'id' in tx ? tx.id : tx.signature;
-                        const explorerUrl = activeNetwork === 'algorand' 
-                          ? `${getAlgorandNetwork(algorandNetwork).explorer}/tx/${txId}`
-                          : `https://explorer.solana.com/tx/${txId}`;
+                        const explorerUrl = `${algorandNetworkConfig?.explorer}/tx/${tx.id}`;
                         
                         return (
                           <div key={index} className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
@@ -872,26 +784,26 @@ export default function UnifiedDashboard() {
                 {userTokens.length === 0 ? (
                   <div className="glass-card p-6 text-center">
                     <Settings className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-xl font-semibold text-foreground mb-2">No {activeNetwork === 'algorand' ? 'Assets' : 'Tokens'} to Manage</h3>
-                    <p className="text-muted-foreground mb-6">Create a {activeNetwork === 'algorand' ? 'asset' : 'token'} first to access management features.</p>
+                    <h3 className="text-xl font-semibold text-foreground mb-2">No Assets to Manage</h3>
+                    <p className="text-muted-foreground mb-6">Create an asset first to access management features.</p>
                     <Link href="/create">
                       <Button className="bg-red-500 hover:bg-red-600 text-white">
                         <Plus className="w-4 h-4 mr-2" />
-                        Create {activeNetwork === 'algorand' ? 'Asset' : 'Token'}
+                        Create Asset
                       </Button>
                     </Link>
                   </div>
                 ) : (
                   <>
-                    {/* Token Transfer */}
+                    {/* Asset Transfer */}
                     <div className="glass-card p-6">
-                      <h4 className="text-lg font-semibold text-foreground mb-6">Transfer {activeNetwork === 'algorand' ? 'Assets' : 'Tokens'}</h4>
+                      <h4 className="text-lg font-semibold text-foreground mb-6">Transfer Assets</h4>
                       <div className="space-y-4">
                         <div>
                           <Label htmlFor="transferAddress" className="text-foreground font-medium">Recipient Address</Label>
                           <Input
                             id="transferAddress"
-                            placeholder="Enter wallet address"
+                            placeholder="Enter Algorand wallet address"
                             value={transferAddress}
                             onChange={(e) => setTransferAddress(e.target.value)}
                             className="input-enhanced mt-2"
@@ -902,7 +814,7 @@ export default function UnifiedDashboard() {
                           <Input
                             id="transferAmount"
                             type="number"
-                            placeholder={`Enter amount`}
+                            placeholder="Enter amount"
                             value={transferAmount}
                             onChange={(e) => setTransferAmount(e.target.value)}
                             className="input-enhanced mt-2"
@@ -913,22 +825,22 @@ export default function UnifiedDashboard() {
                           className="bg-red-500 hover:bg-red-600 text-white w-full"
                         >
                           <Send className="w-4 h-4 mr-2" />
-                          Transfer {activeNetwork === 'algorand' ? 'Asset' : 'Token'}
+                          Transfer Asset
                         </Button>
                       </div>
                     </div>
 
                     {/* Other Management Actions */}
                     <div className="glass-card p-6">
-                      <h4 className="text-lg font-semibold text-foreground mb-6">{activeNetwork === 'algorand' ? 'Asset' : 'Token'} Management</h4>
+                      <h4 className="text-lg font-semibold text-foreground mb-6">Asset Management</h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <Button variant="outline" className="border-border text-muted-foreground hover:bg-muted h-12">
                           <Plus className="w-4 h-4 mr-2" />
-                          Mint {activeNetwork === 'algorand' ? 'Assets' : 'Tokens'}
+                          Mint Assets
                         </Button>
                         <Button variant="outline" className="border-border text-muted-foreground hover:bg-muted h-12">
                           <Flame className="w-4 h-4 mr-2" />
-                          Burn {activeNetwork === 'algorand' ? 'Assets' : 'Tokens'}
+                          Burn Assets
                         </Button>
                         <Button variant="outline" className="border-border text-muted-foreground hover:bg-muted h-12">
                           <Settings className="w-4 h-4 mr-2" />
@@ -950,11 +862,7 @@ export default function UnifiedDashboard() {
                           variant="outline" 
                           onClick={() => {
                             const selectedTokenData = userTokens[selectedToken];
-                            if ('explorerUrl' in selectedTokenData) {
-                              window.open((selectedTokenData as AlgorandTokenInfo).explorerUrl, '_blank');
-                            } else {
-                              window.open(`https://explorer.solana.com/address/${(selectedTokenData as EnhancedTokenInfo).mint}`, '_blank');
-                            }
+                            window.open(selectedTokenData.explorerUrl, '_blank');
                           }}
                           className="border-border text-muted-foreground hover:bg-muted h-12 gap-2"
                         >
