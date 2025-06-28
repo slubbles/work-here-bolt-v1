@@ -236,14 +236,17 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
             {symbol ? (
               <p className="text-muted-foreground text-2xl font-bold">{symbol.toUpperCase()}</p>
             ) : (
-              <div className="w-16 h-6 bg-muted animate-pulse rounded mx-auto"></div>
-              <div>
-                <p className="text-base font-medium text-green-600">
-                  Ready to deploy on {networkInfo.name}
-                </p>
-                <Link href="/support" className="text-xs text-blue-500 hover:underline flex items-center mt-0.5">
-                  Need help? <ExternalLink className="w-3 h-3 ml-0.5" />
-                </Link>
+              <>
+                <div className="w-16 h-6 bg-muted animate-pulse rounded mx-auto"></div>
+                <div>
+                  <p className="text-base font-medium text-green-600">
+                    Ready to deploy on {networkInfo.name}
+                  </p>
+                  <Link href="/support" className="text-xs text-blue-500 hover:underline flex items-center mt-0.5">
+                    Need help? <ExternalLink className="w-3 h-3 ml-0.5" />
+                  </Link>
+                </div>
+              </>
               </div>
             </div>
           )}

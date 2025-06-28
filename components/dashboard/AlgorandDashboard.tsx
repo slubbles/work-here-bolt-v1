@@ -49,8 +49,10 @@ import {
 } from '@/lib/algorand-data';
 import { mintAlgorandAssets, burnAlgorandAssets, optInToAsset } from '@/lib/algorand';
 import { Tooltip } from '@/components/ui/tooltip';
-import { Callout } from '@/components/ui/callout';
+import { Callout } from '@/components/ui/callout'; 
+import { useToast } from '@/hooks/use-toast';
 import { getAlgorandNetwork } from '@/lib/algorand';
+import { Info, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function AlgorandDashboard() {
@@ -484,7 +486,7 @@ export default function AlgorandDashboard() {
     );
   }
 
-  return (
+  const renderContent = () => (
     <div className="min-h-screen app-background">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Header */}
@@ -1021,6 +1023,13 @@ export default function AlgorandDashboard() {
         </div>
       </div>
     </div>
+  );
+  
+  return (
+    <>
+      {renderContent()}
+      <OptInDialog />
+    </>
   );
   
   // Mint Modal Component
