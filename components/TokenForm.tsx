@@ -40,8 +40,7 @@ export default function TokenForm({ onTokenCreate, defaultNetwork = 'algorand-te
   const [deploymentSteps, setDeploymentSteps] = useState<any[]>([]);
   const [deploymentComplete, setDeploymentComplete] = useState(false);
   const [error, setError] = useState('');
-  const [result, setResult] = useState<any>(null); 
-  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
+  const [result, setResult] = useState<any>(null);
   const [hasAppliedTokenomics, setHasAppliedTokenomics] = useState(false);
   const [tokenomicsInfo, setTokenomicsInfo] = useState<any>(null);
   const [copySuccess, setCopySuccess] = useState<string | null>(null);
@@ -208,7 +207,7 @@ ${tokenomicsInfo.vestingSchedule?.enabled ? `- Vesting: Enabled (Team: ${tokenom
       
       // Upload metadata step - simulated for now
       if (tracker) {
-        tracker.startStep('metadata-upload'); 
+        tracker.startStep('metadata-upload');
         await new Promise(resolve => setTimeout(resolve, 800)); // Small delay for UI
         tracker.completeStep('metadata-upload');
       }
@@ -307,8 +306,7 @@ ${tokenomicsInfo.vestingSchedule?.enabled ? `- Vesting: Enabled (Team: ${tokenom
         setDeploymentProgress(100);
         
         // Store result for UI display
-        setResult(createResult); 
-        setShowSuccessPopup(true);
+        setResult(createResult);
         
         // Complete any remaining steps
         if (tracker) {
@@ -555,23 +553,23 @@ ${tokenomicsInfo.vestingSchedule?.enabled ? `- Vesting: Enabled (Team: ${tokenom
               <p className="text-sm text-gray-600 mt-2">{deploymentProgress}% Complete</p>
             </div>
 
-            <div className="text-center">
-              <Progress 
-                value={deploymentProgress}
-                className="block w-full rounded-full h-3 mt-2"
-              />
-              <div className="text-center mt-2 text-sm text-muted-foreground">
-                {deploymentProgress === 100 ? 'Complete!' : `${deploymentProgress}% Complete`}
+            {/* Progress Bar */}
+            <div className="mt-6 space-y-2">
+              <div className="bg-muted h-2 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-gradient-to-r from-red-500 to-red-600 transition-all duration-500 ease-out"
+                  style={{ width: `${deploymentProgress}%` }}
+                ></div>
+              </div>
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>Creating {formData.name}...</span>
+                <span>{deploymentProgress}%</span>
               </div>
             </div>
 
-            <div className="space-y-3 mt-6">
+            <div className="space-y-3">
               {deploymentSteps.map((step, index) => (
-                <div key={index} className={`flex items-center space-x-3 p-3 rounded-lg ${
-                  step.status === 'completed' ? 'bg-green-500/10' : 
-                  step.status === 'in-progress' ? 'bg-blue-500/10' : 
-                  step.status === 'failed' ? 'bg-red-500/10' : 'bg-muted/30'
-                } transition-all duration-300`}>
+                <div key={index} className="flex items-center space-x-3">
                   <div className="flex-shrink-0">
                     {getStepIcon(step.status)}
                   </div>
@@ -586,8 +584,8 @@ ${tokenomicsInfo.vestingSchedule?.enabled ? `- Vesting: Enabled (Team: ${tokenom
                   {step.txId && (
                     <a 
                       href={step.explorerUrl} 
-                      target="_blank"
-                      rel="noopener noreferrer" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
                       className="text-xs text-blue-500 flex items-center"
                     >
                       View <ExternalLink className="h-3 w-3 ml-1" />
@@ -598,108 +596,6 @@ ${tokenomicsInfo.vestingSchedule?.enabled ? `- Vesting: Enabled (Team: ${tokenom
                   )}
                 </div>
               ))}
-            </div>
-          </div>
-        )}
-        
-        {/* Success Popup */}
-        {showSuccessPopup && result && (
-          <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/50 backdrop-blur-sm">
-            <div className="glass-card max-w-md p-6 shadow-xl border-green-500/30 bg-green-500/5 animate-in slide-in-from-top-2 duration-200">
-              <div className="text-center space-y-4">
-                <div className="flex justify-center">
-                  <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center success-pulse">
-                    <Check className="w-8 h-8 text-green-600" />
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <h3 className="text-2xl font-semibold text-green-800">Token Deployed Successfully!</h3>
-                  <p className="text-muted-foreground">Your token is now live on the blockchain</p>
-                </div>
-                
-                {/* Asset ID or Mint Address display */}
-                <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/30 rounded-lg p-4 text-center mt-4">
-                  {result.assetId && (
-                    <div className="space-y-2">
-                      <p className="text-green-700 dark:text-green-300 font-semibold text-sm">Asset ID</p>
-                      <p className="font-mono text-lg font-bold break-all">{result.assetId}</p>
-                    </div>
-                  )}
-                  {result.mintAddress && (
-                    <div className="space-y-2">
-                      <p className="text-green-700 dark:text-green-300 font-semibold text-sm">Mint Address</p>
-                      <p className="font-mono text-lg font-bold break-all">{result.mintAddress}</p>
-                    </div>
-                  )}
-                  {result.tokenAddress && (
-                    <div className="space-y-2">
-                      <p className="text-green-700 dark:text-green-300 font-semibold text-sm">Token Address</p>
-                      <p className="font-mono text-lg font-bold break-all">{result.tokenAddress}</p>
-                    </div>
-                  )}
-                </div>
-                
-                {/* Transaction details */}
-                {(result.transactionId || result.signature) && (
-                  <div className="text-center mt-2">
-                    <a 
-                      href={result.details?.explorerUrl || '#'} 
-                      target="_blank" 
-                      rel="noopener noreferrer" 
-                      className="text-blue-600 hover:underline inline-flex items-center text-sm"
-                    >
-                      View Transaction in Explorer <ExternalLink className="h-3 w-3 ml-1" />
-                    </a>
-                  </div>
-                )}
-                
-                <div className="flex space-x-4 mt-4">
-                  <Button 
-                    onClick={() => {
-                      setShowSuccessPopup(false);
-                      setDeploymentComplete(false);
-                      setDeploymentProgress(0);
-                      if (tracker) tracker.reset();
-                      setResult(null);
-                      setFormData({
-                        name: '',
-                        symbol: '',
-                        description: '',
-                        totalSupply: '',
-                        decimals: '6',
-                        logoUrl: '',
-                      });
-                    }}
-                    variant="outline"
-                    className="flex-1"
-                  >
-                    Create Another Token
-                  </Button>
-                  
-                  <Button 
-                    onClick={() => {
-                      if (result.details?.explorerUrl) {
-                        window.open(result.details.explorerUrl, '_blank');
-                      }
-                      setShowSuccessPopup(false);
-                    }}
-                    className="flex-1 bg-green-600 hover:bg-green-700"
-                  >
-                    View on Explorer
-                  </Button>
-                </div>
-                
-                <div className="pt-2">
-                  <Button 
-                    variant="link" 
-                    className="text-muted-foreground text-xs"
-                    onClick={() => setShowSuccessPopup(false)}
-                  >
-                    Close
-                  </Button>
-                </div>
-              </div>
             </div>
           </div>
         )}
@@ -721,25 +617,25 @@ ${tokenomicsInfo.vestingSchedule?.enabled ? `- Vesting: Enabled (Team: ${tokenom
               <div className="border rounded-md p-4 mt-4 text-left">
                 <h4 className="font-semibold mb-2">Token Details:</h4>
                 <div className="space-y-2 text-sm">
-                  {result && result.assetId && (
+                  {result.assetId && (
                     <div className="flex justify-between">
                       <span className="font-medium">Asset ID:</span>
                       <span className="font-mono">{result.assetId}</span>
                     </div>
                   )}
-                  {result && result.mintAddress && (
+                  {result.mintAddress && (
                     <div className="flex justify-between">
                       <span className="font-medium">Mint Address:</span>
-                      <span className="font-mono overflow-hidden text-ellipsis">{result.mintAddress.substring(0, 10)}...{result.mintAddress.substring(result.mintAddress.length - 4)}</span>
+                      <span className="font-mono">{result.mintAddress.substring(0, 10)}...{result.mintAddress.substring(result.mintAddress.length - 4)}</span>
                     </div>
                   )}
-                  {result && result.tokenAddress && (
+                  {result.tokenAddress && (
                     <div className="flex justify-between">
                       <span className="font-medium">Token Address:</span>
-                      <span className="font-mono overflow-hidden text-ellipsis">{result.tokenAddress.substring(0, 10)}...{result.tokenAddress.substring(result.tokenAddress.length - 4)}</span>
+                      <span className="font-mono">{result.tokenAddress.substring(0, 10)}...{result.tokenAddress.substring(result.tokenAddress.length - 4)}</span>
                     </div>
                   )}
-                  {result && (result.transactionId || result.signature) && (
+                  {result.transactionId || result.signature && (
                     <div className="flex justify-between">
                       <span className="font-medium">Transaction:</span>
                       <a 
