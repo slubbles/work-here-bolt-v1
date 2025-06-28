@@ -18,6 +18,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Switch } from '@/components/ui/switch';
 import { 
   Loader2, 
   Rocket, 
@@ -92,14 +93,25 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
   // Form validation
   const validateForm = (): boolean => {
     const errors: string[] = [];
+    const supply = parseFloat(tokenData.totalSupply);
 
     if (!tokenData.name.trim()) errors.push('Token name is required');
     if (!tokenData.symbol.trim()) errors.push('Token symbol is required');
-    if (!tokenData.totalSupply || parseFloat(tokenData.totalSupply) <= 0) {
+    if (!tokenData.totalSupply || supply <= 0) {
       errors.push('Total supply must be greater than 0');
     }
-    if (parseFloat(tokenData.totalSupply) > 1e15) {
-      errors.push('Total supply is too large. Please use a smaller number.');
+    
+    // Network-specific supply limits
+    if (tokenData.network.startsWith('algorand')) {
+      // Algorand's technical limit is 2^64-1, but for practical use we limit to 10^15
+      if (supply > 1e15) {
+        errors.push('Total supply must be 1,000,000,000,000,000 or less for Algorand');
+      }
+    } else if (tokenData.network === 'solana-devnet') {
+      // Solana can handle larger numbers but let's keep it reasonable
+      if (supply > 1e18) {
+        errors.push('Total supply must be 1,000,000,000,000,000,000 or less for Solana');
+      }
     }
     
     // Network-specific validations
@@ -360,8 +372,8 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
         
         // Show success dialog
         const successMessage = `Token "${tokenData.name}" has been successfully created and deployed to the blockchain!\n\n${
-          result.assetId ? `Asset ID: ${result.assetId}` : `Mint Address: ${result.mintAddress || result.tokenAddress}`
-        }\n\nTransaction ID: ${result.transactionId}`;
+          result.assetId ? `Asset ID: ${result.assetId}` : result.mintAddress ? `Mint Address: ${result.mintAddress}` : `Token Address: ${result.tokenAddress}`
+        }\n\nTransaction ID: ${result.transactionId}\n\nNetwork: ${networkInfo.name}`;
         
         showDialog('🎉 Token Created Successfully!', successMessage, 'success');
 
@@ -648,6 +660,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
                 <Info className="w-4 h-4" />
                 <span>Total number of tokens that will be created</span>
               </div>
+              <p className="text-xs text-blue-600">Maximum: {tokenData.network.startsWith('algorand') ? '1,000,000,000,000,000' : '1,000,000,000,000,000,000'}</p>
             </div>
             
             <div className="space-y-3">
@@ -834,62 +847,76 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="space-y-6">
             {/* Mintable Feature */}
-            <div className="feature-card p-6 border rounded-xl cursor-pointer transition-all duration-300 hover:shadow-lg">
-              <div className="text-center space-y-4">
-                <div 
-                  className="feature-toggle-button mx-auto"
-                  onClick={() => setTokenData({ ...tokenData, mintable: !tokenData.mintable })}
-                >
-                  <div className={`feature-toggle-button-inner ${tokenData.mintable ? 'active' : ''}`}>
-                    <Plus className="w-4 h-4" />
-                  </div>
+            <div className="flex items-center justify-between p-6 border rounded-xl transition-all duration-300 hover:shadow-lg">
+              <div className="flex items-center space-x-4">
+                <div className="w-12 h-12 rounded-xl bg-green-500/10 flex items-center justify-center">
+                  <Plus className="w-6 h-6 text-green-500" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-foreground">Mintable Token</h3>
-                  <p className="text-sm text-muted-foreground mt-1">Allows you to create additional tokens later</p>
+                  <h3 className="font-bold text-foreground text-lg">Mintable Token</h3>
+                  <p className="text-sm text-muted-foreground">Allows you to create additional tokens later</p>
                 </div>
               </div>
+              <Switch
+                checked={tokenData.mintable}
+                onCheckedChange={(checked) => setTokenData({ ...tokenData, mintable: checked })}
+                className="touch-target-switch"
+              />
             </div>
 
             {/* Burnable Feature */}
-            <div className="feature-card p-6 border rounded-xl cursor-pointer transition-all duration-300 hover:shadow-lg">
-              <div className="text-center space-y-4">
-                <div 
-                  className="feature-toggle-button mx-auto"
-                  onClick={() => setTokenData({ ...tokenData, burnable: !tokenData.burnable })}
-                >
-                  <div className={`feature-toggle-button-inner ${tokenData.burnable ? 'active' : ''}`}>
-                    <Flame className="w-4 h-4" />
-                  </div>
+            <div className="flex items-center justify-between p-6 border rounded-xl transition-all duration-300 hover:shadow-lg">
+              <div className="flex items-center space-x-4">
+                <div className="w-12 h-12 rounded-xl bg-red-500/10 flex items-center justify-center">
+                  <Flame className="w-6 h-6 text-red-500" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-foreground">Burnable Token</h3>
-                  <p className="text-sm text-muted-foreground mt-1">Allows permanent destruction of tokens</p>
+                  <h3 className="font-bold text-foreground text-lg">Burnable Token</h3>
+                  <p className="text-sm text-muted-foreground">Allows permanent destruction of tokens</p>
                 </div>
               </div>
+              <Switch
+                checked={tokenData.burnable}
+                onCheckedChange={(checked) => setTokenData({ ...tokenData, burnable: checked })}
+                className="touch-target-switch"
+              />
             </div>
 
             {/* Pausable Feature */}
-            <div className="feature-card p-6 border rounded-xl cursor-pointer transition-all duration-300 hover:shadow-lg">
-              <div className="text-center space-y-4">
-                <div 
-                  className="feature-toggle-button mx-auto"
-                  onClick={() => setTokenData({ ...tokenData, pausable: !tokenData.pausable })}
-                >
-                  <div className={`feature-toggle-button-inner ${tokenData.pausable ? 'active' : ''}`}>
-                    <Pause className="w-4 h-4" />
-                  </div>
+            <div className="flex items-center justify-between p-6 border rounded-xl transition-all duration-300 hover:shadow-lg">
+              <div className="flex items-center space-x-4">
+                <div className="w-12 h-12 rounded-xl bg-yellow-500/10 flex items-center justify-center">
+                  <Pause className="w-6 h-6 text-yellow-500" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-foreground">Pausable Token</h3>
-                  <p className="text-sm text-muted-foreground mt-1">Ability to freeze all transfers in emergencies</p>
+                  <h3 className="font-bold text-foreground text-lg">Pausable Token</h3>
+                  <p className="text-sm text-muted-foreground">Ability to freeze all transfers in emergencies</p>
+                  </div>
                 </div>
+              <Switch
+                checked={tokenData.pausable}
+                onCheckedChange={(checked) => setTokenData({ ...tokenData, pausable: checked })}
+                className="touch-target-switch"
+              />
+            </div>
+          </div>
+
+          <div className="mt-6 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+            <div className="flex items-start gap-3">
+              <Info className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
+              <div className="text-sm text-blue-600">
+                <h4 className="font-medium">Smart Contract Features</h4>
+                <ul className="mt-2 space-y-1">
+                  <li><strong>Mintable:</strong> Create additional tokens after deployment</li>
+                  <li><strong>Burnable:</strong> Permanently remove tokens from circulation</li>
+                  <li><strong>Pausable:</strong> Emergency stop for all token transfers</li>
+                </ul>
               </div>
             </div>
           </div>
-          
+
           <div className="mt-4 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg hover:bg-yellow-500/15 transition-colors">
             <div className="flex items-start gap-3">
               <AlertTriangle className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
@@ -1068,24 +1095,42 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
       
       {/* Result Dialog */}
       <AlertDialog open={showResultDialog} onOpenChange={setShowResultDialog}>
-        <AlertDialogContent className="max-w-md">
+        <AlertDialogContent className="max-w-lg">
           <AlertDialogHeader>
-            <AlertDialogTitle className={`text-center ${dialogType === 'success' ? 'text-green-600' : 'text-red-600'}`}>
+            <div className="text-center">
+              <div className={`w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center ${
+                dialogType === 'success' ? 'bg-green-500/20' : 'bg-red-500/20'
+              }`}>
+                {dialogType === 'success' ? (
+                  <CheckCircle className="w-8 h-8 text-green-500" />
+                ) : (
+                  <AlertTriangle className="w-8 h-8 text-red-500" />
+                )}
+              </div>
+            </div>
+            <AlertDialogTitle className={`text-center text-2xl ${dialogType === 'success' ? 'text-green-600' : 'text-red-600'}`}>
               {dialogTitle}
             </AlertDialogTitle>
-            <AlertDialogDescription className="text-center whitespace-pre-line">
+            <AlertDialogDescription className="text-center whitespace-pre-line text-base leading-relaxed">
               {dialogMessage}
             </AlertDialogDescription>
+            {dialogType === 'success' && deploymentResult && (
+              <div className="mt-4 p-4 bg-green-500/10 border border-green-500/30 rounded-lg">
+                <p className="text-sm text-green-600 text-center">
+                  🎉 Your token is now live on the blockchain! You can start using it immediately.
+                </p>
+              </div>
+            )}
           </AlertDialogHeader>
           <AlertDialogFooter className="flex justify-center">
             <AlertDialogAction 
               onClick={() => setShowResultDialog(false)}
-              className={`w-full ${dialogType === 'success' 
+              className={`w-full text-lg py-3 ${dialogType === 'success' 
                 ? 'bg-green-600 hover:bg-green-700' 
                 : 'bg-red-600 hover:bg-red-700'
               } text-white`}
             >
-              {dialogType === 'success' ? 'Awesome!' : 'Try Again'}
+              {dialogType === 'success' ? '🚀 Awesome!' : 'Try Again'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
