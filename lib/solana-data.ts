@@ -1,6 +1,7 @@
 import { Connection, PublicKey, ParsedAccountData, TokenAmount } from '@solana/web3.js';
 import { TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { connection } from './solana';
+import { getTokenMarketData, getTokenMetrics, TokenMarketData, TokenMetrics } from './market-data';
 
 // Token account info interface
 export interface TokenAccountInfo {
@@ -42,6 +43,8 @@ export interface EnhancedTokenInfo {
   holders?: number;
   marketCap?: number;
   verified: boolean;
+  marketData?: TokenMarketData;
+  metrics?: TokenMetrics;
 }
 
 // Transaction info interface
@@ -54,6 +57,8 @@ export interface TransactionInfo {
   status: 'confirmed' | 'finalized' | 'failed';
   from?: string;
   to?: string;
+  txFee?: number;
+  usdValue?: number;
 }
 
 // Get all token accounts for a wallet
@@ -254,11 +259,37 @@ export async function getEnhancedTokenInfo(walletAddress: string): Promise<{ suc
           website: metadata.website,
           twitter: metadata.twitter,
           verified: metadata.verified,
-          // Mock some additional data that would come from price APIs
-          value: `$${(Math.random() * 1000).toFixed(2)}`,
-          change: `${Math.random() > 0.5 ? '+' : '-'}${(Math.random() * 20).toFixed(1)}%`,
-          holders: Math.floor(Math.random() * 10000) + 100,
         };
+        
+        // Get real market data
+        try {
+          const marketResult = await getTokenMarketData(account.mint);
+          if (marketResult.success && marketResult.data) {
+            enhancedToken.marketData = marketResult.data;
+            enhancedToken.value = marketResult.data.price > 0 
+              ? `$${(marketResult.data.price * enhancedToken.uiBalance).toFixed(2)}`
+              : 'N/A';
+            enhancedToken.change = `${marketResult.data.priceChange24h >= 0 ? '+' : ''}${marketResult.data.priceChange24h.toFixed(1)}%`;
+            enhancedToken.holders = marketResult.data.holders;
+          } else {
+            // Fallback to placeholder data
+            enhancedToken.value = 'N/A';
+            enhancedToken.change = '0.0%';
+            enhancedToken.holders = 0;
+          }
+          
+          // Get token metrics
+          const metricsResult = await getTokenMetrics(account.mint);
+          if (metricsResult.success && metricsResult.data) {
+            enhancedToken.metrics = metricsResult.data;
+          }
+        } catch (marketError) {
+          console.warn(`Failed to get market data for ${account.mint}:`, marketError);
+          // Use fallback data
+          enhancedToken.value = 'N/A';
+          enhancedToken.change = '0.0%';
+          enhancedToken.holders = 0;
+        }
         
         enhancedTokens.push(enhancedToken);
       }
@@ -291,30 +322,32 @@ export async function getWalletTransactionHistory(walletAddress: string, limit: 
     
     // Get transaction details for a subset (to avoid rate limits)
     const transactionInfos: TransactionInfo[] = [];
-    const maxTransactionsToProcess = Math.min(signatures.length, 10); // Process max 10 for performance
+    const maxTransactionsToProcess = Math.min(signatures.length, 20); // Increased to 20 for better data
     
     for (let i = 0; i < maxTransactionsToProcess; i++) {
       const sig = signatures[i];
       
       try {
-        const transaction = await connection.getParsedTransaction(sig.signature, 'confirmed');
+        const transaction = await connection.getParsedTransaction(sig.signature, {
+          maxSupportedTransactionVersion: 0
+        });
         
         if (transaction && transaction.meta) {
           // Parse transaction to extract relevant info
           const transactionInfo: TransactionInfo = {
             signature: sig.signature,
-            type: 'Transfer', // Simplified - would need more parsing for actual type
+            type: determineTransactionType(transaction),
             amount: '0', // Would need to parse from transaction details
             token: 'SOL', // Default to SOL, would need parsing for token transfers
             timestamp: sig.blockTime ? sig.blockTime * 1000 : Date.now(),
             status: transaction.meta.err ? 'failed' : 'confirmed',
             from: transaction.transaction.message.accountKeys[0]?.pubkey.toString(),
             to: transaction.transaction.message.accountKeys[1]?.pubkey.toString(),
+            txFee: transaction.meta.fee / 1000000000, // Convert lamports to SOL
           };
           
           // Try to extract more specific info from token transfers
           if (transaction.meta.preTokenBalances && transaction.meta.postTokenBalances) {
-            // This is a token transfer
             const preBalance = transaction.meta.preTokenBalances[0];
             const postBalance = transaction.meta.postTokenBalances[0];
             
@@ -323,7 +356,20 @@ export async function getWalletTransactionHistory(walletAddress: string, limit: 
                 (postBalance.uiTokenAmount.uiAmount || 0) - (preBalance.uiTokenAmount.uiAmount || 0)
               );
               transactionInfo.amount = amountDiff.toString();
-              transactionInfo.type = amountDiff > 0 ? 'Receive' : 'Send';
+              transactionInfo.type = getTransactionDirection(transaction, walletAddress);
+              transactionInfo.token = `Token`;
+            }
+          }
+          
+          // Extract SOL transfer amount
+          if (transaction.meta.preBalances && transaction.meta.postBalances) {
+            const preBalance = transaction.meta.preBalances[0] || 0;
+            const postBalance = transaction.meta.postBalances[0] || 0;
+            const solDiff = Math.abs(postBalance - preBalance) / 1000000000; // Convert to SOL
+            
+            if (solDiff > 0.001) { // Only count significant SOL transfers
+              transactionInfo.amount = solDiff.toFixed(4);
+              transactionInfo.token = 'SOL';
             }
           }
           
@@ -356,6 +402,46 @@ export async function getWalletTransactionHistory(walletAddress: string, limit: 
       error: error instanceof Error ? error.message : 'Failed to fetch transaction history'
     };
   }
+}
+
+// Helper function to determine transaction type
+function determineTransactionType(transaction: any): string {
+  const instructions = transaction.transaction.message.instructions;
+  
+  for (const instruction of instructions) {
+    if (instruction.programId) {
+      const programId = instruction.programId.toString();
+      
+      // Token program transactions
+      if (programId === TOKEN_PROGRAM_ID.toString()) {
+        return 'Token Transfer';
+      }
+      
+      // System program transactions (SOL transfers)
+      if (programId === '11111111111111111111111111111112') {
+        return 'SOL Transfer';
+      }
+      
+      // Common DEX programs
+      if (programId.includes('Jupiter') || programId.includes('Raydium')) {
+        return 'Swap';
+      }
+    }
+  }
+  
+  return 'Transaction';
+}
+
+// Helper function to determine transaction direction
+function getTransactionDirection(transaction: any, walletAddress: string): string {
+  const accountKeys = transaction.transaction.message.accountKeys;
+  const walletPubkey = new PublicKey(walletAddress);
+  
+  if (accountKeys.length > 0) {
+    return accountKeys[0].pubkey.equals(walletPubkey) ? 'Send' : 'Receive';
+  }
+  
+  return 'Transfer';
 }
 
 // Get SOL balance for wallet
@@ -403,12 +489,14 @@ export async function getWalletSummary(walletAddress: string): Promise<{
     const solBalance = solResult.success && solResult.balance ? solResult.balance : 0;
     const recentTransactions = transactionsResult.success && transactionsResult.data ? transactionsResult.data.length : 0;
     
-    // Calculate total value (mock calculation for now)
-    let totalValue = solBalance * 100; // Assume SOL = $100 for mock
+    // Calculate total value using real market data
+    let totalValue = solBalance * 100; // Default SOL price estimation
     if (tokensResult.success && tokensResult.data) {
       totalValue += tokensResult.data.reduce((sum, token) => {
-        const value = parseFloat(token.value?.replace('$', '') || '0');
-        return sum + value;
+        if (token.marketData && token.marketData.price > 0) {
+          return sum + (token.marketData.price * token.uiBalance);
+        }
+        return sum;
       }, 0);
     }
     
@@ -428,6 +516,82 @@ export async function getWalletSummary(walletAddress: string): Promise<{
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to get wallet summary'
+    };
+  }
+}
+
+// Get real-time token holder information
+export async function getTokenHolders(mintAddress: string): Promise<{ 
+  success: boolean; 
+  data?: {
+    totalHolders: number;
+    topHolders: Array<{
+      address: string;
+      balance: number;
+      percentage: number;
+    }>;
+  }; 
+  error?: string;
+}> {
+  try {
+    console.log(`👥 Fetching token holders for: ${mintAddress}`);
+    
+    const mintPubkey = new PublicKey(mintAddress);
+    
+    // Get all token accounts for this mint
+    const tokenAccounts = await connection.getProgramAccounts(
+      TOKEN_PROGRAM_ID,
+      {
+        filters: [
+          { dataSize: 165 }, // Token account size
+          { memcmp: { offset: 0, bytes: mintAddress } } // Filter by mint
+        ]
+      }
+    );
+    
+    // Parse account data to get balances
+    const holders = tokenAccounts
+      .map(account => {
+        const data = account.account.data;
+        if (data.length >= 72) {
+          const balance = Number(data.readBigUInt64LE(64));
+          const owner = new PublicKey(data.slice(32, 64));
+          
+          return {
+            address: owner.toString(),
+            balance: balance,
+            account: account.pubkey.toString()
+          };
+        }
+        return null;
+      })
+      .filter(holder => holder && holder.balance > 0) // Filter out zero balances
+      .sort((a, b) => (b?.balance || 0) - (a?.balance || 0)); // Sort by balance desc
+    
+    // Calculate percentages
+    const totalSupply = holders.reduce((sum, holder) => sum + (holder?.balance || 0), 0);
+    
+    const topHolders = holders.slice(0, 10).map(holder => ({
+      address: holder?.address || '',
+      balance: holder?.balance || 0,
+      percentage: totalSupply > 0 ? ((holder?.balance || 0) / totalSupply) * 100 : 0
+    }));
+    
+    console.log(`✅ Found ${holders.length} token holders`);
+    
+    return {
+      success: true,
+      data: {
+        totalHolders: holders.length,
+        topHolders
+      }
+    };
+    
+  } catch (error) {
+    console.error('❌ Error fetching token holders:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to fetch token holders'
     };
   }
 }

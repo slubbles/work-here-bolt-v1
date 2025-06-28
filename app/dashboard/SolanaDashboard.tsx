@@ -52,9 +52,11 @@ import {
   getEnhancedTokenInfo, 
   getWalletTransactionHistory, 
   getWalletSummary,
+  getTokenHolders,
   EnhancedTokenInfo,
   TransactionInfo
 } from '@/lib/solana-data';
+import { getNetworkStats } from '@/lib/market-data';
 import { mintTokens, burnTokens, updateTokenMetadata } from '@/lib/solana';
 import { useToast } from '@/hooks/use-toast';
 
@@ -83,6 +85,8 @@ export default function SolanaDashboard() {
   const [transactionData, setTransactionData] = useState<TransactionInfo[]>([]);
   const [walletSummary, setWalletSummary] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  const [networkStats, setNetworkStats] = useState<any>(null);
+  const [selectedTokenHolders, setSelectedTokenHolders] = useState<any>(null);
   
   // Solana wallet integration
   const { connected, publicKey } = useWallet();
@@ -126,18 +130,25 @@ export default function SolanaDashboard() {
       setUserTokens([]);
       setTransactionData([]);
       setWalletSummary(null);
+      setNetworkStats(null);
       
-      // Simplified data fetching with better error handling
-      const [tokensResult, transactionsResult, summaryResult] = await Promise.allSettled([
+      // Enhanced data fetching with real-time information
+      const [tokensResult, transactionsResult, summaryResult, networkResult] = await Promise.allSettled([
         getEnhancedTokenInfo(walletAddress),
-        getWalletTransactionHistory(walletAddress, 10),
-        getWalletSummary(walletAddress)
+        getWalletTransactionHistory(walletAddress, 20),
+        getWalletSummary(walletAddress),
+        getNetworkStats()
       ]);
       
       // Handle tokens data
       if (tokensResult.status === 'fulfilled' && tokensResult.value.success && tokensResult.value.data) {
         setUserTokens(tokensResult.value.data);
         console.log(`✅ Loaded ${tokensResult.value.data.length} tokens`);
+        
+        // Load holder data for the first token
+        if (tokensResult.value.data.length > 0) {
+          loadTokenHolders(tokensResult.value.data[0].mint);
+        }
       } else {
         console.warn('⚠️ Failed to load tokens');
         setUserTokens([]);
@@ -166,6 +177,12 @@ export default function SolanaDashboard() {
         });
       }
       
+      // Handle network stats
+      if (networkResult.status === 'fulfilled' && networkResult.value.success && networkResult.value.data) {
+        setNetworkStats(networkResult.value.data);
+        console.log('✅ Network stats loaded');
+      }
+      
     } catch (err) {
       console.error('❌ Error fetching dashboard data:', err);
       setError('Failed to load some dashboard data. Some features may be limited.');
@@ -182,6 +199,26 @@ export default function SolanaDashboard() {
     }
   };
   
+  // Load token holder information
+  const loadTokenHolders = async (mintAddress: string) => {
+    try {
+      const result = await getTokenHolders(mintAddress);
+      if (result.success && result.data) {
+        setSelectedTokenHolders(result.data);
+      }
+    } catch (error) {
+      console.warn('Failed to load token holders:', error);
+    }
+  };
+  
+  // Handle token selection change
+  const handleTokenSelection = (index: number) => {
+    setSelectedToken(index);
+    if (userTokens[index]) {
+      loadTokenHolders(userTokens[index].mint);
+    }
+  };
+  
   // Manual refresh function
   const handleRefresh = async () => {
     if (!connected || !publicKey || isRefreshing) return;
@@ -192,12 +229,38 @@ export default function SolanaDashboard() {
   };
 
   // Generate chart data from transaction history
-  const chartData = [
-    { name: 'Week 1', value: transactionData.slice(0, 7).length },
-    { name: 'Week 2', value: transactionData.slice(7, 14).length },
-    { name: 'Week 3', value: transactionData.slice(14, 21).length },
-    { name: 'Week 4', value: transactionData.slice(21, 28).length },
-  ];
+  const chartData = React.useMemo(() => {
+    if (transactionData.length === 0) {
+      return [
+        { name: 'Day 1', value: 0 },
+        { name: 'Day 2', value: 0 },
+        { name: 'Day 3', value: 0 },
+        { name: 'Day 4', value: 0 },
+        { name: 'Day 5', value: 0 },
+        { name: 'Day 6', value: 0 },
+        { name: 'Day 7', value: 0 },
+      ];
+    }
+    
+    // Group transactions by day
+    const now = Date.now();
+    const dayGroups = Array.from({ length: 7 }, (_, i) => {
+      const dayStart = now - (i * 24 * 60 * 60 * 1000);
+      const dayEnd = now - ((i - 1) * 24 * 60 * 60 * 1000);
+      
+      const dayTransactions = transactionData.filter(tx => 
+        tx.timestamp >= dayStart && tx.timestamp < dayEnd
+      );
+      
+      return {
+        name: `Day ${7 - i}`,
+        value: dayTransactions.length,
+        volume: dayTransactions.reduce((sum, tx) => sum + parseFloat(tx.amount || '0'), 0)
+      };
+    }).reverse();
+    
+    return dayGroups;
+  }, [transactionData]);
 
   // Format transaction data for display
   const formatTransactionForDisplay = (tx: TransactionInfo) => {
@@ -578,7 +641,7 @@ export default function SolanaDashboard() {
                           ? 'bg-red-500/20 border border-red-500/50' 
                           : 'bg-muted/50 hover:bg-muted'
                       }`}
-                      onClick={() => setSelectedToken(index)}
+                      onClick={() => handleTokenSelection(index)}
                     >
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center space-x-3">
@@ -611,15 +674,17 @@ export default function SolanaDashboard() {
                       <div className="flex justify-between items-center">
                         <div>
                           <p className="text-foreground font-semibold">{token.uiBalance.toLocaleString()}</p>
-                          <p className="text-muted-foreground text-sm">{token.value || 'N/A'}</p>
+                          <p className="text-muted-foreground text-sm">
+                            {token.marketData ? `$${(token.marketData.price * token.uiBalance).toFixed(2)}` : token.value || 'N/A'}
+                          </p>
                         </div>
-                        {token.change && (
+                        {token.marketData && (
                           <Badge className={`${
-                            token.change.startsWith('+') 
+                            token.marketData.priceChange24h >= 0
                               ? 'bg-green-500/20 text-green-400 border-green-500/30'
                               : 'bg-red-500/20 text-red-400 border-red-500/30'
                           }`}>
-                            {token.change}
+                            {token.marketData.priceChange24h >= 0 ? '+' : ''}{token.marketData.priceChange24h.toFixed(1)}%
                           </Badge>
                         )}
                       </div>
@@ -748,7 +813,14 @@ export default function SolanaDashboard() {
                             tick={{ fontSize: 12 }}
                             tickLine={{ stroke: 'currentColor', opacity: 0.5 }}
                           />
-                          <Tooltip />
+                          <Tooltip 
+                            contentStyle={{
+                              backgroundColor: 'hsl(var(--background))',
+                              border: '1px solid hsl(var(--border))',
+                              borderRadius: '8px',
+                              color: 'hsl(var(--foreground))'
+                            }}
+                          />
                           <Line 
                             type="monotone" 
                             dataKey="value" 
@@ -794,7 +866,14 @@ export default function SolanaDashboard() {
                             opacity={0.7}
                             tick={{ fontSize: 12 }}
                           />
-                          <Tooltip />
+                          <Tooltip 
+                            contentStyle={{
+                              backgroundColor: 'hsl(var(--background))',
+                              border: '1px solid hsl(var(--border))',
+                              borderRadius: '8px',
+                              color: 'hsl(var(--foreground))'
+                            }}
+                          />
                           <Bar 
                             dataKey="value" 
                             fill="#EF4444"
@@ -834,12 +913,25 @@ export default function SolanaDashboard() {
                         return (
                           <div key={index} className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
                             <div className="flex items-center space-x-3">
-                              <div className="w-8 h-8 rounded-full bg-red-500/20 flex items-center justify-center">
-                                <Send className="w-4 h-4 text-red-400" />
+                              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                                displayTx.type.includes('Send') ? 'bg-red-500/20' :
+                                displayTx.type.includes('Receive') ? 'bg-green-500/20' :
+                                displayTx.type.includes('Swap') ? 'bg-blue-500/20' :
+                                'bg-gray-500/20'
+                              }`}>
+                                <Send className={`w-4 h-4 ${
+                                  displayTx.type.includes('Send') ? 'text-red-400' :
+                                  displayTx.type.includes('Receive') ? 'text-green-400' :
+                                  displayTx.type.includes('Swap') ? 'text-blue-400' :
+                                  'text-gray-400'
+                                }`} />
                               </div>
                               <div>
                                 <p className="text-foreground font-medium">{displayTx.type}</p>
                                 <p className="text-muted-foreground text-sm">{displayTx.amount} to {displayTx.to}</p>
+                                {tx.txFee && (
+                                  <p className="text-muted-foreground text-xs">Fee: {tx.txFee.toFixed(6)} SOL</p>
+                                )}
                                 <button
                                   onClick={() => window.open(`https://explorer.solana.com/tx/${tx.signature}`, '_blank')}
                                   className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
@@ -850,19 +942,123 @@ export default function SolanaDashboard() {
                             </div>
                             <div className="text-right">
                               <p className="text-muted-foreground text-sm">{displayTx.time}</p>
+                              {tx.usdValue && (
+                                <p className="text-muted-foreground text-xs">${tx.usdValue.toFixed(2)}</p>
+                              )}
                               <Badge className={`${
                                 displayTx.status === 'Completed' 
-                                  ? 'bg-green-500/20 text-green-400 border-green-500/30'
+                          <p className="text-foreground font-bold">
+                            {userTokens[selectedToken].marketData 
+                              ? `$${(userTokens[selectedToken].marketData!.price * userTokens[selectedToken].uiBalance).toFixed(2)}`
+                              : 'N/A'
+                            }
+                          </p>
                                   : displayTx.status === 'Failed'
                                   ? 'bg-red-500/20 text-red-400 border-red-500/30'
                                   : 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
                               }`}>
                                 {displayTx.status}
                               </Badge>
-                            </div>
-                          </div>
+                          <p className="text-muted-foreground text-sm">Holders</p>
+                          <p className="text-foreground font-bold">
+                            {userTokens[selectedToken].marketData?.holders || selectedTokenHolders?.totalHolders || 'N/A'}
+                          </p>
                         );
                       })}
+                    </div>
+                  )}
+                  
+                  {/* Market Data Section */}
+                  {userTokens.length > 0 && userTokens[selectedToken].marketData && (
+                    <div className="glass-card p-6">
+                      <h4 className="text-lg font-semibold text-foreground mb-4">Market Data</h4>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="bg-muted/50 rounded-lg p-4 text-center">
+                          <p className="text-muted-foreground text-sm">Price</p>
+                          <p className="text-foreground font-bold">
+                            ${userTokens[selectedToken].marketData!.price.toFixed(6)}
+                          </p>
+                        </div>
+                        <div className="bg-muted/50 rounded-lg p-4 text-center">
+                          <p className="text-muted-foreground text-sm">24h Change</p>
+                          <p className={`font-bold ${
+                            userTokens[selectedToken].marketData!.priceChange24h >= 0 
+                              ? 'text-green-500' 
+                              : 'text-red-500'
+                          }`}>
+                            {userTokens[selectedToken].marketData!.priceChange24h >= 0 ? '+' : ''}
+                            {userTokens[selectedToken].marketData!.priceChange24h.toFixed(1)}%
+                          </p>
+                        </div>
+                        <div className="bg-muted/50 rounded-lg p-4 text-center">
+                          <p className="text-muted-foreground text-sm">24h Volume</p>
+                          <p className="text-foreground font-bold">
+                            ${userTokens[selectedToken].marketData!.volume24h.toLocaleString()}
+                          </p>
+                        </div>
+                        <div className="bg-muted/50 rounded-lg p-4 text-center">
+                          <p className="text-muted-foreground text-sm">Liquidity</p>
+                          <p className="text-foreground font-bold">
+                            ${userTokens[selectedToken].marketData!.liquidity.toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Token Metrics */}
+                  {userTokens.length > 0 && userTokens[selectedToken].metrics && (
+                    <div className="glass-card p-6">
+                      <h4 className="text-lg font-semibold text-foreground mb-4">Token Metrics</h4>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        <div className="bg-muted/50 rounded-lg p-4 text-center">
+                          <p className="text-muted-foreground text-sm">24h Transactions</p>
+                          <p className="text-foreground font-bold">
+                            {userTokens[selectedToken].metrics!.transactions24h}
+                          </p>
+                        </div>
+                        <div className="bg-muted/50 rounded-lg p-4 text-center">
+                          <p className="text-muted-foreground text-sm">Active Traders</p>
+                          <p className="text-foreground font-bold">
+                            {userTokens[selectedToken].metrics!.activeTraders}
+                          </p>
+                        </div>
+                        <div className="bg-muted/50 rounded-lg p-4 text-center">
+                          <p className="text-muted-foreground text-sm">Liquidity Score</p>
+                          <p className="text-foreground font-bold">
+                            {userTokens[selectedToken].metrics!.liquidityScore.toFixed(0)}/100
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Holder Distribution */}
+                  {selectedTokenHolders && (
+                    <div className="glass-card p-6">
+                      <h4 className="text-lg font-semibold text-foreground mb-4">Top Holders</h4>
+                      <div className="space-y-3">
+                        {selectedTokenHolders.topHolders.slice(0, 5).map((holder: any, index: number) => (
+                          <div key={index} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                            <div className="flex items-center space-x-3">
+                              <div className="w-6 h-6 rounded-full bg-red-500/20 flex items-center justify-center">
+                                <span className="text-xs font-bold text-red-500">#{index + 1}</span>
+                              </div>
+                              <span className="font-mono text-sm">
+                                {holder.address.slice(0, 8)}...{holder.address.slice(-4)}
+                              </span>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-foreground font-semibold text-sm">
+                                {holder.percentage.toFixed(1)}%
+                              </p>
+                              <p className="text-muted-foreground text-xs">
+                                {holder.balance.toLocaleString()} tokens
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -1136,6 +1332,31 @@ export default function SolanaDashboard() {
             </Tabs>
           </div>
         </div>
+        
+        {/* Network Stats Footer */}
+        {networkStats && (
+          <div className="mt-8 glass-card p-6">
+            <h3 className="text-lg font-semibold text-foreground mb-4">Solana Network Status</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="text-center">
+                <p className="text-2xl font-bold text-green-500">{networkStats.tps}</p>
+                <p className="text-sm text-muted-foreground">TPS</p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold text-blue-500">{networkStats.activeValidators}</p>
+                <p className="text-sm text-muted-foreground">Validators</p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold text-purple-500">{(networkStats.averageFee / 1000000000).toFixed(6)}</p>
+                <p className="text-sm text-muted-foreground">Avg Fee (SOL)</p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold text-orange-500">{networkStats.totalTransactions.toLocaleString()}</p>
+                <p className="text-sm text-muted-foreground">Recent Transactions</p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
