@@ -9,6 +9,7 @@ const nextConfig = {
   optimizeFonts: true,
   images: {
     domains: ['api.dicebear.com', 'images.unsplash.com'],
+    unoptimized: true,
     formats: ['image/webp', 'image/avif'],
     minimumCacheTTL: 60,
     dangerouslyAllowSVG: true,
