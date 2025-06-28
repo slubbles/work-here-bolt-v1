@@ -472,6 +472,20 @@ export default function Navbar() {
                 </div>
               )}
             </div>
+          
+          {/* Bolt.new Badge */}
+          <a 
+            href="https://bolt.new/" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="ml-2 transition-transform hover:scale-105"
+          >
+            <img 
+              src="/white_circle_360x360 copy.png" 
+              alt="Powered by Bolt.new" 
+              className="w-8 h-8"
+            />
+          </a>
           </div>
 
           {/* Mobile menu button */}
@@ -718,10 +732,26 @@ export default function Navbar() {
                     </div>
                   )}
                 </div>
+                
+                {/* Bolt.new Badge for Mobile */}
+                <div className="mt-4 flex justify-center">
+                  <a 
+                    href="https://bolt.new/" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="transition-transform hover:scale-105"
+                  >
+                    <img 
+                      src="/white_circle_360x360 copy.png" 
+                      alt="Powered by Bolt.new" 
+                      className="w-8 h-8"
+                    />
+                  </a>
+                </div>
 
                 {/* Mobile Copy Success Message */}
                 {copiedAddress && (
-                  <div className="text-center p-3 bg-green-500/10 border border-green-500/30 rounded-xl">
+                  <div className="text-center p-3 bg-green-500/10 border border-green-500/30 rounded-xl mt-4">
                     <p className="text-green-500 text-sm font-medium">
                       ✓ Address copied to clipboard!
                     </p>
