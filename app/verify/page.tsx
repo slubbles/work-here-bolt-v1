@@ -4,9 +4,12 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
+import { Badge } from '@/components/ui/badge'; 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tooltip } from '@/components/ui/tooltip';
+import { Callout } from '@/components/ui/callout';
+import { GuideBadge } from '@/components/GuideBadge';
 import { 
   Search,
   ExternalLink,
@@ -18,6 +21,7 @@ import {
   Network
 } from 'lucide-react';
 import Link from 'next/link';
+import { NewUserGuide } from '@/components/NewUserGuide';
 import { getAlgorandAssetInfo, getAlgorandNetwork, ALGORAND_NETWORKS } from '@/lib/algorand';
 import { Connection, PublicKey } from '@solana/web3.js';
 import { connection } from '@/lib/solana';
@@ -300,9 +304,36 @@ export default function VerifyPage() {
             <span className="uppercase tracking-wide">Token Security</span>
           </div>
           <h1 className="text-5xl font-bold text-foreground mb-6">Token Verification</h1>
-          <p className="text-muted-foreground text-xl max-w-3xl mx-auto">
-            Verify the authenticity and security of tokens across multiple blockchains
-          </p>
+          <div className="space-y-3">
+            <p className="text-muted-foreground text-xl max-w-3xl mx-auto">
+              Verify the authenticity and security of tokens across multiple blockchains
+            </p>
+            <div className="flex justify-center items-center space-x-2">
+              <Tooltip content="How to use: Enter a token ID or address from any supported blockchain to check if it's authentic and analyze its security">
+                <span className="text-sm text-blue-500 flex items-center cursor-help">
+                  <InfoIcon className="w-4 h-4 mr-1" />
+                  How it works
+                </span>
+              </Tooltip>
+            </div>
+          </div>
+        </div>
+        
+        {/* New User Guide */}
+        <div className="max-w-2xl mx-auto mb-8">
+          <Callout 
+            variant="beginner" 
+            title="What is Token Verification?" 
+            icon="beginner"
+          >
+            <p>Token verification helps protect you from scams by checking if a token is legitimate. Enter a token's ID or address to:</p>
+            <ul className="list-disc list-inside mt-2 space-y-1 text-sm">
+              <li>Confirm it exists on the blockchain</li>
+              <li>Check its security score</li>
+              <li>View detailed token information</li>
+              <li>See transaction patterns</li>
+            </ul>
+          </Callout>
         </div>
 
         {/* Search Section */}
@@ -322,7 +353,10 @@ export default function VerifyPage() {
             <CardContent className="space-y-8">
               {/* Network Selection */}
               <div className="space-y-2">
-                <Label className="text-base font-semibold">Select Network</Label>
+                <div className="flex items-center">
+                  <Label className="text-base font-semibold">Select Network</Label>
+                  <GuideBadge text="Choose the blockchain network where the token you want to verify exists." />
+                </div>
                 <Select value={selectedNetwork} onValueChange={setSelectedNetwork}>
                   <SelectTrigger className="input-enhanced h-14 text-lg">
                     <SelectValue />
@@ -350,9 +384,16 @@ export default function VerifyPage() {
 
               {/* Address Input */}
               <div className="space-y-2">
-                <Label htmlFor="tokenAddress" className="text-base font-semibold">
-                  {selectedNetwork.startsWith('algorand') ? 'Asset ID' : 'Token Address'}
-                </Label>
+                <div className="flex items-center">
+                  <Label htmlFor="tokenAddress" className="text-base font-semibold">
+                    {selectedNetwork.startsWith('algorand') ? 'Asset ID' : 'Token Address'}
+                  </Label>
+                  <GuideBadge 
+                    text={selectedNetwork.startsWith('algorand') 
+                      ? "Enter the numeric Asset ID of the Algorand token. Example: 31566704" 
+                      : "Enter the Solana token mint address. Example: EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"} 
+                  />
+                </div>
                 <Input
                   id="tokenAddress"
                   placeholder={
@@ -692,6 +733,19 @@ export default function VerifyPage() {
             </Card>
           </div>
         )}
+        
+        {/* Explanation for newcomers */}
+        <div className="max-w-2xl mx-auto mt-8">
+          <Callout variant="info" title="How to Protect Yourself from Scam Tokens">
+            <ul className="list-disc list-inside space-y-1 text-sm mt-2">
+              <li>Always verify tokens before sending or receiving them</li>
+              <li>Check that the token exists on the official blockchain</li>
+              <li>Look for a security score above 70</li>
+              <li>Be wary of tokens with similar names to popular projects</li>
+              <li>Research the project thoroughly before investing</li>
+            </ul>
+          </Callout>
+        </div>
 
         {/* Back to Home */}
         <div className="text-center mt-16 space-y-4">

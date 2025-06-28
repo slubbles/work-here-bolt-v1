@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
-import { Check, AlertCircle, Loader2, ExternalLink, Clipboard, CheckCircle, Calculator, Copy } from 'lucide-react';
+import { Check, AlertCircle, Loader2, ExternalLink, Clipboard, CheckCircle, Calculator, Copy, HelpCircle } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
@@ -16,6 +16,7 @@ import { useWallet } from '@solana/wallet-adapter-react';
 import { useAlgorandWallet } from '@/components/providers/AlgorandWalletProvider';
 import { createTokenOnChain } from '@/lib/solana';
 import { createAlgorandToken, supabaseHelpers } from '@/lib/algorand';
+import { SuccessConfetti } from '@/components/SuccessConfetti';
 import { TransactionTracker, createTokenCreationSteps, classifyError, formatErrorForUser } from '@/lib/error-handling';
 import Link from 'next/link';
 
@@ -45,6 +46,9 @@ export default function TokenForm({ onTokenCreate, defaultNetwork = 'algorand-te
   const [tokenomicsInfo, setTokenomicsInfo] = useState<any>(null);
   const [copySuccess, setCopySuccess] = useState<string | null>(null);
   const progressInterval = useRef<NodeJS.Timeout | null>(null);
+  
+  // Show confetti on successful deployment
+  const [showConfetti, setShowConfetti] = useState(false);
   
   // Wallet connections
   const { connected: solanaConnected, publicKey: solanaPublicKey, wallet: solanaWallet } = useWallet();
@@ -323,6 +327,9 @@ ${tokenomicsInfo.vestingSchedule?.enabled ? `- Vesting: Enabled (Team: ${tokenom
       } else {
         throw new Error(createResult.error || 'Failed to create token');
       }
+        
+        // Show success confetti
+        setShowConfetti(true);
 
     } catch (err) {
       console.error('Token creation error:', err);
@@ -588,6 +595,7 @@ ${tokenomicsInfo.vestingSchedule?.enabled ? `- Vesting: Enabled (Team: ${tokenom
 
         {deploymentComplete && (
           <div className="text-center space-y-4">
+            <SuccessConfetti show={showConfetti} duration={4000} />
             <div className="flex justify-center">
               <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center animate-bounce-once shadow-lg shadow-green-200">
                 <Check className="w-10 h-10 text-green-600" />
