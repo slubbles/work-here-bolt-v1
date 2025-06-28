@@ -4,10 +4,12 @@ import { useState, useEffect } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useAlgorandWallet } from '@/components/providers/AlgorandWalletProvider';
 import { Badge } from '@/components/ui/badge';
+import { Callout } from '@/components/ui/callout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Wallet, Network, ArrowRight, AlertCircle, Loader2 } from 'lucide-react';
+import { Wallet, Network, ArrowRight, AlertCircle, Loader2, HelpCircle } from 'lucide-react';
 import Link from 'next/link';
 import SolanaDashboard from './SolanaDashboard';
+import { NewUserGuide } from '@/components/NewUserGuide';
 import dynamic from 'next/dynamic';
 
 // Dynamically import AlgorandDashboard to fix hydration issues
@@ -91,6 +93,15 @@ export default function DashboardPage() {
               </div>
             </CardContent>
           </Card>
+          
+          {/* Help prompt for new users */}
+          <div className="max-w-md mx-auto text-center mt-4">
+            <Callout variant="beginner" className="text-center">
+              <p>
+                First time using a blockchain wallet? <Link href="/support" className="text-blue-600 underline">Click here</Link> for our beginners guide to wallets.
+              </p>
+            </Callout>
+          </div>
           {/* Info about opting-in */}
           <div className="mt-4 text-center">
             <p className="text-sm text-muted-foreground">New tokens need to be opted-in before they appear on your dashboard.</p>
@@ -109,6 +120,9 @@ export default function DashboardPage() {
     return (
       <div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2">
+          {/* New User Guide */}
+          <NewUserGuide type="dashboard" />
+          
           {selectedNetwork === 'algorand-mainnet' ? (
             <div className="flex items-center justify-center mb-4 bg-yellow-500/10 border border-yellow-500/20 p-2 rounded-lg">
               <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30 mr-2">
@@ -137,6 +151,14 @@ export default function DashboardPage() {
         <Loader2 className="h-10 w-10 animate-spin text-red-500 mx-auto mb-4" />
         <CardTitle className="mb-2">Loading Dashboard...</CardTitle>
         <p className="text-muted-foreground">Connecting to blockchain</p>
+      </div>
+      <div className="max-w-md mx-auto text-center mt-4">
+        <Callout variant="info" className="inline-block text-center">
+          <p className="flex items-center justify-center">
+            <HelpCircle className="w-4 h-4 mr-2" />
+            Loading wallet data...
+          </p>
+        </Callout>
       </div>
     </div>
   );

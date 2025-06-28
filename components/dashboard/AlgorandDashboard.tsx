@@ -45,6 +45,8 @@ import {
   AlgorandTransactionInfo,
   formatAlgorandTransactionForDisplay
 } from '@/lib/algorand-data';
+import { Tooltip } from '@/components/ui/tooltip';
+import { Callout } from '@/components/ui/callout';
 import { getAlgorandNetwork } from '@/lib/algorand';
 
 export default function AlgorandDashboard() {
@@ -657,8 +659,22 @@ export default function AlgorandDashboard() {
                   {transactionData.length === 0 ? (
                     <div className="text-center py-8">
                       <Calendar className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                      <p className="text-muted-foreground">No recent transactions found</p>
-                      <p className="text-sm text-muted-foreground mt-2">Transactions will appear here as you use your wallet</p>
+                      <div className="space-y-3">
+                        <p className="text-muted-foreground">No recent transactions found</p>
+                        <p className="text-sm text-muted-foreground">Transactions will appear here as you use your wallet</p>
+                        
+                        {/* Beginner guidance */}
+                        <Callout variant="beginner" className="text-left mt-4">
+                          <p className="text-sm">
+                            <span className="font-semibold">New to Algorand?</span> To receive tokens, you need to "opt-in" to them first. To do this:
+                          </p>
+                          <ol className="text-xs mt-2 space-y-1 list-decimal list-inside">
+                            <li>Use the "Opt-in to Asset" button in the Manage tab</li>
+                            <li>Enter the Asset ID of the token</li>
+                            <li>Approve the transaction in your wallet</li>
+                          </ol>
+                        </Callout>
+                      </div>
                     </div>
                   ) : (
                     <div className="space-y-4">

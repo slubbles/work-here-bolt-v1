@@ -1,9 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Send, Plus, Flame, BarChart3, Network, Sparkles, TrendingUp, Pause, Wallet, Check } from 'lucide-react';
+import { Send, Plus, Flame, BarChart3, Network, Sparkles, TrendingUp, Pause, Wallet, Check, HelpCircle, ExternalLink } from 'lucide-react';
+import { Tooltip } from '@/components/ui/tooltip';
+import { Callout } from '@/components/ui/callout';
 
 interface TokenPreviewProps {
   tokenData: {
@@ -167,6 +170,11 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
         <Badge className={`${networkInfo.color} text-base px-6 py-3 rounded-xl font-bold shadow-md`}>
           <Network className="w-4 h-4 mr-2" />
           {networkInfo.name}
+          {network.includes('testnet') && (
+            <Tooltip content={<p className="text-sm">Testnet tokens are for testing and have no real value</p>}>
+              <HelpCircle className="w-3 h-3 ml-2 text-white/80" />
+            </Tooltip>
+          )}
         </Badge>
         <p className="text-sm text-muted-foreground mt-3">{networkInfo.description}</p>
       </div>
@@ -176,6 +184,22 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
         <div className="absolute top-4 right-4 bg-green-500/90 text-white px-4 py-2 rounded-full text-sm font-bold flex items-center shadow-lg">
           <Check className="w-4 h-4 mr-2" /> 
           Ready to Deploy!
+        </div>
+        
+        {/* First-time creator help */}
+        <div className="absolute top-4 left-4">
+          <Tooltip 
+            content={
+              <div className="max-w-xs">
+                <p className="font-medium mb-1">Live Preview</p>
+                <p className="text-xs">This is how your token will look when deployed to the blockchain. All changes update in real-time.</p>
+              </div>
+            }
+          >
+            <div className="bg-blue-500/20 text-blue-500 border border-blue-500/20 rounded-full p-1 cursor-help">
+              <HelpCircle className="w-4 h-4" />
+            </div>
+          </Tooltip>
         </div>
       
         <div className="text-center space-y-6 relative z-10">
@@ -213,14 +237,14 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
               <p className="text-muted-foreground text-2xl font-bold">{symbol.toUpperCase()}</p>
             ) : (
               <div className="w-16 h-6 bg-muted animate-pulse rounded mx-auto"></div>
-            )}
-          </div>
-
-          {description && (
-            <div className="glass-card p-6 bg-muted/20 rounded-xl">
-              <p className="text-muted-foreground leading-relaxed text-lg">
-                {description}
-              </p>
+              <div>
+                <p className="text-base font-medium text-green-600">
+                  Ready to deploy on {networkInfo.name}
+                </p>
+                <Link href="/support" className="text-xs text-blue-500 hover:underline flex items-center mt-0.5">
+                  Need help? <ExternalLink className="w-3 h-3 ml-0.5" />
+                </Link>
+              </div>
             </div>
           )}
         </div>
