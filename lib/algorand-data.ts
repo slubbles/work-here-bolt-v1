@@ -57,8 +57,10 @@ export async function getAlgorandEnhancedTokenInfo(walletAddress: string, networ
         try {
           // Get asset details
           const assetResult = await getAlgorandAssetInfo(asset['asset-id'], network);
+
+          console.log(`Asset info result for ${asset['asset-id']}:`, assetResult);
           
-          if (assetResult.success && assetResult.data) {
+          if (assetResult && assetResult.success && assetResult.data) {
             const assetData = assetResult.data;
             const uiBalance = asset.amount / Math.pow(10, assetData.decimals || 0);
             
@@ -212,6 +214,71 @@ export async function getAlgorandWalletSummary(walletAddress: string, network: s
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to get wallet summary'
+    };
+  }
+}
+
+// Get account assets by ID (for newly created assets)
+export async function getAccountAssetById(
+  walletAddress: string, 
+  assetId: number, 
+  network: string
+): Promise<{ success: boolean; data?: any; error?: string }> {
+  try {
+    console.log(`🔍 Looking for asset ${assetId} in wallet ${walletAddress}`);
+    
+    // Get account information
+    const accountResult = await getAlgorandAccountInfo(walletAddress, network);
+    if (!accountResult.success || !accountResult.assets) {
+      return { success: false, error: 'Unable to fetch account information' };
+    }
+
+    // Find the specific asset
+    const asset = accountResult.assets.find(a => a['asset-id'] === assetId);
+    if (!asset) {
+      return { 
+        success: false, 
+        error: `Asset ${assetId} not found in account. You might need to opt-in first.` 
+      };
+    }
+    
+    // Get detailed asset info
+    const assetResult = await getAlgorandAssetInfo(assetId, network);
+    if (!assetResult.success || !assetResult.data) {
+      return { 
+        success: false, 
+        error: `Asset found in account but unable to get details: ${assetResult.error || 'Unknown error'}` 
+      };
+    }
+    
+    const assetData = assetResult.data;
+    const uiBalance = asset.amount / Math.pow(10, assetData.decimals || 0);
+    
+    const tokenInfo: AlgorandTokenInfo = {
+      assetId: assetId,
+      name: assetData.assetName || `Asset ${assetId}`,
+      symbol: assetData.unitName || 'ASA',
+      balance: asset.amount.toString(),
+      uiBalance: uiBalance,
+      decimals: assetData.decimals || 0,
+      description: assetData.metadata?.description || '',
+      image: assetData.metadata?.image || '',
+      website: assetData.metadata?.external_url,
+      creator: assetData.creator,
+      manager: assetData.manager,
+      verified: true,
+      explorerUrl: `${getAlgorandNetwork(network).explorer}/asset/${assetId}`,
+      value: `$${(Math.random() * 10).toFixed(2)}`, // Placeholder value
+      change: `${Math.random() > 0.5 ? '+' : '-'}${(Math.random() * 5).toFixed(1)}%`, // Placeholder change
+    };
+    
+    return { success: true, data: tokenInfo };
+
+  } catch (error) {
+    console.error('Error getting account asset by ID:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to get asset information'
     };
   }
 }

@@ -117,12 +117,12 @@ export async function getAlgorandAccountInfo(address: string, network: string) {
 // Get asset information from Algorand Indexer
 export async function getAlgorandAssetInfo(assetId: number, network: string) {
   try {
-    console.log(`📡 Fetching Algorand asset info for ${assetId} on ${network}`);
+    console.log(`📡 Fetching Algorand asset info for asset ID ${assetId} on ${network}`);
     
     const indexerClient = getAlgorandIndexerClient(network);
     const assetInfo = await indexerClient.lookupAssetByID(assetId).do();
     
-    if (!assetInfo.asset) {
+    if (!assetInfo || !assetInfo.asset) {
       return {
         success: false,
         error: 'Asset not found'
@@ -131,6 +131,14 @@ export async function getAlgorandAssetInfo(assetId: number, network: string) {
 
     const asset = assetInfo.asset;
     const params = asset.params;
+
+    // Convert total supply safely with fallback to prevent BigInt errors
+    let totalSupply = 0;
+    try {
+      totalSupply = params.total !== undefined ? Number(params.total) : 0;
+    } catch (err) {
+      console.warn('Error converting total supply to number:', err);
+    }
     
     // Parse metadata if available
     let metadata = {};
@@ -150,7 +158,7 @@ export async function getAlgorandAssetInfo(assetId: number, network: string) {
       assetId,
       assetName: params.name || 'Unknown Asset',
       unitName: params.unitName || 'UNK',
-      totalSupply: params.total || 0,
+      totalSupply: totalSupply,
       decimals: params.decimals || 0,
       creator: params.creator,
       manager: params.manager,
@@ -173,8 +181,9 @@ export async function getAlgorandAssetInfo(assetId: number, network: string) {
   } catch (error) {
     console.error(`❌ Error fetching Algorand asset info on ${network}:`, error);
     return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to fetch asset info'
+      success: false, 
+      error: error instanceof Error ? error.message : 'Failed to fetch asset info',
+      data: null // Add null data to avoid undefined errors when destructuring
     };
   }
 }
@@ -329,9 +338,16 @@ export async function createAlgorandToken(
     // Try multiple ways to extract asset ID from confirmation
     let assetId = confirmedTxn['asset-index'] || 
                   confirmedTxn.assetIndex || 
-                  confirmedTxn['created-asset-index'] ||
-                  confirmedTxn.createdAssetIndex ||
-                  confirmedTxn['inner-txns']?.[0]?.['asset-index'];
+                  confirmedTxn['created-asset-index'];
+    
+    // Additional fallbacks for different response formats
+    if (!assetId && confirmedTxn.createdAssetIndex) {
+      assetId = confirmedTxn.createdAssetIndex;
+    }
+    
+    if (!assetId && confirmedTxn['inner-txns'] && confirmedTxn['inner-txns'].length > 0) {
+      assetId = confirmedTxn['inner-txns'][0]['asset-index'];
+    }
 
     // For asset creation transactions, the asset ID might be in different locations
     if (!assetId && confirmedTxn.txn) {

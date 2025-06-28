@@ -3,18 +3,36 @@
 import { useState, useEffect } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useAlgorandWallet } from '@/components/providers/AlgorandWalletProvider';
+import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Wallet, Network, ArrowRight } from 'lucide-react';
+import { Wallet, Network, ArrowRight, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import SolanaDashboard from './SolanaDashboard';
-import AlgorandDashboard from './AlgorandDashboard';
+import dynamic from 'next/dynamic';
+
+// Dynamically import AlgorandDashboard to fix hydration issues
+const AlgorandDashboard = dynamic(
+  () => import('@/components/dashboard/AlgorandDashboard'), 
+  { 
+    ssr: false,
+    loading: () => (
+      <div className="min-h-screen app-background flex items-center justify-center">
+        <div className="glass-card p-8 text-center">
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-red-500 mx-auto mb-4"></div>
+          <p className="text-foreground text-lg font-semibold">Loading Algorand Dashboard...</p>
+          <p className="text-muted-foreground mt-2">Please wait while we fetch your assets</p>
+        </div>
+      </div>
+    )
+  }
+);
 
 export default function DashboardPage() {
   const [mounted, setMounted] = useState(false);
   
   // Wallet connections
   const { connected: solanaConnected } = useWallet();
-  const { connected: algorandConnected } = useAlgorandWallet();
+  const { connected: algorandConnected, selectedNetwork } = useAlgorandWallet();
 
   useEffect(() => {
     setMounted(true);
@@ -72,6 +90,11 @@ export default function DashboardPage() {
               </div>
             </CardContent>
           </Card>
+          {/* Info about opting-in */}
+          <div className="mt-4 text-center">
+            <p className="text-sm text-muted-foreground">New tokens need to be opted-in before they appear on your dashboard.</p>
+            <p className="text-xs text-muted-foreground mt-1">After creating a token, check the transaction in the explorer and opt-in.</p>
+          </div>
         </div>
       </div>
     );
@@ -82,7 +105,21 @@ export default function DashboardPage() {
   if (solanaConnected) {
     return <SolanaDashboard />;
   } else if (algorandConnected) {
-    return <AlgorandDashboard />;
+    return (
+      <div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2">
+          {selectedNetwork === 'algorand-mainnet' && (
+            <div className="flex items-center justify-center mb-4 bg-yellow-500/10 border border-yellow-500/20 p-2 rounded-lg">
+              <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30 mr-2">
+                Mainnet
+              </Badge>
+              <span className="text-sm text-yellow-600">You are using Algorand Mainnet - real tokens with real value</span>
+            </div>
+          )}
+        </div>
+        <AlgorandDashboard />
+      </div>
+    );
   }
 
   // This should not be reached, but provide a fallback
