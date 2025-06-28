@@ -54,7 +54,6 @@ import {
   getAlgorandEnhancedTokenInfo, 
   getAlgorandTransactionHistory, 
   getAlgorandWalletSummary,
-  getAccountAssetById,
   formatAlgorandTransactionForDisplay,
   AlgorandTokenInfo,
   AlgorandTransactionInfo
@@ -279,22 +278,8 @@ export default function AlgorandDashboard() {
           description: "You can now receive this token. Refreshing asset list...",
         });
         
-        // Try to get the newly opted-in asset
-        try {
-          const assetResult = await getAccountAssetById(address, assetId, selectedNetwork);
-          if (assetResult.success && assetResult.data) {
-            // Add the new asset to the list
-            setUserTokens(prev => [...prev, assetResult.data]);
-            setSelectedAsset(assetResult.data);
-          } else {
-            // Just refresh the whole dashboard to get the updated list
-            setTimeout(() => handleRefresh(), 2000);
-          }
-        } catch (assetError) {
-          console.error('Error fetching new asset:', assetError);
-          // Fall back to refreshing everything
-          setTimeout(() => handleRefresh(), 2000);
-        }
+        // Refresh the whole dashboard to get the updated asset list
+        setTimeout(() => handleRefresh(), 2000);
       } else {
         setOptInStatus('error');
         setOptInMessage(result.error || "Unknown error occurred.");

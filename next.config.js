@@ -48,6 +48,7 @@ const nextConfig = {
       fs: false,
       net: false,
       tls: false,
+      encoding: false,
       querystring: require.resolve('querystring-es3'),
     };
 
