@@ -1,94 +1,68 @@
 'use client';
 
-import * as React from 'react';
+import React from 'react';
+import * as SwitchPrimitives from '@radix-ui/react-switch';
 import { cn } from '@/lib/utils';
 
-interface CustomToggleProps {
-  checked: boolean;
-  onCheckedChange: (checked: boolean) => void;
-  disabled?: boolean;
-  className?: string;
-  size?: 'sm' | 'md' | 'lg';
-  color?: 'red' | 'green' | 'blue' | 'purple' | 'yellow';
+type ColorType = 'red' | 'green' | 'blue' | 'yellow' | 'purple' | 'default';
+type SizeType = 'sm' | 'md' | 'lg';
+
+interface CustomToggleProps extends React.ComponentPropsWithoutRef<typeof SwitchPrimitives.Root> {
+  color?: ColorType;
+  size?: SizeType;
 }
 
-export function CustomToggle({
-  checked,
-  onCheckedChange,
-  disabled = false,
-  className,
-  size = 'md',
-  color = 'red'
-}: CustomToggleProps) {
+export const CustomToggle = React.forwardRef<
+  React.ElementRef<typeof SwitchPrimitives.Root>,
+  CustomToggleProps
+>(({ className, color = 'default', size = 'md', ...props }, ref) => {
   const sizeClasses = {
-    sm: 'w-12 h-6',
-    md: 'w-16 h-8',
-    lg: 'w-20 h-10'
+    sm: 'h-6 w-12',
+    md: 'h-8 w-16', 
+    lg: 'h-10 w-20',
   };
   
   const thumbSizeClasses = {
-    sm: 'w-5 h-5',
-    md: 'w-7 h-7',
-    lg: 'w-9 h-9'
+    sm: 'h-4 w-4 translate-x-0.5',
+    md: 'h-6 w-6 translate-x-0.5',
+    lg: 'h-8 w-8 translate-x-0.5',
+  };
+  
+  const thumbTranslateClasses = {
+    sm: 'translate-x-6',
+    md: 'translate-x-8',
+    lg: 'translate-x-10',
   };
   
   const colorClasses = {
-    red: 'bg-red-500',
-    green: 'bg-green-500',
-    blue: 'bg-blue-500',
-    purple: 'bg-purple-500',
-    yellow: 'bg-yellow-500'
+    default: 'data-[state=checked]:bg-primary',
+    red: 'data-[state=checked]:bg-red-500',
+    green: 'data-[state=checked]:bg-green-500',
+    blue: 'data-[state=checked]:bg-blue-500',
+    yellow: 'data-[state=checked]:bg-yellow-500',
+    purple: 'data-[state=checked]:bg-purple-500',
   };
 
   return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      disabled={disabled}
-      onClick={() => !disabled && onCheckedChange(!checked)}
+    <SwitchPrimitives.Root
       className={cn(
-        // Base styles
-        'relative inline-flex items-center rounded-full transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-red-500/30 focus:ring-offset-2 focus:ring-offset-background',
-        // Track styles
-        checked ? 'bg-black' : 'bg-gray-300 dark:bg-gray-600',
-        // Size
+        `peer inline-flex shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 data-[state=unchecked]:bg-muted`,
+        colorClasses[color],
         sizeClasses[size],
-        // Disabled state
-        disabled && 'opacity-50 cursor-not-allowed',
-        // Custom classes
         className
       )}
+      {...props}
+      ref={ref}
     >
-      {/* Toggle thumb */}
-      <span
+      <SwitchPrimitives.Thumb
         className={cn(
-          // Base thumb styles
-          'inline-block rounded-full bg-white transition-all duration-300 ease-in-out shadow-lg',
-          // Size
+          "pointer-events-none block rounded-full bg-background shadow-lg ring-0 transition-transform data-[state=checked]:bg-white",
           thumbSizeClasses[size],
-          // Position based on state
-          checked 
-            ? size === 'sm' ? 'translate-x-6' : size === 'md' ? 'translate-x-8' : 'translate-x-10'
-            : 'translate-x-0.5',
-          // Color when checked
-          checked && colorClasses[color],
-          // Transform and shadow
-          'transform shadow-md',
-          // Hover effects
-          !disabled && 'hover:shadow-lg'
+          `data-[state=checked]:${thumbTranslateClasses[size]}`
         )}
       />
-      
-      {/* Glow effect when checked */}
-      {checked && (
-        <span
-          className={cn(
-            'absolute inset-0 rounded-full opacity-30 blur-sm',
-            colorClasses[color]
-          )}
-        />
-      )}
-    </button>
+    </SwitchPrimitives.Root>
   );
-}
+});
+
+CustomToggle.displayName = 'CustomToggle';
