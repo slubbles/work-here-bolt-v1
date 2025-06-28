@@ -117,7 +117,6 @@ export function AlgorandWalletProvider({ children }: AlgorandWalletProviderProps
       } catch (error) {
         console.error(`❌ Failed to initialize Pera Wallet for ${selectedNetwork}:`, error);
         setError(`Failed to initialize wallet for ${selectedNetwork}`);
-        setPeraWallet(null);
       }
     };
 
