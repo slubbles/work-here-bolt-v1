@@ -417,12 +417,11 @@ Visit: https://snarbles.xyz for more information
       yPosition += 10;
 
       // Strategic Recommendations
-      addSectionHeader('STRATEGIC RECOMMENDATIONS');
-      addText('Based on comprehensive analysis of market conditions and industry best practices:', 12, true, 'left');
+      addSectionHeader('RECOMMENDATIONS');
       yPosition += 5;
       
       getStrengths().forEach(strength => {
-        addText(`✓ STRENGTH: ${strength}`, 10);
+        addText(`✓ ${strength}`, 10);
       });
       
       if (getImprovements().length > 0) {
