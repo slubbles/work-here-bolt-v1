@@ -1,19 +1,23 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
-import { Check, AlertCircle, Loader2, ExternalLink } from 'lucide-react';
+import { Check, AlertCircle, Loader2, ExternalLink, Clipboard, CheckCircle, Calculator } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
+import { useToast } from '@/hooks/use-toast';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useAlgorandWallet } from '@/components/providers/AlgorandWalletProvider';
 import { createTokenOnChain } from '@/lib/solana';
 import { createAlgorandToken, supabaseHelpers } from '@/lib/algorand';
 import { TransactionTracker, createTokenCreationSteps, classifyError, formatErrorForUser } from '@/lib/error-handling';
+import Link from 'next/link';
 
 interface TokenFormProps {
   onTokenCreate?: (result: any) => void;
@@ -37,6 +41,10 @@ export default function TokenForm({ onTokenCreate, defaultNetwork = 'algorand-te
   const [deploymentComplete, setDeploymentComplete] = useState(false);
   const [error, setError] = useState('');
   const [result, setResult] = useState<any>(null);
+  const [hasAppliedTokenomics, setHasAppliedTokenomics] = useState(false);
+  const [tokenomicsInfo, setTokenomicsInfo] = useState<any>(null);
+  const [copySuccess, setCopySuccess] = useState<string | null>(null);
+  const progressInterval = useRef<NodeJS.Timeout | null>(null);
   
   // Wallet connections
   const { connected: solanaConnected, publicKey: solanaPublicKey, wallet: solanaWallet } = useWallet();
@@ -49,6 +57,11 @@ export default function TokenForm({ onTokenCreate, defaultNetwork = 'algorand-te
   
   // Transaction tracker
   const [tracker, setTracker] = useState<TransactionTracker | null>(null);
+
+  // Router and search params
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const { toast } = useToast();
   
   // Initialize transaction tracker
   useEffect(() => {
@@ -68,6 +81,60 @@ export default function TokenForm({ onTokenCreate, defaultNetwork = 'algorand-te
     });
     setTracker(newTracker);
   }, []);
+
+  // Check for tokenomics data from URL and localStorage on mount
+  useEffect(() => {
+    // Get tokenomics param from URL
+    const tokenomicsParam = searchParams.get('tokenomics');
+    
+    if (tokenomicsParam === 'applied') {
+      // Get tokenomics data from localStorage
+      const savedTokenomics = localStorage.getItem('snarbles_tokenomics');
+      
+      if (savedTokenomics) {
+        try {
+          const tokenomicsData = JSON.parse(savedTokenomics);
+          
+          // Apply tokenomics to form
+          setFormData({
+            ...formData,
+            name: formData.name || `${tokenomicsData.name} Token`,
+            symbol: formData.symbol || tokenomicsData.name.split(' ').map((word: string) => word[0]).join('').toUpperCase(),
+            totalSupply: tokenomicsData.totalSupply.toString(),
+          });
+          
+          setTokenomicsInfo(tokenomicsData);
+          setHasAppliedTokenomics(true);
+          toast({ title: "Tokenomics Applied", description: "Your saved tokenomics configuration has been applied", variant: "default" });
+        } catch (e) {
+          console.error('Failed to parse tokenomics data', e);
+        }
+      }
+    }
+  }, [searchParams]);
+
+  // Function to copy tokenomics details
+  const copyTokenomicsDetails = () => {
+    if (!tokenomicsInfo) return;
+    
+    const details = `
+Tokenomics Summary:
+- Total Supply: ${tokenomicsInfo.totalSupply.toLocaleString()}
+- Distribution:
+  ${Object.entries(tokenomicsInfo.distribution).map(([key, item]: [string, any]) => `  - ${item.label}: ${item.value}%`).join('\n')}
+- Health Score: ${tokenomicsInfo.healthScore}%
+${tokenomicsInfo.vestingSchedule?.enabled ? `- Vesting: Enabled (Team: ${tokenomicsInfo.vestingSchedule.team.period} months)` : ''}
+    `.trim();
+    
+    navigator.clipboard.writeText(details);
+    setCopySuccess('Copied!');
+    
+    setTimeout(() => {
+      setCopySuccess(null);
+    }, 2000);
+    
+    toast({ title: "Copied to Clipboard", description: "Tokenomics details have been copied to your clipboard", variant: "default" });
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -111,6 +178,14 @@ export default function TokenForm({ onTokenCreate, defaultNetwork = 'algorand-te
     setDeploymentProgress(0);
     setDeploymentComplete(false);
     setResult(null);
+
+    // Set up progress animation
+    progressInterval.current = setInterval(() => {
+      setDeploymentProgress(prev => {
+        // Don't go above 90% automatically - the final 10% will be set when complete
+        return prev < 90 ? prev + 1 : prev;
+      });
+    }, 300);
     
     // Initialize tracker with appropriate steps
     if (tracker) {
@@ -227,6 +302,9 @@ export default function TokenForm({ onTokenCreate, defaultNetwork = 'algorand-te
       console.log('Token creation result:', createResult);
       
       if (createResult.success) {
+        // Update progress to 100% when complete
+        setDeploymentProgress(100);
+        
         // Store result for UI display
         setResult(createResult);
         
@@ -249,6 +327,14 @@ export default function TokenForm({ onTokenCreate, defaultNetwork = 'algorand-te
     } catch (err) {
       console.error('Token creation error:', err);
       
+      setDeploymentProgress(100); // Show completed progress even on error
+      
+      // Clear the interval
+      if (progressInterval.current) {
+        clearInterval(progressInterval.current);
+        progressInterval.current = null;
+      }
+      
       // Classify error for better user feedback
       const isAlgorand = network.startsWith('algorand');
       const classifiedError = classifyError(err, isAlgorand ? 'algorand' : 'solana');
@@ -266,6 +352,12 @@ export default function TokenForm({ onTokenCreate, defaultNetwork = 'algorand-te
 
     } finally {
       setIsDeploying(false);
+      
+      // Ensure interval is cleared
+      if (progressInterval.current) {
+        clearInterval(progressInterval.current);
+        progressInterval.current = null;
+      }
     }
   };
 
@@ -291,6 +383,44 @@ export default function TokenForm({ onTokenCreate, defaultNetwork = 'algorand-te
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Tokenomics Info Banner */}
+        {hasAppliedTokenomics && tokenomicsInfo && (
+          <Alert className="mt-6 border-green-500/30 bg-green-500/5">
+            <CheckCircle className="h-4 w-4 text-green-500" />
+            <AlertTitle className="text-green-600 font-semibold">Tokenomics Applied</AlertTitle>
+            <AlertDescription className="text-sm text-muted-foreground">
+              <div className="space-y-1 mt-2">
+                <p>Supply of <span className="font-semibold">{tokenomicsInfo.totalSupply.toLocaleString()}</span> tokens with custom distribution:</p>
+                <ul className="grid grid-cols-2 gap-x-4 gap-y-1 mt-1">
+                  {Object.entries(tokenomicsInfo.distribution).map(([key, item]: [string, any]) => (
+                    <li key={key} className="flex items-center justify-between text-xs">
+                      <span>{item.label}:</span> 
+                      <span className="font-medium">{item.value}%</span>
+                    </li>
+                  ))}
+                </ul>
+                
+                <div className="flex justify-between items-center mt-3 pt-2 border-t border-green-500/20">
+                  <span className="text-xs">Health Score: {tokenomicsInfo.healthScore}%</span>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={copyTokenomicsDetails}
+                    className="h-8 px-2 text-xs border-green-500/30 text-green-600 hover:bg-green-500/10 hover:text-green-700"
+                  >
+                    {copySuccess ? (
+                      <Check className="w-3 h-3 mr-1" />
+                    ) : (
+                      <Clipboard className="w-3 h-3 mr-1" />
+                    )}
+                    {copySuccess || "Copy Details"}
+                  </Button>
+                </div>
+              </div>
+            </AlertDescription>
+          </Alert>
+        )}
+
         {!isDeploying && !deploymentComplete && (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
@@ -375,8 +505,38 @@ export default function TokenForm({ onTokenCreate, defaultNetwork = 'algorand-te
             {error && (
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4 flex-shrink-0" />
-                <AlertDescription className="whitespace-pre-line">{error}</AlertDescription>
+                <AlertDescription className="whitespace-pre-line">
+                  <div className="space-y-2">
+                    <p className="font-semibold">Error Details:</p>
+                    <p>{error}</p>
+                    {error.toLowerCase().includes('insufficient') && (
+                      <div className="mt-3 p-3 bg-blue-500/10 border border-blue-500/30 rounded">
+                        <p className="text-blue-700 font-semibold">💡 How to fix:</p>
+                        <p className="text-blue-600 text-sm">Make sure you have enough funds in your wallet to cover transaction fees.</p>
+                      </div>
+                    )}
+                  </div>
+                </AlertDescription>
               </Alert>
+            )}
+
+            {/* Go to Tokenomics Button */}
+            {!hasAppliedTokenomics && !isDeploying && (
+              <div className="mt-6 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                <div className="flex items-start gap-3">
+                  <Calculator className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
+                  <div className="space-y-2">
+                    <h3 className="font-semibold text-blue-600">Need help with token distribution?</h3>
+                    <p className="text-sm text-blue-600">Use our tokenomics simulator to design the optimal token distribution strategy for your project.</p>
+                    <Link href="/tokenomics">
+                      <Button variant="outline" className="mt-2 bg-blue-500/10 border-blue-500/30 hover:bg-blue-500/20 text-blue-600">
+                        <Calculator className="w-4 h-4 mr-2" />
+                        Open Tokenomics Simulator
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              </div>
             )}
 
             <Button type="submit" className="w-full" size="lg">
@@ -391,6 +551,20 @@ export default function TokenForm({ onTokenCreate, defaultNetwork = 'algorand-te
               <h3 className="text-lg font-semibold mb-2">Deploying Your Token</h3>
               <Progress value={deploymentProgress} className="w-full" />
               <p className="text-sm text-gray-600 mt-2">{deploymentProgress}% Complete</p>
+            </div>
+
+            {/* Progress Bar */}
+            <div className="mt-6 space-y-2">
+              <div className="bg-muted h-2 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-gradient-to-r from-red-500 to-red-600 transition-all duration-500 ease-out"
+                  style={{ width: `${deploymentProgress}%` }}
+                ></div>
+              </div>
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>Creating {formData.name}...</span>
+                <span>{deploymentProgress}%</span>
+              </div>
             </div>
 
             <div className="space-y-3">
