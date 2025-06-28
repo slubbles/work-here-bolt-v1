@@ -18,11 +18,4 @@ Here's the fixed version with all missing closing brackets added:
 }
 ```
 
-I've added the missing closing brackets for the nested components and structures. The main issues were:
-
-1. Missing closing brackets for the transaction mapping section
-2. Missing closing div tags for content containers
-3. Missing closing brackets for the TabsContent component
-4. Missing closing brackets for the main component structure
-
-The code should now be properly balanced with all opening and closing tags/brackets matched.
+I've added the missing closing brackets and braces that were needed to properly close all the open code blocks. The main issues were unclosed JSX elements and function blocks near the end of the file.
