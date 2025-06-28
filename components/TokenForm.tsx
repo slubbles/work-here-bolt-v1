@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -18,6 +17,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { CustomToggle } from '@/components/ui/custom-toggle';
 import { 
   Loader2, 
   Rocket, 
@@ -846,11 +846,11 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="space-y-6">
+          <div className="space-y-4">
             {/* Mintable Feature */}
-            <div className="flex items-center justify-between p-6 border rounded-xl transition-all duration-300 hover:shadow-lg">
+            <div className="flex items-center justify-between p-6 border rounded-xl transition-all duration-300 hover:shadow-lg hover:border-green-500/30 group">
               <div className="flex items-center space-x-4">
-                <div className="w-12 h-12 rounded-xl bg-green-500/10 flex items-center justify-center">
+                <div className="w-12 h-12 rounded-xl bg-green-500/10 flex items-center justify-center group-hover:bg-green-500/20 transition-colors">
                   <Plus className="w-6 h-6 text-green-500" />
                 </div>
                 <div>
@@ -858,17 +858,18 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
                   <p className="text-sm text-muted-foreground">Allows you to create additional tokens later</p>
                 </div>
               </div>
-              <Switch
+              <CustomToggle
                 checked={tokenData.mintable}
                 onCheckedChange={(checked) => setTokenData({ ...tokenData, mintable: checked })}
-                className="touch-target-switch"
+                color="green"
+                size="md"
               />
             </div>
 
             {/* Burnable Feature */}
-            <div className="flex items-center justify-between p-6 border rounded-xl transition-all duration-300 hover:shadow-lg">
+            <div className="flex items-center justify-between p-6 border rounded-xl transition-all duration-300 hover:shadow-lg hover:border-red-500/30 group">
               <div className="flex items-center space-x-4">
-                <div className="w-12 h-12 rounded-xl bg-red-500/10 flex items-center justify-center">
+                <div className="w-12 h-12 rounded-xl bg-red-500/10 flex items-center justify-center group-hover:bg-red-500/20 transition-colors">
                   <Flame className="w-6 h-6 text-red-500" />
                 </div>
                 <div>
@@ -876,17 +877,18 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
                   <p className="text-sm text-muted-foreground">Allows permanent destruction of tokens</p>
                 </div>
               </div>
-              <Switch
+              <CustomToggle
                 checked={tokenData.burnable}
                 onCheckedChange={(checked) => setTokenData({ ...tokenData, burnable: checked })}
-                className="touch-target-switch"
+                color="red"
+                size="md"
               />
             </div>
 
             {/* Pausable Feature */}
-            <div className="flex items-center justify-between p-6 border rounded-xl transition-all duration-300 hover:shadow-lg">
+            <div className="flex items-center justify-between p-6 border rounded-xl transition-all duration-300 hover:shadow-lg hover:border-yellow-500/30 group">
               <div className="flex items-center space-x-4">
-                <div className="w-12 h-12 rounded-xl bg-yellow-500/10 flex items-center justify-center">
+                <div className="w-12 h-12 rounded-xl bg-yellow-500/10 flex items-center justify-center group-hover:bg-yellow-500/20 transition-colors">
                   <Pause className="w-6 h-6 text-yellow-500" />
                 </div>
                 <div>
@@ -894,10 +896,11 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
                   <p className="text-sm text-muted-foreground">Ability to freeze all transfers in emergencies</p>
                   </div>
                 </div>
-              <Switch
+              <CustomToggle
                 checked={tokenData.pausable}
                 onCheckedChange={(checked) => setTokenData({ ...tokenData, pausable: checked })}
-                className="touch-target-switch"
+                color="yellow"
+                size="md"
               />
             </div>
           </div>
