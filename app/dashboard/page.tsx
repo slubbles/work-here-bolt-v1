@@ -4,8 +4,9 @@ import { useState, useEffect } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useAlgorandWallet } from '@/components/providers/AlgorandWalletProvider';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Wallet, Network, ArrowRight, AlertCircle } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Wallet, Network, ArrowRight, AlertCircle, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import SolanaDashboard from './SolanaDashboard';
 import dynamic from 'next/dynamic';
@@ -20,6 +21,7 @@ const AlgorandDashboard = dynamic(
         <div className="glass-card p-8 text-center">
           <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-red-500 mx-auto mb-4"></div>
           <p className="text-foreground text-lg font-semibold">Loading Algorand Dashboard...</p>
+          <p className="text-muted-foreground mt-2">Please wait while we fetch your assets</p>
           <p className="text-muted-foreground mt-2">Please wait while we fetch your assets</p>
         </div>
       </div>
@@ -108,12 +110,19 @@ export default function DashboardPage() {
     return (
       <div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2">
-          {selectedNetwork === 'algorand-mainnet' && (
+          {selectedNetwork === 'algorand-mainnet' ? (
             <div className="flex items-center justify-center mb-4 bg-yellow-500/10 border border-yellow-500/20 p-2 rounded-lg">
               <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30 mr-2">
                 Mainnet
               </Badge>
-              <span className="text-sm text-yellow-600">You are using Algorand Mainnet - real tokens with real value</span>
+              <span className="text-sm text-yellow-600">⚠️ You are using Algorand Mainnet - real tokens with real value</span>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center mb-4 bg-[#76f935]/10 border border-[#76f935]/20 p-2 rounded-lg">
+              <Badge className="bg-[#76f935]/20 text-[#76f935] border-[#76f935]/30 mr-2">
+                Testnet
+              </Badge>
+              <span className="text-sm text-[#76f935]">You're on Algorand Testnet - perfect for testing</span>
             </div>
           )}
         </div>
@@ -125,12 +134,10 @@ export default function DashboardPage() {
   // This should not be reached, but provide a fallback
   return (
     <div className="min-h-screen app-background flex items-center justify-center">
-      <div className="max-w-md mx-auto text-center">
-        <Card className="glass-card">
-          <CardContent className="p-6">
-            <p className="text-muted-foreground">Loading dashboard...</p>
-          </CardContent>
-        </Card>
+      <div className="glass-card p-8 text-center">
+        <Loader2 className="h-10 w-10 animate-spin text-red-500 mx-auto mb-4" />
+        <CardTitle className="mb-2">Loading Dashboard...</CardTitle>
+        <p className="text-muted-foreground">Connecting to blockchain</p>
       </div>
     </div>
   );

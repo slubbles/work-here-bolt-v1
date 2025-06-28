@@ -139,6 +139,14 @@ export async function getAlgorandAssetInfo(assetId: number, network: string) {
     } catch (err) {
       console.warn('Error converting total supply to number:', err);
     }
+
+    // Convert total supply safely with fallback to prevent BigInt errors
+    let totalSupply = 0;
+    try {
+      totalSupply = params.total !== undefined ? Number(params.total) : 0;
+    } catch (err) {
+      console.warn('Error converting total supply to number:', err);
+    }
     
     // Parse metadata if available
     let metadata = {};
@@ -183,6 +191,7 @@ export async function getAlgorandAssetInfo(assetId: number, network: string) {
     return {
       success: false, 
       error: error instanceof Error ? error.message : 'Failed to fetch asset info',
+      data: null // Add null data to avoid undefined errors when destructuring
       data: null // Add null data to avoid undefined errors when destructuring
     };
   }
@@ -336,6 +345,8 @@ export async function createAlgorandToken(
     
     // Log entire transaction response for debugging
     console.log('Confirmed transaction:', JSON.stringify(confirmedTxn, null, 2));
+    // Log entire transaction response for debugging
+    console.log('Confirmed transaction:', JSON.stringify(confirmedTxn, null, 2));
 
     // Try multiple ways to extract asset ID from confirmation
     let assetId = confirmedTxn['asset-index'] || 
@@ -343,6 +354,13 @@ export async function createAlgorandToken(
                   confirmedTxn['created-asset-index'];
     
     // Additional fallbacks for different response formats
+    if (!assetId && confirmedTxn.createdAssetIndex) {
+      assetId = confirmedTxn.createdAssetIndex;
+    }
+    
+    if (!assetId && confirmedTxn['inner-txns'] && confirmedTxn['inner-txns'].length > 0) {
+      assetId = confirmedTxn['inner-txns'][0]['asset-index'];
+    }
     if (!assetId && confirmedTxn.createdAssetIndex) {
       assetId = confirmedTxn.createdAssetIndex;
     }
@@ -381,6 +399,7 @@ export async function createAlgorandToken(
         try {
           console.log('🔄 Searching for transaction ID:', txId);
           const txnInfo = await indexerClient.lookupTransaction(txId).do();
+          const txnInfo = await indexerClient.lookupTransaction(txId).do();
           if (txnInfo.transaction && txnInfo.transaction['created-asset-index']) {
             assetId = txnInfo.transaction['created-asset-index'];
             console.log('✅ Found asset ID from indexer transaction lookup:', assetId);
@@ -417,6 +436,23 @@ export async function createAlgorandToken(
     console.log('- Asset ID:', assetId || 'Unknown (check explorer)');
     
     const explorerUrl = `${networkConfig.explorer}/asset/${assetId}`;
+    
+    if (!assetId) {
+      // If we couldn't extract the asset ID, provide a helpful message
+      console.log('⚠️ Asset ID not found in transaction response. Please check the explorer for details.');
+      return {
+        success: true,
+        transactionId: txId,
+        assetId: null, // We'll handle this null case in the UI
+        message: 'Transaction successful, but asset ID couldn\'t be automatically determined. Check explorer for details.',
+        details: {
+          network: network,
+          explorerUrl: `${networkConfig.explorer}/tx/${txId}`,
+          metadataUrl: metadataUrl,
+          createdAt: new Date().toISOString()
+        }
+      };
+    }
     
     if (!assetId) {
       // If we couldn't extract the asset ID, provide a helpful message

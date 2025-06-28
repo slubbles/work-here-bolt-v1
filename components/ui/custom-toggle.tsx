@@ -1,68 +1,111 @@
 'use client';
 
-import React from 'react';
-import * as SwitchPrimitives from '@radix-ui/react-switch';
+import * as React from 'react';
 import { cn } from '@/lib/utils';
+import { Switch } from '@/components/ui/switch';
 
-type ColorType = 'red' | 'green' | 'blue' | 'yellow' | 'purple' | 'default';
-type SizeType = 'sm' | 'md' | 'lg';
-
-interface CustomToggleProps extends React.ComponentPropsWithoutRef<typeof SwitchPrimitives.Root> {
-  color?: ColorType;
-  size?: SizeType;
+interface CustomToggleProps extends React.ComponentPropsWithoutRef<typeof Switch> {
+  color?: 'green' | 'red' | 'blue' | 'yellow' | 'purple';
+  size?: 'sm' | 'md' | 'lg';
 }
 
-export const CustomToggle = React.forwardRef<
-  React.ElementRef<typeof SwitchPrimitives.Root>,
-  CustomToggleProps
->(({ className, color = 'default', size = 'md', ...props }, ref) => {
-  const sizeClasses = {
-    sm: 'h-6 w-12',
-    md: 'h-8 w-16', 
-    lg: 'h-10 w-20',
+export function CustomToggle({
+  checked,
+  onCheckedChange,
+  color = 'green',
+  size = 'md',
+  className,
+  ...props
+}: CustomToggleProps) {
+  const colorMap = {
+    green: {
+      bg: 'bg-green-500',
+      border: 'border-green-500',
+      shadow: 'shadow-green-500/20',
+      pulse: 'green-pulse',
+    },
+    red: {
+      bg: 'bg-red-500',
+      border: 'border-red-500',
+      shadow: 'shadow-red-500/20',
+      pulse: 'red-pulse',
+    },
+    blue: {
+      bg: 'bg-blue-500',
+      border: 'border-blue-500',
+      shadow: 'shadow-blue-500/20',
+      pulse: 'blue-pulse',
+    },
+    yellow: {
+      bg: 'bg-yellow-500',
+      border: 'border-yellow-500',
+      shadow: 'shadow-yellow-500/20',
+      pulse: 'yellow-pulse',
+    },
+    purple: {
+      bg: 'bg-purple-500',
+      border: 'border-purple-500',
+      shadow: 'shadow-purple-500/20',
+      pulse: 'purple-pulse',
+    },
   };
-  
-  const thumbSizeClasses = {
-    sm: 'h-4 w-4 translate-x-0.5',
-    md: 'h-6 w-6 translate-x-0.5',
-    lg: 'h-8 w-8 translate-x-0.5',
+
+  const sizeMap = {
+    sm: {
+      button: 'h-4 w-9',
+      thumb: 'h-3 w-3',
+      thumbTranslate: 'translate-x-5',
+    },
+    md: {
+      button: 'h-6 w-14',
+      thumb: 'h-5 w-5',
+      thumbTranslate: 'translate-x-8',
+    },
+    lg: {
+      button: 'h-8 w-20',
+      thumb: 'h-7 w-7',
+      thumbTranslate: 'translate-x-12',
+    },
   };
-  
-  const thumbTranslateClasses = {
-    sm: 'translate-x-6',
-    md: 'translate-x-8',
-    lg: 'translate-x-10',
-  };
-  
-  const colorClasses = {
-    default: 'data-[state=checked]:bg-primary',
-    red: 'data-[state=checked]:bg-red-500',
-    green: 'data-[state=checked]:bg-green-500',
-    blue: 'data-[state=checked]:bg-blue-500',
-    yellow: 'data-[state=checked]:bg-yellow-500',
-    purple: 'data-[state=checked]:bg-purple-500',
-  };
+
+  const selectedColor = colorMap[color];
+  const selectedSize = sizeMap[size];
 
   return (
-    <SwitchPrimitives.Root
-      className={cn(
-        `peer inline-flex shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 data-[state=unchecked]:bg-muted`,
-        colorClasses[color],
-        sizeClasses[size],
-        className
-      )}
-      {...props}
-      ref={ref}
-    >
-      <SwitchPrimitives.Thumb
+    <div className="relative">
+      <Switch
+        checked={checked}
+        onCheckedChange={onCheckedChange}
         className={cn(
-          "pointer-events-none block rounded-full bg-background shadow-lg ring-0 transition-transform data-[state=checked]:bg-white",
-          thumbSizeClasses[size],
-          `data-[state=checked]:${thumbTranslateClasses[size]}`
+          'peer inline-flex shrink-0 items-center rounded-full border-2 border-transparent transition-colors',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+          'focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50',
+          'data-[state=checked]:bg-primary data-[state=unchecked]:bg-input',
+          checked ? selectedColor.bg : 'bg-muted',
+          selectedSize.button,
+          className
         )}
-      />
-    </SwitchPrimitives.Root>
+        {...props}
+      >
+        <span
+          className={cn(
+            'pointer-events-none block rounded-full bg-white shadow-lg ring-0 transition-transform',
+            checked ? selectedColor.shadow : '',
+            checked ? selectedSize.thumbTranslate : 'translate-x-0',
+            selectedSize.thumb
+          )}
+        />
+      </Switch>
+      {checked && (
+        <div 
+          className={cn(
+            "absolute inset-0 rounded-full transition-all",
+            selectedColor.border,
+            "opacity-20 animate-ping",
+            "pointer-events-none"
+          )}
+        />
+      )}
+    </div>
   );
-});
-
-CustomToggle.displayName = 'CustomToggle';
+}
