@@ -333,7 +333,9 @@ export async function createAlgorandToken(
     
     // Extract asset ID from transaction confirmation with robust fallback logic
     console.log('🔍 Examining confirmed transaction for asset ID...');
-    console.log('Confirmed transaction keys:', Object.keys(confirmedTxn));
+    
+    // Log entire transaction response for debugging
+    console.log('Confirmed transaction:', JSON.stringify(confirmedTxn, null, 2));
 
     // Try multiple ways to extract asset ID from confirmation
     let assetId = confirmedTxn['asset-index'] || 
@@ -377,7 +379,8 @@ export async function createAlgorandToken(
         
         // Look up the transaction to get asset ID
         try {
-          const txnInfo = await indexerClient.lookupTransactionByID(txId).do();
+          console.log('🔄 Searching for transaction ID:', txId);
+          const txnInfo = await indexerClient.lookupTransaction(txId).do();
           if (txnInfo.transaction && txnInfo.transaction['created-asset-index']) {
             assetId = txnInfo.transaction['created-asset-index'];
             console.log('✅ Found asset ID from indexer transaction lookup:', assetId);
@@ -411,14 +414,31 @@ export async function createAlgorandToken(
     
     console.log(`✅ Token created successfully on ${network}!`);
     console.log('- Transaction ID:', txId);
-    console.log('- Asset ID:', assetId);
+    console.log('- Asset ID:', assetId || 'Unknown (check explorer)');
     
     const explorerUrl = `${networkConfig.explorer}/asset/${assetId}`;
+    
+    if (!assetId) {
+      // If we couldn't extract the asset ID, provide a helpful message
+      console.log('⚠️ Asset ID not found in transaction response. Please check the explorer for details.');
+      return {
+        success: true,
+        transactionId: txId,
+        assetId: null, // We'll handle this null case in the UI
+        message: 'Transaction successful, but asset ID couldn\'t be automatically determined. Check explorer for details.',
+        details: {
+          network: network,
+          explorerUrl: `${networkConfig.explorer}/tx/${txId}`,
+          metadataUrl: metadataUrl,
+          createdAt: new Date().toISOString()
+        }
+      };
+    }
     
     return {
       success: true,
       transactionId: txId,
-      assetId: assetId,
+      assetId: assetId, 
       details: {
         network: network,
         explorerUrl: explorerUrl,

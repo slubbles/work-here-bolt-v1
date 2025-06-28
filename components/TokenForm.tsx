@@ -60,6 +60,8 @@ interface TokenFormProps {
 export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
   const [isDeploying, setIsDeploying] = useState(false);
   const [deploymentStep, setDeploymentStep] = useState('');
+  const [deploymentProgress, setDeploymentProgress] = useState(0);
+  const [deploymentSteps, setDeploymentSteps] = useState<{step: string, status: 'pending' | 'processing' | 'complete' | 'error', error?: string}[]>([]);
   const [deploymentResult, setDeploymentResult] = useState<any>(null);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
@@ -303,19 +305,42 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
 
     setIsDeploying(true);
     setDeploymentStep('Preparing token creation...');
+    setDeploymentProgress(5);
+    setDeploymentSteps([
+      { step: 'Validating token parameters', status: 'complete' },
+      { step: 'Preparing transaction', status: 'processing' },
+      { step: 'Awaiting wallet confirmation', status: 'pending' },
+      { step: 'Broadcasting transaction', status: 'pending' },
+      { step: 'Confirming on blockchain', status: 'pending' }
+    ]);
     setDeploymentResult(null);
     setError('');
 
     try {
       let result;
 
+      // Update deployment step
+      setDeploymentSteps(steps => steps.map((s, i) => 
+        i === 0 ? { ...s, status: 'complete' } : 
+        i === 1 ? { ...s, status: 'complete' } : 
+        i === 2 ? { ...s, status: 'processing' } : s
+      ));
+      setDeploymentProgress(20);
+
       if (tokenData.network.startsWith('algorand')) {
         // Algorand token creation
         setDeploymentStep('Creating Algorand Standard Asset...');
+        setDeploymentProgress(30);
         
         if (!algorandAddress || !algorandSignTransaction) {
           throw new Error('Algorand wallet not properly connected');
         }
+
+        setDeploymentSteps(steps => steps.map((s, i) => 
+          i === 2 ? { ...s, status: 'complete' } : 
+          i === 3 ? { ...s, status: 'processing' } : s
+        ));
+        setDeploymentProgress(50);
 
         result = await createAlgorandToken(
           algorandAddress,
@@ -339,12 +364,18 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
         );
 
       } else if (tokenData.network === 'solana-devnet') {
-        // Solana token creation
         setDeploymentStep('Creating Solana token...');
+        setDeploymentProgress(30);
         
         if (!solanaWallet || !solanaPublicKey) {
           throw new Error('Solana wallet not properly connected');
         }
+
+        setDeploymentSteps(steps => steps.map((s, i) => 
+          i === 2 ? { ...s, status: 'complete' } : 
+          i === 3 ? { ...s, status: 'processing' } : s
+        ));
+        setDeploymentProgress(50);
 
         result = await createTokenOnChain(solanaWallet, {
           name: tokenData.name,
@@ -364,12 +395,28 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
       } else {
         throw new Error(`Unsupported network: ${tokenData.network}`);
       }
+      
+      // Broadcasting status update
+      setDeploymentSteps(steps => steps.map((s, i) => 
+        i === 3 ? { ...s, status: 'complete' } : 
+        i === 4 ? { ...s, status: 'processing' } : s
+      ));
+      setDeploymentProgress(80);
 
       if (result.success) {
-        setDeploymentStep('Token created successfully!');
+        setDeploymentStep(`Token created successfully! Transaction ID: ${result.transactionId || result.signature}`);
         setDeploymentResult(result);
-        
-        // Show success dialog
+        setDeploymentProgress(100);
+        setDeploymentSteps(steps => steps.map((s, i) => 
+          i === 4 ? { ...s, status: 'complete' } : s
+        ));
+
+        // Add extra information for Algorand assets
+        if (tokenData.network.startsWith('algorand') && result.assetId) {
+          setDeploymentStep(`Token created successfully! Asset ID: ${result.assetId}. Note: You need to opt-in to see this token in your wallet.`);
+        }
+
+        // Show detailed success dialog
         const successMessage = `Token "${tokenData.name}" has been successfully created and deployed to the blockchain!\n\n${
           result.assetId ? `Asset ID: ${result.assetId}` : result.mintAddress ? `Mint Address: ${result.mintAddress}` : `Token Address: ${result.tokenAddress}`
         }\n\nTransaction ID: ${result.transactionId}\n\nNetwork: ${networkInfo.name}`;
@@ -383,10 +430,18 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
       }
 
     } catch (error) {
-      console.error('❌ Token creation failed:', error);
+      console.error('❌ Token creation failed:', error);        
+      // Mark current step as error
+      const currentStepIndex = deploymentSteps.findIndex(s => s.status === 'processing');
+      if (currentStepIndex >= 0) {
+        setDeploymentSteps(steps => steps.map((s, i) => 
+          i === currentStepIndex ? { ...s, status: 'error', error: error instanceof Error ? error.message : 'Unknown error' } : s
+        ));
+      }
       
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       setDeploymentStep(`Failed: ${errorMessage}`);
+      setDeploymentProgress(0);
       setError(errorMessage);
       
       // Show error dialog
@@ -996,15 +1051,58 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
             )}
           </div>
 
-          {/* Deployment Progress */}
+          {/* Enhanced Deployment Progress with detailed steps */}
           {isDeploying && (
-            <div className="p-5 bg-blue-500/10 border border-blue-500/30 rounded-lg space-y-4">
-              <div className="flex items-center space-x-3 text-blue-600">
+            <div className="p-6 bg-blue-500/10 border border-blue-500/30 rounded-lg space-y-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3 text-blue-600">
                 <Loader2 className="w-5 h-5 animate-spin text-red-500" />
                 <span className="font-medium">{deploymentStep}</span>
+                </div>
+                <span className="text-blue-500 font-bold">{deploymentProgress}%</span>
               </div>
+
               <div className="w-full bg-muted rounded-full h-2">
-                <div className="bg-blue-500 h-2 rounded-full animate-pulse" style={{ width: '70%' }}></div>
+                <div className="bg-blue-500 h-2 rounded-full transition-all duration-500" style={{ width: `${deploymentProgress}%` }}></div>
+              </div>
+              
+              <div className="space-y-4 mt-2">
+                {deploymentSteps.map((step, index) => (
+                  <div key={index} className="flex items-start space-x-3">
+                    {step.status === 'pending' && (
+                      <div className="w-5 h-5 rounded-full border-2 border-muted flex-shrink-0 mt-0.5"></div>
+                    )}
+                    {step.status === 'processing' && (
+                      <div className="w-5 h-5 rounded-full border-2 border-blue-500 border-t-transparent animate-spin flex-shrink-0 mt-0.5"></div>
+                    )}
+                    {step.status === 'complete' && (
+                      <div className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-white" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                    )}
+                    {step.status === 'error' && (
+                      <div className="w-5 h-5 rounded-full bg-red-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-white" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                    )}
+                    <div className="space-y-1">
+                      <p className={`text-sm font-medium ${
+                        step.status === 'complete' ? 'text-green-600' :
+                        step.status === 'error' ? 'text-red-600' :
+                        step.status === 'processing' ? 'text-blue-600' : 'text-muted-foreground'
+                      }`}>
+                        {step.step}
+                      </p>
+                      {step.error && (
+                        <p className="text-xs text-red-500">{step.error}</p>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           )}
