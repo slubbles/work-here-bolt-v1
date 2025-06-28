@@ -9,55 +9,55 @@ export default function FAQSection() {
       id: 'how-it-works',
       icon: Rocket,
       question: 'How does the token creation process work?',
-      answer: 'Creating a token with Snarbles is simple: 1) Connect your wallet, 2) Fill in your token details (name, symbol, supply), 3) Choose features like mintable/burnable, 4) Add social links and description, 5) Click "Launch" and pay a small network fee (~$2-5). Your token will be deployed to the SOON Network in about 30 seconds and you\'ll receive the contract address to share with your community.'
+      answer: 'Creating a token with Snarbles is streamlined for maximum efficiency: 1) Connect your wallet (Solana or Algorand), 2) Customize your token (name, symbol, supply, decimals), 3) Select advanced features (mintable/burnable/pausable), 4) Enhance with metadata (logo, social links, description), 5) Click "Launch" and approve the network transaction (typically $0.001-$5 depending on network). Your token deploys in under 30 seconds with a verified contract address, transaction history, and immediate management capabilities.'
     },
     {
       id: 'wallet-setup',
       icon: Wallet,
       question: 'What wallet do I need and how do I set it up?',
-      answer: 'You need a Solana-compatible wallet like Phantom, Solflare, or Backpack. Download the wallet extension, create a new wallet or import an existing one, and make sure you have some SOON tokens for deployment fees. The wallet will automatically connect to our platform when you click "Connect Wallet".'
+      answer: 'You need either a Solana wallet (Phantom, Solflare, Backpack) or an Algorand wallet (Pera, MyAlgo). For beginners, we recommend Phantom (Solana) or Pera Wallet (Algorand) for their user-friendly interfaces. Download your chosen wallet extension/app, create or import a wallet, and fund it with a small amount of SOL (for Solana) or ALGO (for Algorand) to cover network fees. Our platform detects compatible wallets automatically—simply click "Connect Wallet" to begin securely.'
     },
     {
       id: 'mint-tokens',
       icon: Plus,
       question: 'What does "Mintable" mean and how do I use it?',
-      answer: 'If you chose the "Mintable" feature when creating your token, you (the token creator) can generate and add more tokens to the total supply at any time. This is perfect for rewards programs, airdrops, or funding future development. You can access this feature through your dashboard\'s "Manage" tab after your token is deployed.'
+      answer: 'The "Mintable" feature gives you (as token creator) the ability to generate additional tokens beyond the initial supply—essential for dynamic tokenomics. This feature enables: 1) Controlled inflation for ecosystem growth, 2) Reward distribution for community engagement, 3) Strategic reserve funding as your project evolves, and 4) Airdrops for marketing campaigns. After deployment, you can mint new tokens instantly through the Dashboard\'s "Manage" tab with full transparency—each mint transaction is recorded on-chain with complete auditability.'
     },
     {
       id: 'burn-tokens',
       icon: Flame,
       question: 'How does token burning work?',
-      answer: 'If you enabled the "Burnable" feature, you can permanently remove tokens from circulation. This reduces the total supply, potentially increasing the scarcity and value of remaining tokens. It\'s commonly used in deflationary tokenomics models. The burned tokens are sent to an unrecoverable address, making them permanently unusable.'
+      answer: 'Token burning—available when you enable the "Burnable" feature—permanently removes tokens from circulation by sending them to an unrecoverable zero address. This deflationary mechanism can: 1) Systematically increase token scarcity over time, 2) Balance supply with demand for price stability, 3) Serve as a value-accrual mechanism where a percentage of transaction fees are burned, and 4) Allow redemption mechanisms where tokens are burned in exchange for other assets. Each burn transaction creates an immutable on-chain record, providing transparent tokenomics accountability for your community.'
     },
     {
       id: 'pause-transfers',
       icon: Pause,
       question: 'When should I use the pause feature?',
-      answer: 'The "Pausable" feature gives you an emergency switch to temporarily stop all token transfers. This is a critical security measure that can be used during major upgrades, if a bug is discovered, or to prevent unintended transactions during emergencies. Only use this feature when absolutely necessary, as it affects all token holders.'
+      answer: 'The "Pausable" feature provides an emergency circuit-breaker to temporarily freeze all token transfers—a critical security capability for responsible token governance. This should be used selectively in three specific scenarios: 1) During critical smart contract upgrades to prevent transaction conflicts, 2) If security vulnerabilities are detected, allowing time for resolution without exploitation, and 3) During major governance transitions to ensure orderly processes. This feature should be used judiciously as it impacts all holders. Many mature projects implement multi-signature controls requiring approval from multiple trusted parties before pausing can be activated.'
     },
     {
       id: 'update-metadata',
       icon: Settings,
       question: 'Can I update my token information after deployment?',
-      answer: 'Yes! While core properties like name and symbol are usually fixed, you can update associated metadata such as your token\'s logo URL, description, website links, and social media connections. This keeps your token\'s public information current as your project evolves.'
+      answer: 'Yes! While certain on-chain parameters like name, symbol and decimals are immutable after creation, you can update all associated metadata including: 1) Logo and brand assets to reflect evolving visual identity, 2) Project descriptions and mission statements as your focus refines, 3) Website URLs and documentation links as your online presence grows, 4) Social media profiles as your community channels expand, and 5) Additional attributes like whitepaper links or team information. All metadata updates are version-controlled and timestamped, giving your community complete transparency into your project\'s evolution.'
     },
     {
       id: 'transfer-ownership',
       icon: Users,
       question: 'Can I transfer control of my token to someone else?',
-      answer: 'Absolutely. The smart contract includes a function that allows you to transfer administrative control (ownership) of the token to another wallet address. This is useful if you need to hand over control to a team member, DAO, or multi-signature wallet for enhanced security.'
+      answer: 'Absolutely. Our token contracts include comprehensive authority management that allows you to transfer administrative control with granular permissions. This enables three essential governance structures: 1) Transitioning from individual to team management as your project grows, 2) Implementing multi-signature security requiring multiple approvals for critical actions, and 3) Progressive decentralization by transferring control to a DAO or community governance system. The ownership transfer process includes a two-step confirmation system to prevent accidental transfers, with complete on-chain transparency for your community.'
     },
     {
       id: 'analytics-tracking',
       icon: BarChart3,
       question: 'How can I track my token\'s performance?',
-      answer: 'Your dashboard provides comprehensive analytics including holder count, transaction history, price charts, and distribution metrics. You can monitor your token\'s growth, see who\'s buying/selling, and track community engagement. All data is updated in real-time from the blockchain.'
+      answer: 'Your token dashboard delivers enterprise-grade analytics across four key dimensions: 1) Holder metrics—track growth rates, wallet concentration, and retention/churn, 2) Transaction patterns—monitor volume trends, largest transactions, and liquidity distribution, 3) Market performance—view price movement, volatility metrics, and correlation with major assets, and 4) Community engagement—measure social sentiment, developer activity, and ecosystem growth. All metrics are real-time, on-chain verified, and exportable for custom analysis. For Solana tokens, we provide specialized SPL metrics for supply circulation and program interaction patterns.'
     },
     {
       id: 'security-verification',
       icon: Shield,
       question: 'How do I verify my token is secure and legitimate?',
-      answer: 'Use our Token Verification page to check any token\'s security status. We analyze the smart contract for common vulnerabilities, verify the source code, and provide a security score. Verified tokens get a badge that builds trust with your community and potential investors.'
+      answer: 'Our comprehensive Token Verification system provides multi-layered security analysis: 1) Smart contract audit—automated scanning for 20+ common vulnerabilities, 2) Ownership analysis—verification of creator credentials and authorization chains, 3) Liquidity assessment—evaluation of market depth and trading patterns to detect potential manipulation, 4) Distribution scoring—analysis of token concentration and whale activity risks, and 5) Social verification—cross-referencing with known projects and community feedback. Each verified token receives a dynamic security score (0-100) and verification badge, establishing immediate credibility with exchanges, investors and community members. The verification process typically completes within minutes of token creation.'
     }
   ];
 
@@ -69,11 +69,11 @@ export default function FAQSection() {
             <HelpCircle className="w-4 h-4" />
             <span className="uppercase tracking-wide">Complete Guide</span>
           </div>
-          <h2 className="text-3xl font-bold text-foreground mb-4">
+          <h2 className="text-3xl font-bold text-foreground mb-4 tracking-tight">
             How It Works & Smart Contract Features
           </h2>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Everything you need to know about creating, managing, and growing your token.
+            Master the essentials of token creation, management, and ecosystem growth.
           </p>
         </div>
 

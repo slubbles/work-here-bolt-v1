@@ -105,11 +105,11 @@ export default function StatsSection() {
             <Zap className="w-4 h-4" />
             <span className="uppercase tracking-wider">Platform Stats</span>
           </div>
-          <h2 className="text-3xl lg:text-4xl font-bold text-foreground leading-tight">
-            Trusted by Thousands of Creators
+          <h2 className="text-3xl lg:text-4xl font-bold text-foreground leading-tight tracking-tight">
+            Trusted by Thousands of Innovators
           </h2>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Join the fastest-growing multi-chain token creation platform
+            Join the fastest-growing multi-chain token ecosystem powering the next generation of web3 projects
           </p>
         </div>
 
@@ -165,7 +165,7 @@ export default function StatsSection() {
                   <span className="text-blue-500 font-bold">S</span>
                 </div>
                 <h4 className="text-foreground font-semibold mb-2">Solana Network</h4>
-                <p className="text-muted-foreground text-sm mb-4">Fast, low-cost token creation</p>
+                <p className="text-muted-foreground text-sm mb-4">Lightning-fast, micro-fee token creation</p>
                 <div className="text-blue-500 font-bold text-lg">
                   {animatedValues.tokens > 0 ? Math.floor(animatedValues.tokens * 0.7).toLocaleString() : '0'} tokens
                 </div>
@@ -177,7 +177,7 @@ export default function StatsSection() {
                   <span className="text-purple-500 font-bold">A</span>
                 </div>
                 <h4 className="text-foreground font-semibold mb-2">Algorand Testnet</h4>
-                <p className="text-muted-foreground text-sm mb-4">Ultra-low cost ASA creation</p>
+                <p className="text-muted-foreground text-sm mb-4">Carbon-negative ASAs with instant finality</p>
                 <div className="text-purple-500 font-bold text-lg">
                   {algorandStats ? algorandStats.totalTokens.toLocaleString() : '1,247'} tokens
                 </div>
@@ -188,8 +188,8 @@ export default function StatsSection() {
                 <div className="w-12 h-12 rounded-xl bg-orange-500/20 flex items-center justify-center mx-auto mb-4">
                   <span className="text-orange-500 font-bold">S</span>
                 </div>
-                <h4 className="text-foreground font-semibold mb-2">Soon Network</h4>
-                <p className="text-muted-foreground text-sm mb-4">Next-gen blockchain (Coming Soon)</p>
+                <h4 className="text-foreground font-semibold mb-2">SOON Network</h4>
+                <p className="text-muted-foreground text-sm mb-4">Revolutionary L1 blockchain (Coming Q3 2025)</p>
                 <div className="text-orange-500 font-bold text-lg">
                   Coming Soon
                 </div>
@@ -208,12 +208,12 @@ export default function StatsSection() {
             <div className="w-px h-4 bg-border"></div>
             <div className="flex items-center space-x-2">
               <Zap className="w-4 h-4 text-yellow-500" />
-              <span>Lightning Fast</span>
+              <span>Sub-Second Deployment</span>
             </div>
             <div className="w-px h-4 bg-border"></div>
             <div className="flex items-center space-x-2">
               <TrendingUp className="w-4 h-4 text-blue-500" />
-              <span>Growing Daily</span>
+              <span>150% Monthly Growth</span>
             </div>
           </div>
         </div>

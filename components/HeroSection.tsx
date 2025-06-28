@@ -51,11 +51,11 @@ export default function HeroSection() {
             
             {/* Main Headline */}
             <div className="space-y-6">
-              <h1 className="text-5xl lg:text-7xl font-bold leading-tight">
-                <span className="block text-foreground">Turn Your Idea</span>
+              <h1 className="text-5xl lg:text-7xl font-bold leading-tight tracking-tight">
+                <span className="block text-foreground">Transform Your Idea</span>
                 <span className="block">Into a{' '}
                   <span className="gradient-text relative">
-                    Real Token
+                    Powerful Token
                     <div className="absolute -inset-1 bg-gradient-to-r from-red-500/20 to-red-600/20 blur-lg -z-10"></div>
                   </span>
                 </span>
@@ -65,8 +65,8 @@ export default function HeroSection() {
             
             {/* Subheadline */}
             <p className="text-xl lg:text-2xl text-muted-foreground leading-relaxed max-w-3xl">
-              Join thousands of creators who've already launched successful tokens. 
-              <span className="text-foreground font-semibold"> No coding, no complexity</span>—just your vision brought to life.
+              Join thousands of visionaries who've launched successful tokens and built thriving communities.
+              <span className="text-foreground font-semibold"> Zero coding, zero complexity</span>—pure innovation unleashed.
             </p>
 
             {/* Social Proof */}
@@ -82,7 +82,7 @@ export default function HeroSection() {
                 </div>
               </div>
               <div className="text-sm text-muted-foreground">
-                <span className="text-foreground font-semibold">8,392</span> creators trust Snarbles
+                <span className="text-foreground font-semibold">8,392</span> innovators trust Snarbles
               </div>
             </div>
 
@@ -177,10 +177,10 @@ export default function HeroSection() {
                       Mint
                     </Button>
                     <Button variant="outline" size="sm" className="border-border text-muted-foreground hover:bg-muted hover:text-red-500 transition-colors">
-                      Burn
+                      Trade
                     </Button>
                     <Button variant="outline" size="sm" className="border-border text-muted-foreground hover:bg-muted hover:text-red-500 transition-colors">
-                      Analytics
+                      Analyze
                     </Button>
                   </div>
                 </div>
@@ -192,7 +192,7 @@ export default function HeroSection() {
                       <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                       <p className="text-sm font-semibold">Ready to launch</p>
                     </div>
-                    <div className="text-muted-foreground text-sm">• 30 seconds</div>
+                    <div className="text-muted-foreground text-sm">• Live in seconds</div>
                   </div>
                 </div>
               </div>
@@ -209,8 +209,8 @@ export default function HeroSection() {
                   A
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">"Created my token in 25 seconds!"</p>
-                  <p className="text-xs font-semibold text-foreground">- Alex, Founder</p>
+                  <p className="text-xs text-muted-foreground">"Launched our community token in just 28 seconds!"</p>
+                  <p className="text-xs font-semibold text-foreground">- Alex, Community Lead</p>
                 </div>
               </div>
             </div>

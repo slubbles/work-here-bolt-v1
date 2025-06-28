@@ -6,25 +6,25 @@ export default function HowItWorksSection() {
       number: '01',
       icon: Wallet,
       title: 'Connect Your Wallet',
-      description: 'Connect your Solana-compatible wallet to get started.',
+      description: 'Securely connect your Solana or Algorand wallet with one click.',
     },
     {
       number: '02',
       icon: Settings,
       title: 'Configure Your Token',
-      description: 'Customize your token\'s name, symbol, supply, and other properties.',
+      description: 'Customize name, symbol, supply, and advanced features with our visual builder.',
     },
     {
       number: '03',
       icon: BarChart3,
       title: 'Set Tokenomics',
-      description: 'Define your token distribution and vesting schedule.',
+      description: 'Design optimal distribution models and governance parameters for long-term success.',
     },
     {
       number: '04',
       icon: Rocket,
       title: 'Deploy & Verify',
-      description: 'Deploy your token to the SOON Network and verify it for visibility.',
+      description: 'One-click deployment to your chosen network with automatic verification and listing.',
     },
   ];
 
@@ -32,9 +32,9 @@ export default function HowItWorksSection() {
     <section className="py-20 app-background">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
-          <h2 className="text-4xl font-bold text-foreground mb-4">How It Works</h2>
+          <h2 className="text-4xl font-bold text-foreground mb-4 tracking-tight">The 4-Step Journey</h2>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Creating your own token is simple with our easy-to-follow process
+            From concept to launched token in four simple, guided steps
           </p>
         </div>
 

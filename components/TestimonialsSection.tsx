@@ -9,21 +9,21 @@ export default function TestimonialsSection() {
 
   const testimonials = [
     {
-      quote: "Snarbles made it incredibly easy to launch our community token. We were up and running in less than an hour!",
+      quote: "Snarbles transformed our community token from concept to reality in minutes. Six months later, we have 12,000+ holders and a thriving ecosystem!",
       author: "Alex Johnson",
-      role: "Community Manager",
+      role: "DAO Founder",
       avatar: "AJ"
     },
     {
-      quote: "As a non-technical founder, I thought creating a token would be impossible. Snarbles proved me wrong - it's as easy as creating a social media account.",
+      quote: "As a non-technical founder, I assumed token creation would require expensive developers. With Snarbles, I launched our governance token myself in under 5 minutes—saving us $15,000 in dev costs.",
       author: "Sarah Chen",
-      role: "Startup Founder",
+      role: "CEO, MetaVentures",
       avatar: "SC"
     },
     {
-      quote: "The tokenomics simulator helped us design the perfect distribution for our project. The visual tools made it simple to explain to our investors.",
+      quote: "The tokenomics simulator was a game-changer—we designed a distribution model that perfectly balanced community incentives with investor returns. Our token is now listed on three exchanges!",
       author: "Michael Rodriguez",
-      role: "Project Lead",
+      role: "Head of Blockchain Strategy",
       avatar: "MR"
     }
   ];
@@ -40,9 +40,9 @@ export default function TestimonialsSection() {
     <section className="py-20 app-background">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
-          <h2 className="text-4xl font-bold text-foreground mb-4">What Our Users Say</h2>
+          <h2 className="text-4xl font-bold text-foreground mb-4 tracking-tight">Voices of Success</h2>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Join thousands of creators who have successfully launched their tokens with Snarbles
+            Join visionaries who transformed their token ideas into thriving digital ecosystems
           </p>
         </div>
 

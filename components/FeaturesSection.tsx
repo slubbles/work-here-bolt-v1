@@ -12,7 +12,7 @@ export default function FeaturesSection() {
     {
       icon: Coins,
       title: 'Instant Token Creation',
-      description: 'Launch your token in under 30 seconds with our intuitive no-code builder.',
+      description: 'Deploy custom tokens in under 30 seconds with our intuitive no-code builder—no technical expertise needed.',
       color: 'text-red-500',
       bgColor: 'bg-red-500/10',
       borderColor: 'border-red-500/20'
@@ -20,7 +20,7 @@ export default function FeaturesSection() {
     {
       icon: Settings,
       title: 'Advanced Management',
-      description: 'Control every aspect of your token with professional-grade management tools.',
+      description: 'Precisely control supply, permissions and distribution with enterprise-grade token management tools.',
       color: 'text-blue-500',
       bgColor: 'bg-blue-500/10',
       borderColor: 'border-blue-500/20'
@@ -28,7 +28,7 @@ export default function FeaturesSection() {
     {
       icon: BarChart3,
       title: 'Real-time Analytics',
-      description: 'Track performance and make data-driven decisions with comprehensive analytics.',
+      description: 'Track holder growth, transaction patterns, and market dynamics with comprehensive real-time analytics.',
       color: 'text-green-500',
       bgColor: 'bg-green-500/10',
       borderColor: 'border-green-500/20'
@@ -36,7 +36,7 @@ export default function FeaturesSection() {
     {
       icon: Shield,
       title: 'Enterprise Security',
-      description: 'Built-in security features and verification for maximum trust and safety.',
+      description: 'Military-grade security with automated auditing, verification badges, and tamper-proof records.',
       color: 'text-purple-500',
       bgColor: 'bg-purple-500/10',
       borderColor: 'border-purple-500/20'
@@ -44,7 +44,7 @@ export default function FeaturesSection() {
     {
       icon: Wallet,
       title: 'Universal Compatibility',
-      description: 'Works seamlessly with all major wallets and blockchain platforms.',
+      description: 'True cross-chain interoperability with Solana, Algorand, and future networks—all major wallets supported.',
       color: 'text-orange-500',
       bgColor: 'bg-orange-500/10',
       borderColor: 'border-orange-500/20'
@@ -52,7 +52,7 @@ export default function FeaturesSection() {
     {
       icon: Users,
       title: 'Community Building',
-      description: 'Powerful tools to grow and engage your token holder community.',
+      description: 'Comprehensive governance, distribution, and engagement tools to foster vibrant token ecosystems.',
       color: 'text-pink-500',
       bgColor: 'bg-pink-500/10',
       borderColor: 'border-pink-500/20'
@@ -60,7 +60,7 @@ export default function FeaturesSection() {
     {
       icon: Zap,
       title: 'Lightning Fast',
-      description: 'Deploy to blockchain in seconds with our optimized infrastructure.',
+      description: 'Sub-second transactions and deployments powered by our proprietary Layer-2 optimization technology.',
       color: 'text-yellow-500',
       bgColor: 'bg-yellow-500/10',
       borderColor: 'border-yellow-500/20'
@@ -68,7 +68,7 @@ export default function FeaturesSection() {
     {
       icon: Code,
       title: 'Zero Coding Required',
-      description: 'Create sophisticated tokens without any technical knowledge or coding skills.',
+      description: 'Leverage advanced tokenomics and complex distribution models with absolutely no programming required.',
       color: 'text-cyan-500',
       bgColor: 'bg-cyan-500/10',
       borderColor: 'border-cyan-500/20'
@@ -107,13 +107,13 @@ export default function FeaturesSection() {
             <span className="uppercase tracking-wider">Platform Features</span>
           </div>
           
-          <h2 className="text-4xl lg:text-5xl font-bold text-foreground leading-tight">
+          <h2 className="text-4xl lg:text-5xl font-bold text-foreground leading-tight tracking-tight">
             Everything You Need to{' '}
             <span className="gradient-text">Succeed</span>
           </h2>
           
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-            From creation to community building, we provide the complete toolkit for token success.
+            From ideation to thriving ecosystem, we provide the complete toolkit for token success.
           </p>
         </div>
 
@@ -133,20 +133,20 @@ export default function FeaturesSection() {
               <div className={`absolute inset-0 ${feature.bgColor} opacity-0 group-hover:opacity-100 transition-opacity duration-300`}></div>
               
               <div className="relative z-10">
-                {/* Icon */}
+                Ready to Launch Your Token Empire?
                 <div className={`w-16 h-16 mx-auto mb-6 p-4 rounded-xl ${feature.bgColor} ${feature.color} transition-all duration-300 group-hover:scale-110 relative`}>
                   <feature.icon className="w-full h-full" />
-                  {hoveredFeature === index && (
+                Join thousands of innovators who've transformed their ideas into thriving token ecosystems.
                     <div className="absolute inset-0 rounded-xl border-2 border-current opacity-50 animate-ping"></div>
                   )}
                 </div>
                 
-                {/* Content */}
+                    Launch Your Token Now
                 <h3 className="text-lg font-bold text-foreground mb-3 group-hover:text-current transition-colors duration-300">
                   {feature.title}
                 </h3>
                 
-                <p className="text-muted-foreground text-sm leading-relaxed group-hover:text-current/80 transition-colors duration-300">
+                    Explore Dashboard
                   {feature.description}
                 </p>
               </div>

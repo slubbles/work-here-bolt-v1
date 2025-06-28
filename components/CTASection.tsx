@@ -22,11 +22,11 @@ export default function CTASection() {
                 <span className="uppercase tracking-wide">Start Today</span>
               </div>
               <h2 className="text-4xl font-bold text-[#fefde0]">
-                Your Token Idea Deserves to Become Reality
+                Your Token Vision Deserves to Become Reality
               </h2>
             </div>
-            <p className="text-xl text-gray-400 leading-relaxed">
-              Stop waiting for the "perfect moment." Thousands of creators have already turned their ideas into successful tokens. Your turn is now.
+            <p className="text-xl text-gray-400 leading-relaxed tracking-tight">
+              Stop waiting for the "perfect moment." Thousands of visionaries have already transformed their concepts into thriving digital economies. Your opportunity is now.
             </p>
             
             <div className="space-y-4">
@@ -47,9 +47,9 @@ export default function CTASection() {
                   <div key={i} className="w-8 h-8 rounded-full bg-gradient-to-br from-red-500 to-red-600 border-2 border-black flex items-center justify-center text-[#fefde0] text-xs font-bold">
                     {String.fromCharCode(64 + i)}
                   </div>
-                ))}
-                <div className="w-8 h-8 rounded-full bg-gray-800 border-2 border-black flex items-center justify-center text-gray-400 text-xs">
-                  +5K
+                  <h3 className="text-xl font-bold text-[#fefde0] mb-2">MetaCollective</h3>
+                  <p className="text-gray-300 text-sm mb-6">
+                    "Deployed our governance token in 32 seconds. Now powering decisions for 5,000+ members with $2.8M in treasury assets!"
                 </div>
               </div>
             </div>
@@ -78,13 +78,13 @@ export default function CTASection() {
                 </div>
                 <div className="bg-gray-900/50 rounded-lg p-4">
                   <div className="text-2xl font-bold text-[#fefde0]">$50K</div>
-                  <div className="text-xs text-gray-500">Market Cap</div>
+                  <div className="text-xs text-gray-500">Weekly Volume</div>
                 </div>
               </div>
 
               <div className="text-center pt-4 border-t border-gray-800">
                 <p className="text-xs text-gray-600">
-                  Created with Snarbles • 3 months ago
+                  Launched with Snarbles • 89 days ago
                 </p>
               </div>
             </div>
