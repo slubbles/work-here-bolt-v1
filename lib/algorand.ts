@@ -4,7 +4,7 @@ import { supabaseHelpers } from '@/lib/supabase';
 // Algorand network configurations
 export const ALGORAND_NETWORKS = {
   'algorand-mainnet': {
-    name: 'Algorand Mainnet',
+    name: 'Algorand Mainnet', 
     algodUrl: 'https://mainnet-api.algonode.cloud',
     indexerUrl: 'https://mainnet-idx.algonode.cloud',
     token: '',
@@ -15,7 +15,7 @@ export const ALGORAND_NETWORKS = {
     color: 'bg-[#00d4aa]'
   },
   'algorand-testnet': {
-    name: 'Algorand Testnet',
+    name: 'Algorand Testnet', 
     algodUrl: 'https://testnet-api.algonode.cloud',
     indexerUrl: 'https://testnet-idx.algonode.cloud',
     token: '',
