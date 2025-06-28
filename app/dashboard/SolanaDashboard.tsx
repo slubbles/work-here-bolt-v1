@@ -28,7 +28,10 @@ import {
   Download,
   FileDown,
   ChevronDown,
-  RefreshCw
+  RefreshCw,
+  Info,
+  Loader2,
+  AlertTriangle
 } from 'lucide-react';
 import Link from 'next/link';
 import { useWallet } from '@solana/wallet-adapter-react';
@@ -79,6 +82,151 @@ export default function SolanaDashboard() {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Mint Modal Component
+  const MintModal = () => (
+    <Dialog open={isMintModalOpen} onOpenChange={setIsMintModalOpen}>
+      <DialogContent className="glass-card">
+        <DialogHeader>
+          <DialogTitle className="text-2xl font-bold">
+            Mint {userTokens[selectedToken]?.symbol || ''} Tokens
+          </DialogTitle>
+          <DialogDescription>
+            Create new tokens and add them to the total supply.
+            {userTokens[selectedToken]?.marketData ? (
+              <div className="mt-2 text-sm text-green-500">Token can be minted.</div>
+            ) : (
+              <div className="mt-2 text-sm text-red-500">
+                Token does not have minting enabled or you don't have permission to mint.
+              </div>
+            )}
+          </DialogDescription>
+        </DialogHeader>
+        
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label htmlFor="mintAmount">Amount to Mint</Label>
+            <Input
+              id="mintAmount"
+              type="number"
+              value={mintAmount}
+              onChange={(e) => setMintAmount(e.target.value)}
+              placeholder={`Enter amount of ${userTokens[selectedToken]?.symbol || 'tokens'}`}
+              className="input-enhanced"
+              disabled={isProcessing}
+            />
+          </div>
+          
+          <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+            <p className="text-sm text-blue-600">
+              <Info className="w-4 h-4 inline-block mr-1" />
+              Minting will create new tokens and increase the total supply.
+            </p>
+          </div>
+        </div>
+        
+        <DialogFooter>
+          <Button
+            variant="outline"
+            onClick={() => setIsMintModalOpen(false)}
+            disabled={isProcessing}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleMintTokens}
+            disabled={!mintAmount || parseFloat(mintAmount) <= 0 || isProcessing || !userTokens[selectedToken]?.marketData}
+            className="bg-red-500 hover:bg-red-600 text-white"
+          >
+            {isProcessing ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Processing...
+              </>
+            ) : (
+              <>
+                <Plus className="w-4 h-4 mr-2" />
+                Mint Tokens
+              </>
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+  
+  // Burn Modal Component
+  const BurnModal = () => (
+    <Dialog open={isBurnModalOpen} onOpenChange={setIsBurnModalOpen}>
+      <DialogContent className="glass-card">
+        <DialogHeader>
+          <DialogTitle className="text-2xl font-bold">
+            Burn {userTokens[selectedToken]?.symbol || ''} Tokens
+          </DialogTitle>
+          <DialogDescription>
+            Permanently remove tokens from circulation, reducing the total supply.
+          </DialogDescription>
+        </DialogHeader>
+        
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label htmlFor="burnAmount">Amount to Burn</Label>
+            <Input
+              id="burnAmount"
+              type="number"
+              value={burnAmount}
+              onChange={(e) => setBurnAmount(e.target.value)}
+              placeholder={`Enter amount of ${userTokens[selectedToken]?.symbol || 'tokens'}`}
+              className="input-enhanced"
+              disabled={isProcessing}
+            />
+            <p className="text-sm text-muted-foreground">
+              Available balance: {userTokens[selectedToken]?.uiBalance.toLocaleString() || '0'} {userTokens[selectedToken]?.symbol || ''}
+            </p>
+          </div>
+          
+          <div className="p-3 bg-orange-500/10 border border-orange-500/30 rounded-lg">
+            <p className="text-sm text-orange-600">
+              <AlertTriangle className="w-4 h-4 inline-block mr-1" />
+              Warning: Burning tokens is permanent and cannot be undone.
+            </p>
+          </div>
+        </div>
+        
+        <DialogFooter>
+          <Button
+            variant="outline"
+            onClick={() => setIsBurnModalOpen(false)}
+            disabled={isProcessing}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleBurnTokens}
+            disabled={
+              !burnAmount || 
+              parseFloat(burnAmount) <= 0 || 
+              (userTokens[selectedToken] && parseFloat(burnAmount) > userTokens[selectedToken].uiBalance) || 
+              isProcessing
+            }
+            className="bg-red-500 hover:bg-red-600 text-white"
+          >
+            {isProcessing ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Processing...
+              </>
+            ) : (
+              <>
+                <Flame className="w-4 h-4 mr-2" />
+                Burn Tokens
+              </>
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
 
   // Fetch real data when wallet connects
   useEffect(() => {
@@ -874,28 +1022,20 @@ export default function SolanaDashboard() {
                     <div className="glass-card p-6">
                       <h4 className="text-lg font-semibold text-foreground mb-6">Token Management</h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <Button variant="outline" className="border-border text-muted-foreground hover:bg-muted h-12">
+                        <Button 
+                          variant="outline" 
+                          className="border-border text-muted-foreground hover:bg-muted h-12"
+                          onClick={() => setIsMintModalOpen(true)}
+                        >
                           <Plus className="w-4 h-4 mr-2" />
                           Mint Tokens
                         </Button>
-                        <Button variant="outline" className="border-border text-muted-foreground hover:bg-muted h-12">
-                          <Button 
-                            variant="outline" 
-                            className="border-border text-muted-foreground hover:bg-muted h-12"
-                            onClick={() => setIsMintModalOpen(true)}
-                            disabled={!userTokens[selectedToken]?.marketData}
-                          >
-                            <Plus className="w-4 h-4 mr-2" />
-                            Mint Tokens
-                          </Button>
-                          <Button 
-                            variant="outline" 
-                            className="border-border text-muted-foreground hover:bg-muted h-12"
-                            onClick={() => setIsBurnModalOpen(true)}
-                          >
-                            <Flame className="w-4 h-4 mr-2" />
-                            Burn Tokens
-                          </Button>
+                        <Button 
+                          variant="outline" 
+                          className="border-border text-muted-foreground hover:bg-muted h-12"
+                          onClick={() => setIsBurnModalOpen(true)}
+                        >
+                          <Flame className="w-4 h-4 mr-2" />
                           Burn Tokens
                         </Button>
                         <Button variant="outline" className="border-border text-muted-foreground hover:bg-muted h-12">
@@ -930,165 +1070,15 @@ export default function SolanaDashboard() {
             </Tabs>
           </div>
         </div>
+        
+        {/* Render modals */}
+        {userTokens.length > 0 && (
+          <>
+            <MintModal />
+            <BurnModal />
+          </>
+        )}
       </div>
     </div>
-  );
-  
-  // Mint Modal Component
-  const MintModal = () => (
-    <Dialog open={isMintModalOpen} onOpenChange={setIsMintModalOpen}>
-      <DialogContent className="glass-card">
-        <DialogHeader>
-          <DialogTitle className="text-2xl font-bold">
-            Mint {userTokens[selectedToken]?.symbol || ''} Tokens
-          </DialogTitle>
-          <DialogDescription>
-            Create new tokens and add them to the total supply.
-            {userTokens[selectedToken]?.marketData ? (
-              <div className="mt-2 text-sm text-green-500">Token can be minted.</div>
-            ) : (
-              <div className="mt-2 text-sm text-red-500">
-                Token does not have minting enabled or you don't have permission to mint.
-              </div>
-            )}
-          </DialogDescription>
-        </DialogHeader>
-        
-        <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <Label htmlFor="mintAmount">Amount to Mint</Label>
-            <Input
-              id="mintAmount"
-              type="number"
-              value={mintAmount}
-              onChange={(e) => setMintAmount(e.target.value)}
-              placeholder={`Enter amount of ${userTokens[selectedToken]?.symbol || 'tokens'}`}
-              className="input-enhanced"
-              disabled={isProcessing}
-            />
-          </div>
-          
-          <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
-            <p className="text-sm text-blue-600">
-              <Info className="w-4 h-4 inline-block mr-1" />
-              Minting will create new tokens and increase the total supply.
-            </p>
-          </div>
-        </div>
-        
-        <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => setIsMintModalOpen(false)}
-            disabled={isProcessing}
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={handleMintTokens}
-            disabled={!mintAmount || parseFloat(mintAmount) <= 0 || isProcessing || !userTokens[selectedToken]?.marketData}
-            className="bg-red-500 hover:bg-red-600 text-white"
-          >
-            {isProcessing ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Processing...
-              </>
-            ) : (
-              <>
-                <Plus className="w-4 h-4 mr-2" />
-                Mint Tokens
-              </>
-            )}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-  
-  // Burn Modal Component
-  const BurnModal = () => (
-    <Dialog open={isBurnModalOpen} onOpenChange={setIsBurnModalOpen}>
-      <DialogContent className="glass-card">
-        <DialogHeader>
-          <DialogTitle className="text-2xl font-bold">
-            Burn {userTokens[selectedToken]?.symbol || ''} Tokens
-          </DialogTitle>
-          <DialogDescription>
-            Permanently remove tokens from circulation, reducing the total supply.
-          </DialogDescription>
-        </DialogHeader>
-        
-        <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <Label htmlFor="burnAmount">Amount to Burn</Label>
-            <Input
-              id="burnAmount"
-              type="number"
-              value={burnAmount}
-              onChange={(e) => setBurnAmount(e.target.value)}
-              placeholder={`Enter amount of ${userTokens[selectedToken]?.symbol || 'tokens'}`}
-              className="input-enhanced"
-              disabled={isProcessing}
-            />
-            <p className="text-sm text-muted-foreground">
-              Available balance: {userTokens[selectedToken]?.uiBalance.toLocaleString() || '0'} {userTokens[selectedToken]?.symbol || ''}
-            </p>
-          </div>
-          
-          <div className="p-3 bg-orange-500/10 border border-orange-500/30 rounded-lg">
-            <p className="text-sm text-orange-600">
-              <AlertTriangle className="w-4 h-4 inline-block mr-1" />
-              Warning: Burning tokens is permanent and cannot be undone.
-            </p>
-          </div>
-        </div>
-        
-        <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => setIsBurnModalOpen(false)}
-            disabled={isProcessing}
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={handleBurnTokens}
-            disabled={
-              !burnAmount || 
-              parseFloat(burnAmount) <= 0 || 
-              (userTokens[selectedToken] && parseFloat(burnAmount) > userTokens[selectedToken].uiBalance) || 
-              isProcessing
-            }
-            className="bg-red-500 hover:bg-red-600 text-white"
-          >
-            {isProcessing ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Processing...
-              </>
-            ) : (
-              <>
-                <Flame className="w-4 h-4 mr-2" />
-                Burn Tokens
-              </>
-            )}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-  
-  // Render mint and burn modals
-  return (
-    <>
-      {renderContent()}
-      {userTokens.length > 0 && (
-        <>
-          <MintModal />
-          <BurnModal />
-        </>
-      )}
-    </>
   );
 }
