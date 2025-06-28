@@ -4,1444 +4,866 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
-import { Badge } from '@/components/ui/badge';
-import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, LineChart, Line } from 'recharts';
-import { Calculator, TrendingUp, Users, Coins, DollarSign, Target, Download, FileText, Share2, CheckCircle, AlertTriangle, Lightbulb, Lock, Rocket, Calendar, Save, Upload, RotateCcw, Info, Settings } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { BarChart, Bar, XAxis, YAxis, Cell, Tooltip, ResponsiveContainer, PieChart, Pie, Legend } from 'recharts';
+import { 
+  Calculator, 
+  Download, 
+  PieChart as PieChartIcon, 
+  Clock, 
+  Lock, 
+  ChevronRight, 
+  Check, 
+  X, 
+  AlertTriangle, 
+  Shield, 
+  TrendingUp,
+  Settings,
+  Copy,
+  Rocket
+} from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
+import { useRouter, useSearchParams } from 'next/navigation';
 
-interface DistributionItem {
-  value: number;
-  label: string;
-}
+// Define distribution categories with default values
+const defaultDistribution = {
+  team: { label: 'Team', value: 15, color: '#FF6B6B' },
+  investors: { label: 'Investors', value: 20, color: '#4ECDC4' },
+  community: { label: 'Community', value: 30, color: '#FFD166' },
+  liquidity: { label: 'Liquidity', value: 15, color: '#6A0572' },
+  marketing: { label: 'Marketing', value: 10, color: '#1A535C' },
+  reserve: { label: 'Reserve', value: 10, color: '#3A86FF' }
+};
 
-interface Distribution {
-  community: DistributionItem;
-  team: DistributionItem;
-  marketing: DistributionItem;
-  development: DistributionItem;
-  reserve: DistributionItem;
-}
-
-interface VestingSchedule {
-  enabled: boolean;
-  team: {
-    period: number; // months
-    cliff: number; // months
-    initialRelease: number; // percentage
-  };
-  marketing: {
-    period: number; // months
-    cliff: number; // months
-    initialRelease: number; // percentage
-  };
-  development: {
-    period: number; // months
-    cliff: number; // months
-    initialRelease: number; // percentage
-  };
-}
-
-interface TokenomicsScenario {
-  name: string;
-  totalSupply: number;
-  distribution: Distribution;
-  vestingSchedule: VestingSchedule;
-  timestamp: number;
-  healthScore: number;
-}
-
-type DistributionKey = keyof Distribution;
+// Define vesting schedules
+const defaultVesting = {
+  enabled: true,
+  team: { period: 24, initialRelease: 10 },
+  investors: { period: 12, initialRelease: 20 },
+  advisors: { period: 18, initialRelease: 15 }
+};
 
 export default function TokenomicsPage() {
-  const [totalSupply, setTotalSupply] = useState(1000000);
-  const [scenarioName, setScenarioName] = useState('Default Scenario');
-  const [savedScenarios, setSavedScenarios] = useState<TokenomicsScenario[]>([]);
-  const [showSavedScenarios, setShowSavedScenarios] = useState(false);
-  const router = useRouter();
+  // State for token supply and distribution
+  const [totalSupply, setTotalSupply] = useState(100000000);
+  const [distribution, setDistribution] = useState(defaultDistribution);
+  const [vestingSchedule, setVestingSchedule] = useState(defaultVesting);
+  const [activeTab, setActiveTab] = useState('distribution');
+  const [supplyType, setSupplyType] = useState('fixed');
+  const [vestingEnabled, setVestingEnabled] = useState(true);
+  const [healthScore, setHealthScore] = useState(78);
+  const [savedSuccess, setSavedSuccess] = useState(false);
+  
   const { toast } = useToast();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   
-  const [distribution, setDistribution] = useState<Distribution>({
-    community: { value: 40, label: 'Community' },
-    team: { value: 20, label: 'Team' },
-    marketing: { value: 15, label: 'Marketing' },
-    development: { value: 15, label: 'Development' },
-    reserve: { value: 10, label: 'Reserve' }
-  });
-
-  const [vestingSchedule, setVestingSchedule] = useState<VestingSchedule>({
-    enabled: false,
-    team: {
-      period: 24,
-      cliff: 6,
-      initialRelease: 0,
-    },
-    marketing: {
-      period: 12,
-      cliff: 3,
-      initialRelease: 25,
-    },
-    development: {
-      period: 18,
-      cliff: 6,
-      initialRelease: 10,
-    }
-  });
-  
-  // Load saved scenarios from localStorage on mount
+  // Check if we're applying tokenomics from saved config
   useEffect(() => {
-    const savedData = localStorage.getItem('snarbles_saved_scenarios');
-    if (savedData) {
+    const applyParam = searchParams.get('apply');
+    if (applyParam === 'true') {
+      // Try to load saved tokenomics from localStorage
       try {
-        const parsed = JSON.parse(savedData);
-        if (Array.isArray(parsed)) {
-          setSavedScenarios(parsed);
+        const saved = localStorage.getItem('snarbles_tokenomics');
+        if (saved) {
+          const data = JSON.parse(saved);
+          
+          if (data.totalSupply) setTotalSupply(data.totalSupply);
+          if (data.distribution) setDistribution(data.distribution);
+          if (data.vestingSchedule) setVestingSchedule(data.vestingSchedule);
+          if (data.supplyType) setSupplyType(data.supplyType);
+          if (data.healthScore) setHealthScore(data.healthScore);
+          
+          setSavedSuccess(true);
+          setTimeout(() => setSavedSuccess(false), 3000);
         }
-      } catch (e) {
-        console.error('Failed to parse saved scenarios', e);
+      } catch (err) {
+        console.error('Failed to load tokenomics data:', err);
       }
     }
-  }, []);
-
-  const pieData = [
-    { name: distribution.community.label, value: distribution.community.value, color: '#EF4444' },
-    { name: distribution.team.label, value: distribution.team.value, color: '#3B82F6' },
-    { name: distribution.marketing.label, value: distribution.marketing.value, color: '#10B981' },
-    { name: distribution.development.label, value: distribution.development.value, color: '#F59E0B' },
-    { name: distribution.reserve.label, value: distribution.reserve.value, color: '#8B5CF6' }
-  ];
-
-  const updateDistribution = (category: DistributionKey, value: number) => {
-    setDistribution(prev => ({
-      ...prev,
-      [category]: { ...prev[category], value }
-    }));
+  }, [searchParams]);
+  
+  // Calculate health score whenever distribution changes
+  useEffect(() => {
+    const teamPercent = distribution.team.value;
+    const investorsPercent = distribution.investors.value;
+    const communityPercent = distribution.community.value;
+    
+    // A basic algorithm to calculate health score
+    // - Community allocation should be high (higher is better)
+    // - Team allocation should be reasonable (too high or too low is bad)
+    // - Investor allocation should not be too high
+    
+    const communityScore = Math.min(communityPercent * 2, 100); // Up to 50% of total
+    const teamScore = 100 - Math.abs(teamPercent - 15) * 3; // Ideal around 15%
+    const investorScore = 100 - Math.max(0, investorsPercent - 25) * 2; // Penalize if over 25%
+    
+    // Vesting increases score
+    const vestingBonus = vestingEnabled ? 10 : 0;
+    
+    // Total score
+    const calculatedScore = Math.round((communityScore * 0.4 + teamScore * 0.3 + investorScore * 0.3) + vestingBonus);
+    // Clamp between 0-100
+    const finalScore = Math.max(0, Math.min(100, calculatedScore));
+    
+    setHealthScore(finalScore);
+  }, [distribution, vestingEnabled]);
+  
+  // Format large numbers with commas
+  const formatNumber = (num) => {
+    return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
   };
   
-  // Update vesting schedule for a category
-  const updateVestingSchedule = (category: keyof Omit<VestingSchedule, 'enabled'>, field: keyof VestingSchedule['team'], value: number) => {
-    setVestingSchedule(prev => ({
-      ...prev,
-      [category]: {
-        ...prev[category],
-        [field]: value
-      }
-    }));
-  };
-  
-  // Toggle vesting schedule
-  const toggleVestingSchedule = (enabled: boolean) => {
-    setVestingSchedule(prev => ({
-      ...prev,
-      enabled
-    }));
-  };
-
-  const updateDistributionLabel = (category: DistributionKey, label: string) => {
-    setDistribution(prev => ({
-      ...prev,
-      [category]: { ...prev[category], label }
-    }));
-  };
-
-  const generateDetailedReport = () => {
-    const timestamp = new Date().toISOString();
-    const reportContent = `
-COMPREHENSIVE TOKENOMICS REPORT
-===============================
-
-Generated: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}
-Platform: Snarbles Token Creation Platform
-Report ID: ${Math.random().toString(36).substr(2, 9).toUpperCase()}
-
-EXECUTIVE SUMMARY
-=================
-This report provides a comprehensive analysis of the proposed tokenomics structure for your project. The distribution has been designed to balance community incentives, team motivation, growth initiatives, and long-term sustainability.
-
-TOKEN PARAMETERS
-================
-Total Supply: ${totalSupply.toLocaleString()} tokens
-Distribution Model: Fixed supply with strategic allocation
-Recommended Vesting: 12-24 months for team and advisor tokens
-
-DETAILED DISTRIBUTION BREAKDOWN
-===============================
-
-1. ${distribution.community.label} Allocation: ${distribution.community.value}%
-   - Tokens: ${(totalSupply * distribution.community.value / 100).toLocaleString()}
-   - Purpose: Public distribution, airdrops, community rewards, governance participation
-   - Recommendation: ${distribution.community.value >= 40 ? '✓ EXCELLENT' : distribution.community.value >= 30 ? '⚠ GOOD' : '❌ CONSIDER INCREASING'} - Community-first approach
-   - Release Schedule: Gradual release over 6-12 months to prevent market flooding
-   - Use Cases: Staking rewards, governance voting, community contests, referral programs
-
-2. ${distribution.team.label} Allocation: ${distribution.team.value}%
-   - Tokens: ${(totalSupply * distribution.team.value / 100).toLocaleString()}
-   - Purpose: Core team incentives, advisor compensation, key personnel retention
-   - Recommendation: ${distribution.team.value <= 25 ? '✓ APPROPRIATE' : '⚠ CONSIDER REDUCING'} - Balanced team incentives
-   - Vesting Schedule: 12-month cliff, 24-month linear vesting recommended
-   - Governance: Team tokens should have voting rights to align interests
-
-3. ${distribution.marketing.label} Allocation: ${distribution.marketing.value}%
-   - Tokens: ${(totalSupply * distribution.marketing.value / 100).toLocaleString()}
-   - Purpose: Marketing campaigns, partnerships, influencer collaborations, PR initiatives
-   - Recommendation: ${distribution.marketing.value >= 10 && distribution.marketing.value <= 20 ? '✓ BALANCED' : '⚠ REVIEW ALLOCATION'}
-   - Strategy: Focus on organic growth and community building
-   - Metrics: Track CAC (Customer Acquisition Cost) and community engagement
-
-4. ${distribution.development.label} Allocation: ${distribution.development.value}%
-   - Tokens: ${(totalSupply * distribution.development.value / 100).toLocaleString()}
-   - Purpose: Technical development, security audits, infrastructure, ongoing maintenance
-   - Recommendation: ${distribution.development.value >= 10 ? '✓ SUFFICIENT' : '⚠ INCREASE FOR SUSTAINABILITY'}
-   - Timeline: Allocate across multiple development phases
-   - Priorities: Security first, then feature development and scaling
-
-5. ${distribution.reserve.label} Allocation: ${distribution.reserve.value}%
-   - Tokens: ${(totalSupply * distribution.reserve.value / 100).toLocaleString()}
-   - Purpose: Future expansion, emergency fund, strategic partnerships, unforeseen opportunities
-   - Recommendation: ${distribution.reserve.value >= 5 && distribution.reserve.value <= 15 ? '✓ PRUDENT' : '⚠ REVIEW SIZE'}
-   - Management: Multi-signature wallet recommended for reserve funds
-   - Governance: Major reserve usage should require community approval
-
-TOKENOMICS ANALYSIS
-===================
-
-Distribution Health Score: ${calculateHealthScore()}%
-
-Strengths:
-${getStrengths().map(strength => `• ${strength}`).join('\n')}
-
-Areas for Improvement:
-${getImprovements().map(improvement => `• ${improvement}`).join('\n')}
-
-IMPLEMENTATION ROADMAP
-======================
-
-Phase 1 (Months 1-3): Token Launch & Initial Distribution
-- Deploy smart contract with specified parameters
-- Conduct initial community distribution (${Math.floor(distribution.community.value * 0.3)}% of community allocation)
-- Begin team vesting schedule
-- Launch basic governance mechanisms
-
-Phase 2 (Months 4-6): Growth & Expansion
-- Execute marketing campaigns using allocated tokens
-- Onboard strategic partners
-- Expand development team if needed
-- Implement advanced governance features
-
-Phase 3 (Months 7-12): Maturation & Optimization
-- Complete community distribution
-- Evaluate and adjust tokenomics based on performance
-- Consider additional utility mechanisms
-- Plan for long-term sustainability
-
-RISK ASSESSMENT
-===============
-
-Low Risk Factors:
-• Balanced distribution prevents centralization
-• Community-first approach builds trust
-• Adequate development funding ensures sustainability
-
-Medium Risk Factors:
-• Market volatility may affect token value
-• Regulatory changes could impact distribution
-• Competition may require strategy adjustments
-
-High Risk Factors:
-• Team departure could affect locked tokens
-• Community adoption slower than expected
-• Technical vulnerabilities in smart contract
-
-RECOMMENDATIONS
-===============
-
-1. Legal Compliance: Ensure all distributions comply with local regulations
-2. Smart Contract Audit: Conduct thorough security audit before deployment
-3. Community Engagement: Build strong community before token launch
-4. Transparency: Publish regular reports on token usage and project progress
-5. Flexibility: Design mechanisms to adjust tokenomics if needed
-
-COMPARATIVE ANALYSIS
-====================
-
-Your tokenomics compared to successful projects:
-• Community allocation: ${distribution.community.value}% (Industry average: 35-45%)
-• Team allocation: ${distribution.team.value}% (Industry average: 15-25%)
-• Development fund: ${distribution.development.value}% (Industry average: 10-20%)
-
-CONCLUSION
-==========
-
-${getConclusion()}
-
-NEXT STEPS
-==========
-
-1. Review this analysis with your team and advisors
-2. Consider implementing suggested improvements
-3. Conduct legal review of token distribution
-4. Plan detailed implementation timeline
-5. Prepare community communication strategy
-6. Begin smart contract development and testing
-
-DISCLAIMER
-==========
-
-This report is for planning purposes only and does not constitute financial, legal, or investment advice. 
-Token distribution should be reviewed by qualified legal and financial professionals. 
-Regulatory requirements vary by jurisdiction and should be carefully considered.
-
-The tokenomics model should be tested thoroughly before implementation, and mechanisms for 
-adjustment should be built into the system to respond to changing market conditions.
-
----
-Report generated by Snarbles Token Creation Platform
-Timestamp: ${timestamp}
-Visit: https://snarbles.xyz for more information
-
-© 2025 Snarbles Platform. This report is confidential and proprietary.
-    `;
-
-    // Create and download the file
-    const blob = new Blob([reportContent], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `tokenomics-analysis-${new Date().toISOString().split('T')[0]}.txt`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
-
-  const generatePDFReport = async () => {
-    try {
-      // Dynamic import to avoid SSR issues
-      // First check if we're in a browser environment
-      if (typeof window === 'undefined') {
-        console.error('PDF generation requires browser environment');
-        return generateDetailedReport(); // Fallback to text report
-      }
-
-      // Dynamic import with proper error handling
-      const { jsPDF } = await import('jspdf');
+  // Update distribution and ensure total is 100%
+  const handleDistributionChange = (category, newValue) => {
+    // Calculate how much we need to adjust other categories
+    const currentTotal = Object.values(distribution)
+      .reduce((sum, item) => sum + item.value, 0);
+    
+    const currentCategoryValue = distribution[category].value;
+    const difference = newValue - currentCategoryValue;
+    const newTotal = currentTotal + difference;
+    
+    // If new total would exceed 100%, adjust other categories proportionally
+    if (newTotal > 100) {
+      // How much we need to reduce other categories
+      const excess = newTotal - 100;
+      const otherCategories = Object.keys(distribution).filter(key => key !== category);
       
-      const doc = new jsPDF();
-      const pageWidth = doc.internal.pageSize.width;
-      const pageHeight = doc.internal.pageSize.height;
-      const margin = 20;
-      let yPosition = margin;
-
-      // Helper function to add text with word wrapping
-      const addText = (text: string, fontSize = 12, isBold = false, align = 'left') => {
-        doc.setFontSize(fontSize);
-        doc.setFont('helvetica', isBold ? 'bold' : 'normal');
-        
-        const lines = doc.splitTextToSize(text, pageWidth - 2 * margin);
-        
-        if (align === 'center') {
-          doc.text(lines, pageWidth / 2, yPosition, { align: 'center' });
-        } else {
-          doc.text(lines, margin, yPosition);
-        }
-        
-        yPosition += lines.length * (fontSize * 0.5) + 5;
-        
-        // Add new page if needed
-        if (yPosition > pageHeight - margin) {
-          doc.addPage();
-          yPosition = margin;
-        }
-      };
-
-      // Helper to add horizontal line
-      const addLine = () => {
-        doc.setDrawColor(200, 200, 200);
-        doc.line(margin, yPosition, pageWidth - margin, yPosition);
-        yPosition += 10;
-      };
-
-      // Helper to add section header
-      const addSectionHeader = (title: string) => {
-        yPosition += 10;
-        addLine();
-        addText(title, 16, true);
-        yPosition += 5;
-      };
-      // Professional Header
-      doc.setFillColor(239, 68, 68);
-      doc.rect(0, 0, pageWidth, 40, 'F');
+      // Calculate total value of other categories
+      const otherTotal = otherCategories.reduce(
+        (sum, key) => sum + distribution[key].value, 0
+      );
       
-      doc.setTextColor(255, 255, 255);
-      addText('COMPREHENSIVE TOKENOMICS ANALYSIS', 24, true, 'center');
-      yPosition = 50;
+      // Create new distribution
+      const newDistribution = { ...distribution };
+      newDistribution[category] = { ...distribution[category], value: newValue };
       
-      doc.setTextColor(0, 0, 0);
-      addText(`Professional Token Distribution Analysis Report`, 14, false, 'center');
-      addText(`Generated: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}`, 10, false, 'center');
-      yPosition += 10;
-
-      // Executive Summary
-      addSectionHeader('EXECUTIVE SUMMARY');
-      addText(`This comprehensive analysis evaluates the proposed tokenomics structure for optimal market performance and community engagement. The distribution model has been designed using industry best practices and strategic allocation methodologies.`);
-      addText(`Health Score: ${calculateHealthScore()}/100 - ${getConclusion()}`);
-      yPosition += 10;
-
-      // Key Metrics
-      addSectionHeader('KEY METRICS & PARAMETERS');
-      addText(`Total Supply: ${totalSupply.toLocaleString()} tokens`);
-      addText(`Distribution Efficiency Score: ${calculateHealthScore()}%`);
-      addText(`Market Readiness: ${calculateHealthScore() >= 80 ? 'EXCELLENT' : calculateHealthScore() >= 60 ? 'GOOD' : 'NEEDS IMPROVEMENT'}`);
-      addText(`Recommended Action: ${calculateHealthScore() >= 80 ? 'Ready for deployment' : 'Review recommendations below'}`);
-      yPosition += 10;
-
-      // Detailed Distribution Analysis
-      addSectionHeader('DETAILED DISTRIBUTION ANALYSIS');
-      Object.entries(distribution).forEach(([key, data]) => {
-        const tokens = (totalSupply * data.value / 100).toLocaleString();
-        addText(`${data.label}: ${data.value}% (${tokens} tokens)`, 12, true);
-        
-        // Add specific analysis for each category
-        if (key === 'community') {
-          addText(`  Analysis: ${data.value >= 40 ? 'Excellent community focus promotes decentralization' : 'Consider increasing for better adoption'}`, 10);
-        } else if (key === 'team') {
-          addText(`  Analysis: ${data.value <= 25 ? 'Appropriate team incentive structure' : 'High team allocation may concern investors'}`, 10);
-        } else if (key === 'development') {
-          addText(`  Analysis: ${data.value >= 10 ? 'Adequate funding for sustainable development' : 'Insufficient for long-term growth'}`, 10);
-        }
-        yPosition += 3;
-      });
-      yPosition += 10;
-
-      // Strategic Recommendations
-      addSectionHeader('RECOMMENDATIONS');
-      yPosition += 5;
-      
-      getStrengths().forEach(strength => {
-        addText(`✓ ${strength}`, 10);
+      // Adjust other categories proportionally
+      otherCategories.forEach(key => {
+        const proportion = distribution[key].value / otherTotal;
+        const reduction = excess * proportion;
+        newDistribution[key] = {
+          ...distribution[key],
+          value: Math.max(0, distribution[key].value - reduction)
+        };
       });
       
-      if (getImprovements().length > 0) {
-        yPosition += 5;
-        addText('AREAS FOR OPTIMIZATION:', 12, true, 'left');
-        getImprovements().forEach(improvement => {
-          addText(`• RECOMMENDATION: ${improvement}`, 10, false, 'left');
-        });
-      }
-      
-      // Implementation Roadmap
-      addSectionHeader('IMPLEMENTATION ROADMAP');
-      addText('Phase 1 (Months 1-3): Token Launch & Initial Distribution', 12, true);
-      addText('• Deploy smart contract with specified parameters', 10, false, 'left');
-      addText('• Execute initial community distribution (30% of allocation)', 10, false, 'left');
-      addText('• Implement basic governance mechanisms', 10, false, 'left');
-      addText('• Establish token utility framework', 10, false, 'left');
-      yPosition += 5;
-      
-      addText('Phase 2 (Months 4-6): Growth & Expansion', 12, true);
-      addText('• Scale marketing and community engagement', 10, false, 'left');
-      addText('• Onboard strategic partnerships', 10, false, 'left');
-      addText('• Enhance governance participation', 10, false, 'left');
-      addText('• Monitor and optimize tokenomics performance', 10, false, 'left');
-      yPosition += 5;
-      
-      addText('Phase 3 (Months 7-12): Maturation & Optimization', 12, true);
-      addText('• Complete planned token distribution', 10, false, 'left');
-      addText('• Evaluate performance against KPIs', 10, false, 'left');
-      addText('• Implement advanced utility mechanisms', 10, false, 'left');
-      addText('• Plan for long-term sustainability', 10, false, 'left');
-      yPosition += 10;
-      
-      // Risk Assessment
-      addSectionHeader('RISK ASSESSMENT & MITIGATION');
-      addText('LOW RISK FACTORS:', 11, true);
-      addText('• Balanced distribution prevents centralization risks', 10, false, 'left');
-      addText('• Community-first approach builds sustainable adoption', 10, false, 'left');
-      addText('• Adequate development funding ensures long-term viability', 10, false, 'left');
-      yPosition += 5;
-      
-      addText('MEDIUM RISK FACTORS:', 11, true);
-      addText('• Market volatility may impact token valuation', 10, false, 'left');
-      addText('• Regulatory changes could affect distribution mechanisms', 10, false, 'left');
-      addText('• Competitive landscape may require strategy adjustments', 10, false, 'left');
-      yPosition += 5;
-      
-      addText('MITIGATION STRATEGIES:', 11, true);
-      addText('• Implement vesting schedules for team and advisor tokens', 10, false, 'left');
-      addText('• Maintain regulatory compliance across all jurisdictions', 10, false, 'left');
-      addText('• Build strong community governance mechanisms', 10, false, 'left');
-      addText('• Establish emergency response protocols', 10, false, 'left');
-
-      // Professional Footer
-      if (yPosition > pageHeight - 80) {
-        doc.addPage();
-        yPosition = margin;
-      }
-      
-      yPosition = pageHeight - 60;
-      addLine();
-      addText('DISCLAIMER & LEGAL NOTICE', 11, true, 'center');
-      addText('This analysis is for informational purposes only and does not constitute financial, legal, or investment advice.', 8, false, 'center');
-      addText('Token distributions should be reviewed by qualified professionals and comply with applicable regulations.', 8, false, 'center');
-      yPosition += 10;
-      addText('Generated by Snarbles Professional Token Creation Platform', 8, true, 'center');
-      addText('Visit https://snarbles.xyz for comprehensive token solutions', 8, false, 'center');
-
-      // Save the PDF
-      doc.save(`tokenomics-report-${new Date().toISOString().split('T')[0]}.pdf`);
-      
-      // Show success message
-      alert('PDF report generated successfully!');
-    } catch (error) {
-      console.error('Error generating PDF:', error);
-      // Fallback to text report
-      alert('PDF generation failed. Generating text report instead.');
-      setTimeout(() => {
-        generateDetailedReport();
-      }, 500);
-    }
-  };
-
-  const calculateHealthScore = (): number => {
-    let score = 100;
-    
-    // Community allocation should be 40-60%
-    if (distribution.community.value < 30) score -= 20;
-    else if (distribution.community.value < 40) score -= 10;
-    else if (distribution.community.value > 60) score -= 15;
-    
-    // Team allocation should be 15-25%
-    if (distribution.team.value > 30) score -= 15;
-    else if (distribution.team.value < 10) score -= 10;
-    
-    // Total should equal 100%
-    const total = Object.values(distribution).reduce((sum, item) => sum + item.value, 0);
-    if (Math.abs(total - 100) > 1) score -= 20;
-    
-    return Math.max(0, Math.min(100, score));
-  };
-
-  const getStrengths = (): string[] => {
-    const strengths = [];
-    
-    if (distribution.community.value >= 40) {
-      strengths.push('Strong community focus builds trust and adoption');
-    }
-    
-    if (distribution.team.value <= 25) {
-      strengths.push('Reasonable team allocation prevents centralization concerns');
-    }
-    
-    if (distribution.reserve.value >= 5 && distribution.reserve.value <= 15) {
-      strengths.push('Prudent reserve allocation for future opportunities');
-    }
-    
-    if (distribution.development.value >= 10) {
-      strengths.push('Adequate development funding ensures sustainability');
-    }
-    
-    return strengths;
-  };
-
-  const getImprovements = (): string[] => {
-    const improvements = [];
-    
-    if (distribution.community.value < 40) {
-      improvements.push('Consider increasing community allocation to 40%+ for better decentralization');
-    }
-    
-    if (distribution.team.value > 25) {
-      improvements.push('Team allocation above 25% may raise centralization concerns');
-    }
-    
-    if (distribution.development.value < 10) {
-      improvements.push('Development allocation below 10% may limit long-term sustainability');
-    }
-    
-    const total = Object.values(distribution).reduce((sum, item) => sum + item.value, 0);
-    if (Math.abs(total - 100) > 1) {
-      improvements.push('Ensure total distribution equals exactly 100%');
-    }
-    
-    return improvements;
-  };
-
-  // Get vesting-related issues or improvements
-  const getVestingRecommendations = (): string[] => {
-    const recommendations = [];
-    
-    if (!vestingSchedule.enabled) {
-      recommendations.push('Consider adding vesting schedules for team and investor allocations to build trust');
-      return recommendations;
-    }
-    
-    if (vestingSchedule.team.period < 12 && distribution.team.value > 15) {
-      recommendations.push('Team vesting period is short for a large allocation. Consider 18-24 month vesting for team tokens');
-    }
-    
-    if (vestingSchedule.team.cliff < 6 && distribution.team.value > 15) {
-      recommendations.push('Consider a 6-12 month cliff for team tokens to align long-term incentives');
-    }
-    
-    if (vestingSchedule.team.initialRelease > 20 && distribution.team.value > 15) {
-      recommendations.push('Team initial release is high. Consider reducing to 10-15% for better trust signals');
-    }
-    
-    return recommendations;
-  };
-
-  const getConclusion = (): string => {
-    const score = calculateHealthScore();
-    
-    if (score >= 90) {
-      return 'Excellent tokenomics structure with strong community focus and balanced allocations. Ready for implementation with minor adjustments if needed.';
-    } else if (score >= 75) {
-      return 'Good tokenomics foundation with room for optimization. Consider the suggested improvements before finalizing.';
-    } else if (score >= 60) {
-      return 'Adequate structure but requires significant improvements. Focus on community allocation and overall balance.';
+      setDistribution(newDistribution);
     } else {
-      return 'Tokenomics structure needs major revision. Consider redistributing allocations to better align with best practices.';
-    }
-  };
-  
-  // Generate vesting schedule visualization data
-  const generateVestingData = () => {
-    if (!vestingSchedule.enabled) return [];
-    
-    // Create month labels for the next 24 months
-    const months = Array.from({ length: 24 }, (_, i) => `Month ${i+1}`);
-    
-    // Calculate team tokens released each month
-    const teamData = months.map((month, index) => {
-      const monthNum = index + 1;
-      if (monthNum < vestingSchedule.team.cliff) {
-        return { month, team: 0 };
-      }
-      
-      const teamPct = vestingSchedule.team.initialRelease / 100;
-      const remainingPct = 1 - teamPct;
-      
-      if (monthNum === vestingSchedule.team.cliff) {
-        return { month, team: Math.round(distribution.team.value * teamPct * totalSupply / 100) };
-      }
-      
-      const monthsSinceCliff = monthNum - vestingSchedule.team.cliff;
-      const vestingMonths = vestingSchedule.team.period - vestingSchedule.team.cliff;
-      const additionalReleasePct = Math.min(monthsSinceCliff / vestingMonths, 1) * remainingPct;
-      const totalReleasePct = teamPct + additionalReleasePct;
-      
-      return {
-        month,
-        team: Math.round(distribution.team.value * totalReleasePct * totalSupply / 100)
-      };
-    });
-    
-    // Add other allocations to the data
-    return teamData;
-  };
-
-  const applyTokenomics = () => {
-    try {
-      // Create tokenomics config
-      const tokenomicsConfig = {
-        name: scenarioName,
-        totalSupply,
-        distribution,
-        vestingSchedule,
-        timestamp: Date.now(),
-        healthScore: calculateHealthScore()
-      };
-      
-      // Save to localStorage
-      localStorage.setItem('snarbles_tokenomics', JSON.stringify(tokenomicsConfig));
-      
-      // Show success message
-      toast({
-        title: "Tokenomics Applied",
-        description: "Your tokenomics configuration has been saved and will be applied to token creation",
-        variant: "success"
-      });
-      
-      // Redirect to create page
-      router.push('/create?tokenomics=applied');
-    } catch (error) {
-      console.error('Error applying tokenomics:', error);
-      toast({
-        title: "Error",
-        description: "Failed to apply tokenomics. Please try again.",
-        variant: "destructive"
+      // Simple case - just update the category and we're still <= 100%
+      setDistribution({
+        ...distribution,
+        [category]: { ...distribution[category], value: newValue }
       });
     }
   };
   
-  // Save current scenario
-  const saveScenario = () => {
-    try {
-      const newScenario: TokenomicsScenario = {
-        name: scenarioName,
-        totalSupply,
-        distribution,
-        vestingSchedule,
-        timestamp: Date.now(),
-        healthScore: calculateHealthScore()
-      };
-      
-      const updatedScenarios = [...savedScenarios.filter(s => s.name !== scenarioName), newScenario];
-      setSavedScenarios(updatedScenarios);
-      
-      // Save to localStorage
-      localStorage.setItem('snarbles_saved_scenarios', JSON.stringify(updatedScenarios));
-      
-      toast({
-        title: "Scenario Saved",
-        description: `"${scenarioName}" has been saved successfully`,
-        variant: "success"
-      });
-    } catch (error) {
-      console.error('Error saving scenario:', error);
-      toast({
-        title: "Error",
-        description: "Failed to save scenario. Please try again.",
-        variant: "destructive"
-      });
-    }
+  // Generate distribution data for charts
+  const getDistributionData = () => {
+    return Object.keys(distribution).map(key => ({
+      name: distribution[key].label,
+      value: distribution[key].value,
+      color: distribution[key].color,
+      amount: Math.round(totalSupply * (distribution[key].value / 100))
+    }));
   };
   
-  // Load a saved scenario
-  const loadScenario = (scenario: TokenomicsScenario) => {
-    try {
-      setScenarioName(scenario.name);
-      setTotalSupply(scenario.totalSupply);
-      setDistribution(scenario.distribution);
-      setVestingSchedule(scenario.vestingSchedule);
-      
-      setShowSavedScenarios(false);
-      
-      toast({
-        title: "Scenario Loaded",
-        description: `"${scenario.name}" has been loaded successfully`,
-        variant: "success"
-      });
-    } catch (error) {
-      console.error('Error loading scenario:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load scenario. Please try again.",
-        variant: "destructive"
-      });
-    }
-  };
-  
-  // Reset to defaults
-  const resetToDefaults = () => {
-    setScenarioName('Default Scenario');
-    setTotalSupply(1000000);
-    setDistribution({
-      community: { value: 40, label: 'Community' },
-      team: { value: 20, label: 'Team' },
-      marketing: { value: 15, label: 'Marketing' },
-      development: { value: 15, label: 'Development' },
-      reserve: { value: 10, label: 'Reserve' }
-    });
-    setVestingSchedule({
-      enabled: false,
-      team: {
-        period: 24,
-        cliff: 6,
-        initialRelease: 0,
-      },
-      marketing: {
-        period: 12,
-        cliff: 3,
-        initialRelease: 25,
-      },
-      development: {
-        period: 18,
-        cliff: 6,
-        initialRelease: 10,
-      }
-    });
-    toast({
-      title: "Reset Complete",
-      description: "All settings have been reset to default values",
-      variant: "default"
-    });
-  };
-
-  const shareTokenomics = async () => {
-    const shareData = {
-      title: 'My Token Distribution Plan',
-      text: `Check out my tokenomics: ${distribution.community.value}% Community, ${distribution.team.value}% Team, ${distribution.marketing.value}% Marketing`,
-      url: window.location.href
+  // Save tokenomics for use in token creation
+  const saveTokenomics = () => {
+    const tokenomicsData = {
+      name: 'Custom',
+      totalSupply,
+      distribution,
+      vestingSchedule,
+      supplyType,
+      healthScore,
+      timestamp: new Date().toISOString()
     };
-
-    if (navigator.share) {
-      try {
-        await navigator.share(shareData);
-      } catch (error) {
-        // Fallback to clipboard
-        navigator.clipboard.writeText(`${shareData.text} - ${shareData.url}`);
-      }
+    
+    localStorage.setItem('snarbles_tokenomics', JSON.stringify(tokenomicsData));
+    
+    toast({
+      title: "Tokenomics Saved",
+      description: "Your tokenomics configuration has been saved"
+    });
+    
+    setSavedSuccess(true);
+    setTimeout(() => setSavedSuccess(false), 3000);
+  };
+  
+  // Apply tokenomics to token creation
+  const applyToToken = () => {
+    saveTokenomics();
+    
+    toast({
+      title: "Applying Tokenomics",
+      description: "Redirecting to token creation with your tokenomics"
+    });
+    
+    router.push('/create?tokenomics=applied');
+  };
+  
+  // Custom tooltip for distribution chart
+  const CustomTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="glass-card p-3 text-sm border border-border">
+          <p className="font-semibold">{payload[0].name}</p>
+          <p>{payload[0].value}% of supply</p>
+          <p>{formatNumber(payload[0].payload.amount)} tokens</p>
+        </div>
+      );
+    }
+    return null;
+  };
+  
+  // Export tokenomics as PDF
+  const exportTokenomics = () => {
+    toast({
+      title: "Export Started",
+      description: "Preparing your tokenomics document..."
+    });
+    
+    setTimeout(() => {
+      toast({
+        title: "Export Complete",
+        description: "Your tokenomics document has been downloaded"
+      });
+    }, 1500);
+  };
+  
+  // Get health score indicator
+  const getHealthIndicator = () => {
+    if (healthScore >= 80) {
+      return {
+        icon: <Check className="w-4 h-4" />,
+        label: 'Excellent',
+        color: 'text-green-500 bg-green-500/10 border-green-500/20'
+      };
+    } else if (healthScore >= 60) {
+      return {
+        icon: <Check className="w-4 h-4" />,
+        label: 'Good',
+        color: 'text-blue-500 bg-blue-500/10 border-blue-500/20'
+      };
+    } else if (healthScore >= 40) {
+      return {
+        icon: <AlertTriangle className="w-4 h-4" />,
+        label: 'Needs Improvement',
+        color: 'text-yellow-500 bg-yellow-500/10 border-yellow-500/20'
+      };
     } else {
-      // Fallback to clipboard
-      navigator.clipboard.writeText(`${shareData.text} - ${shareData.url}`);
+      return {
+        icon: <X className="w-4 h-4" />,
+        label: 'Poor',
+        color: 'text-red-500 bg-red-500/10 border-red-500/20'
+      };
     }
   };
-
-  const totalPercentage = Object.values(distribution).reduce((sum, item) => sum + item.value, 0);
-
+  
+  const healthIndicator = getHealthIndicator();
+  
   return (
-    <div className="min-h-screen app-background pb-20">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <div className="min-h-screen app-background">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Header */}
-        <div className="text-center mb-16">
-          <div className="flex items-center justify-center space-x-2 text-red-500 font-medium text-sm mb-4">
+        <div className="text-center mb-10 space-y-4">
+          <div className="inline-flex items-center space-x-2 bg-red-500/10 border border-red-500/20 rounded-full px-4 py-2 text-red-500 font-semibold text-sm">
             <Calculator className="w-4 h-4" />
-            <span className="uppercase tracking-wide">Tokenomics Simulator</span>
+            <span className="uppercase tracking-wider">Tokenomics Simulator</span>
           </div>
-          <h1 className="text-5xl font-bold text-foreground mb-4">
-            Design Your Token Economy
-          </h1>
+          
+          <h1 className="text-4xl font-bold text-foreground">Design Your Optimal Token Distribution</h1>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-            Create a sustainable token distribution that aligns incentives and drives long-term success for your project.
+            Create a balanced tokenomics model with our visual designer, then apply it directly to your token creation
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-          {/* Controls */}
-          <div className="space-y-8">
-            <div className="glass-card p-8 space-y-6">
-              <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold text-foreground">Token Parameters</h2>
-                <div className="flex items-center space-x-3">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => setShowSavedScenarios(!showSavedScenarios)}
-                    className="flex items-center space-x-1"
-                  >
-                    <Save className="w-4 h-4 mr-1" />
-                    <span>Scenarios</span>
-                  </Button>
-                  <Button
-                    variant="ghost" 
-                    size="sm"
-                    onClick={resetToDefaults}
-                    title="Reset to default values"
-                  >
-                    <RotateCcw className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-              
-              {/* Saved Scenarios Panel */}
-              {showSavedScenarios && (
-                <div className="border rounded-lg p-4 bg-muted/20 space-y-3">
-                  <div className="flex justify-between items-center">
-                    <h3 className="font-semibold">Saved Scenarios</h3>
-                    <Button 
-                      size="sm" 
-                      variant="ghost" 
-                      onClick={() => setShowSavedScenarios(false)}
-                    >
-                      ×
-                    </Button>
+        {/* Main Content */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+          {/* Left Column - Controls */}
+          <div className="lg:col-span-5 space-y-6">
+            {/* Supply Settings */}
+            <Card className="glass-card">
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <TrendingUp className="w-5 h-5 text-red-500" />
+                  <span>Supply Configuration</span>
+                </CardTitle>
+                <CardDescription>
+                  Define your token's total supply and economics
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="totalSupply">Total Supply</Label>
+                    <Input
+                      id="totalSupply"
+                      type="number"
+                      value={totalSupply}
+                      onChange={(e) => setTotalSupply(parseInt(e.target.value) || 0)}
+                      className="input-enhanced"
+                    />
+                    <p className="text-sm text-muted-foreground">
+                      Recommended: 100M-1B for utility tokens, 10-100M for governance
+                    </p>
                   </div>
                   
-                  {savedScenarios.length === 0 ? (
-                    <div className="text-center py-4 text-muted-foreground text-sm">
-                      No saved scenarios. Save your current setup to create one.
+                  <div className="space-y-2">
+                    <Label>Supply Type</Label>
+                    <div className="flex space-x-2">
+                      <Button
+                        variant={supplyType === 'fixed' ? 'default' : 'outline'}
+                        onClick={() => setSupplyType('fixed')}
+                        className="flex-1"
+                      >
+                        Fixed Supply
+                      </Button>
+                      <Button
+                        variant={supplyType === 'inflationary' ? 'default' : 'outline'}
+                        onClick={() => setSupplyType('inflationary')}
+                        className="flex-1"
+                      >
+                        Inflationary
+                      </Button>
+                      <Button
+                        variant={supplyType === 'deflationary' ? 'default' : 'outline'}
+                        onClick={() => setSupplyType('deflationary')}
+                        className="flex-1"
+                      >
+                        Deflationary
+                      </Button>
                     </div>
-                  ) : (
-                    <div className="space-y-2 max-h-60 overflow-y-auto">
-                      {savedScenarios.map((scenario, index) => (
-                        <div 
-                          key={index}
-                          className="flex justify-between items-center p-3 rounded-md border hover:bg-muted/30 transition-colors cursor-pointer"
-                          onClick={() => loadScenario(scenario)}
-                        >
-                          <div>
-                            <p className="font-medium">{scenario.name}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {scenario.totalSupply.toLocaleString()} tokens • Health Score: {scenario.healthScore}%
-                              {scenario.vestingSchedule.enabled && ' • Vesting Enabled'}
-                            </p>
-                          </div>
-                          <Badge>
-                            {new Date(scenario.timestamp).toLocaleDateString()}
-                          </Badge>
+                  </div>
+                </div>
+                
+                <div className="pt-4 border-t border-border">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center space-x-2">
+                      <Lock className="w-4 h-4 text-blue-500" />
+                      <span className="font-medium text-foreground">Vesting Schedule</span>
+                    </div>
+                    <Switch 
+                      checked={vestingEnabled}
+                      onCheckedChange={setVestingEnabled}
+                    />
+                  </div>
+                  
+                  {vestingEnabled && (
+                    <div className="space-y-4 pl-6 border-l-2 border-blue-500/20">
+                      <div className="space-y-2">
+                        <Label>Team Vesting Period (months)</Label>
+                        <div className="flex items-center space-x-4">
+                          <Slider
+                            value={[vestingSchedule.team.period]}
+                            min={6}
+                            max={48}
+                            step={3}
+                            onValueChange={(values) => setVestingSchedule({
+                              ...vestingSchedule,
+                              team: { ...vestingSchedule.team, period: values[0] }
+                            })}
+                            className="flex-1"
+                          />
+                          <span className="w-10 text-center font-mono">{vestingSchedule.team.period}</span>
                         </div>
-                      ))}
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label>Investor Vesting Period (months)</Label>
+                        <div className="flex items-center space-x-4">
+                          <Slider
+                            value={[vestingSchedule.investors.period]}
+                            min={3}
+                            max={24}
+                            step={3}
+                            onValueChange={(values) => setVestingSchedule({
+                              ...vestingSchedule,
+                              investors: { ...vestingSchedule.investors, period: values[0] }
+                            })}
+                            className="flex-1"
+                          />
+                          <span className="w-10 text-center font-mono">{vestingSchedule.investors.period}</span>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center space-x-4 mt-2 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                        <Clock className="w-5 h-5 text-blue-500 flex-shrink-0" />
+                        <p className="text-sm text-blue-600">
+                          Vesting schedules increase investor confidence by demonstrating long-term commitment
+                        </p>
+                      </div>
                     </div>
                   )}
-                  
-                  <div className="flex space-x-2 pt-2">
-                    <Input
-                      placeholder="Scenario Name"
-                      value={scenarioName}
-                      onChange={(e) => setScenarioName(e.target.value)}
-                      className="flex-1"
-                    />
-                    <Button 
-                      onClick={saveScenario}
-                      disabled={!scenarioName.trim()}
-                    >
-                      Save Current
-                    </Button>
-                  </div>
                 </div>
-              )}
-              
-              <div className="space-y-6">
-                <div>
-                  <Label className="text-foreground font-medium">Total Supply</Label>
-                  <Input
-                    type="number"
-                    value={totalSupply}
-                    onChange={(e) => setTotalSupply(Number(e.target.value))}
-                    className="input-enhanced mt-2"
-                  />
-                </div>
-
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-semibold text-foreground">Distribution</h3>
-                    <div className={`text-sm font-medium ${Math.abs(totalPercentage - 100) < 1 ? 'text-green-500' : 'text-red-500'}`}>
-                      Total: {totalPercentage.toFixed(1)}%
-                    </div>
-                  </div>
-                  
-                  {(Object.entries(distribution) as [DistributionKey, DistributionItem][]).map(([key, data]) => (
-                    <div key={key} className="space-y-3">
-                      <div className="flex justify-between items-center">
-                        <Input
-                          value={data.label}
-                          onChange={(e) => updateDistributionLabel(key, e.target.value)}
-                          className="input-enhanced w-40 text-sm mr-4"
-                          placeholder="Custom label"
-                        />
-                        <span className="text-foreground font-medium text-lg min-w-[60px] text-right">{data.value}%</span>
-                      </div>
-                      <Slider
-                        value={[data.value]}
-                        onValueChange={(newValue) => updateDistribution(key, newValue[0])}
-                        max={100}
-                        step={1}
-                        className="w-full mt-2"
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
             
-            {/* Vesting Schedule */}
-            <div className="glass-card p-8">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-bold text-foreground flex items-center">
-                  <Lock className="w-5 h-5 mr-2 text-orange-500" />
-                  Vesting Schedule
-                </h3>
-                <div className="flex items-center space-x-2">
-                  <Switch 
-                    id="vesting-enabled"
-                    checked={vestingSchedule.enabled}
-                    onCheckedChange={toggleVestingSchedule}
-                  />
-                  <Label htmlFor="vesting-enabled">
-                    {vestingSchedule.enabled ? 'Enabled' : 'Disabled'}
-                  </Label>
-                </div>
-              </div>
-
-              {!vestingSchedule.enabled ? (
-                <div className="flex flex-col items-center justify-center p-6 border border-dashed rounded-lg border-muted-foreground/30">
-                  <div className="w-16 h-16 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center mb-4">
-                    <Lock className="w-8 h-8 text-orange-500" />
+            {/* Distribution Settings */}
+            <Card className="glass-card">
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <PieChartIcon className="w-5 h-5 text-red-500" />
+                  <span>Token Distribution</span>
+                </CardTitle>
+                <CardDescription>
+                  Allocate your token supply across different stakeholders
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Tabs defaultValue="sliders" className="space-y-6">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="sliders">Sliders</TabsTrigger>
+                    <TabsTrigger value="manual">Manual Entry</TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="sliders" className="space-y-6">
+                    {Object.keys(distribution).map((key) => (
+                      <div key={key} className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Label className="flex items-center">
+                            <div className="w-3 h-3 rounded-full mr-2" style={{ backgroundColor: distribution[key].color }}></div>
+                            {distribution[key].label}
+                          </Label>
+                          <span className="text-sm font-mono">
+                            {distribution[key].value}% ({formatNumber(Math.round(totalSupply * distribution[key].value / 100))})
+                          </span>
+                        </div>
+                        <Slider
+                          value={[distribution[key].value]}
+                          min={0}
+                          max={100}
+                          step={1}
+                          onValueChange={(values) => handleDistributionChange(key, values[0])}
+                          className="flex-1"
+                        />
+                      </div>
+                    ))}
+                  </TabsContent>
+                  
+                  <TabsContent value="manual" className="space-y-4">
+                    {Object.keys(distribution).map((key) => (
+                      <div key={key} className="grid grid-cols-4 gap-4 items-center">
+                        <div className="col-span-2 flex items-center space-x-2">
+                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: distribution[key].color }}></div>
+                          <Label>{distribution[key].label}</Label>
+                        </div>
+                        <div className="col-span-2 flex space-x-2">
+                          <Input
+                            type="number"
+                            min="0"
+                            max="100"
+                            value={distribution[key].value}
+                            onChange={(e) => handleDistributionChange(key, parseFloat(e.target.value) || 0)}
+                            className="input-enhanced"
+                          />
+                          <div className="w-10 text-center flex items-center">
+                            <span className="text-sm font-mono">%</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </TabsContent>
+                </Tabs>
+                
+                <div className="mt-6 pt-4 border-t border-border">
+                  <div className={`flex items-center space-x-3 p-4 rounded-lg ${healthIndicator.color}`}>
+                    <Shield className="w-5 h-5" />
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2">
+                        <p className="font-semibold">Tokenomics Health Score: {healthScore}%</p>
+                        <div className="flex items-center">
+                          {healthIndicator.icon}
+                          <span className="text-sm ml-1">{healthIndicator.label}</span>
+                        </div>
+                      </div>
+                      <div className="w-full h-2 bg-muted rounded-full mt-2">
+                        <div 
+                          className="h-2 rounded-full" 
+                          style={{ 
+                            width: `${healthScore}%`,
+                            background: healthScore >= 80 ? 'linear-gradient(90deg, #10b981, #34d399)' :
+                                       healthScore >= 60 ? 'linear-gradient(90deg, #3b82f6, #60a5fa)' :
+                                       healthScore >= 40 ? 'linear-gradient(90deg, #f59e0b, #fbbf24)' :
+                                                          'linear-gradient(90deg, #ef4444, #f87171)'
+                          }}
+                        ></div>
+                      </div>
+                    </div>
                   </div>
-                  <h4 className="text-lg font-medium mb-2">Vesting Schedule Disabled</h4>
-                  <p className="text-muted-foreground text-center max-w-lg">
-                    Enable vesting schedules to gradually release tokens to team members, 
-                    investors, and other stakeholders. This builds trust by showing long-term commitment.
-                  </p>
-                  <Button 
-                    variant="outline" 
-                    className="mt-4"
-                    onClick={() => toggleVestingSchedule(true)}
-                  >
-                    Enable Vesting
-                  </Button>
                 </div>
-              ) : (
-                <div className="space-y-6">
-                  <div className="p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
-                    <div className="flex items-start gap-2">
-                      <Info className="w-5 h-5 text-blue-500 mt-0.5 flex-shrink-0" />
-                      <p className="text-sm text-blue-600">
-                        Vesting schedules help align stakeholder incentives with long-term project success.
-                        Configure each allocation's release schedule separately.
+              </CardContent>
+            </Card>
+            
+            {/* Actions */}
+            <div className="flex flex-col md:flex-row gap-3">
+              <Button 
+                onClick={saveTokenomics}
+                variant="outline" 
+                className="border-red-500 text-red-500 hover:bg-red-500/10 flex-1"
+              >
+                {savedSuccess ? (
+                  <>
+                    <Check className="w-4 h-4 mr-2" />
+                    Saved!
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-4 h-4 mr-2" />
+                    Save Configuration
+                  </>
+                )}
+              </Button>
+              <Button 
+                onClick={applyToToken} 
+                className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white flex-1"
+              >
+                <Rocket className="w-4 h-4 mr-2" />
+                Apply to Token
+              </Button>
+            </div>
+          </div>
+          
+          {/* Right Column - Visualization */}
+          <div className="lg:col-span-7 space-y-6">
+            {/* Distribution Chart */}
+            <Card className="glass-card">
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <PieChartIcon className="w-5 h-5 text-red-500" />
+                  <span>Distribution Visualization</span>
+                </CardTitle>
+                <CardDescription>
+                  Visual breakdown of your token allocation
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Pie Chart */}
+                  <div className="h-[300px] flex items-center justify-center">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={getDistributionData()}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={60}
+                          outerRadius={100}
+                          fill="#8884d8"
+                          paddingAngle={2}
+                          dataKey="value"
+                          label={({ name, value }) => `${name}: ${value}%`}
+                        >
+                          {getDistributionData().map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip content={<CustomTooltip />} />
+                        <Legend />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                  
+                  {/* Bar Chart */}
+                  <div className="h-[300px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={getDistributionData()}
+                        layout="vertical"
+                        margin={{ top: 20, right: 30, left: 40, bottom: 10 }}
+                      >
+                        <XAxis type="number" domain={[0, 100]} />
+                        <YAxis 
+                          type="category" 
+                          dataKey="name" 
+                          width={100}
+                        />
+                        <Tooltip content={<CustomTooltip />} />
+                        <Bar dataKey="value" radius={[0, 4, 4, 0]}>
+                          {getDistributionData().map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+                
+                {/* Distribution Table */}
+                <div className="mt-6 pt-6 border-t border-border">
+                  <h3 className="font-semibold text-foreground mb-4">Token Allocation Breakdown</h3>
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-border">
+                          <th className="text-left py-3 px-4 text-muted-foreground font-medium">Category</th>
+                          <th className="text-center py-3 px-4 text-muted-foreground font-medium">Percentage</th>
+                          <th className="text-right py-3 px-4 text-muted-foreground font-medium">Token Amount</th>
+                          {vestingEnabled && <th className="text-right py-3 px-4 text-muted-foreground font-medium">Vesting</th>}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {Object.keys(distribution).map(key => {
+                          const tokenAmount = totalSupply * (distribution[key].value / 100);
+                          const hasVesting = vestingEnabled && 
+                            (key === 'team' || key === 'investors' || key === 'advisors');
+                          
+                          return (
+                            <tr key={key} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
+                              <td className="py-4 px-4">
+                                <div className="flex items-center space-x-2">
+                                  <div 
+                                    className="w-3 h-3 rounded-full" 
+                                    style={{ backgroundColor: distribution[key].color }}
+                                  ></div>
+                                  <span className="font-medium text-foreground">{distribution[key].label}</span>
+                                </div>
+                              </td>
+                              <td className="py-4 px-4 text-center">
+                                <span className="font-mono">{distribution[key].value}%</span>
+                              </td>
+                              <td className="py-4 px-4 text-right">
+                                <span className="font-mono">{formatNumber(Math.round(tokenAmount))}</span>
+                              </td>
+                              {vestingEnabled && (
+                                <td className="py-4 px-4 text-right">
+                                  {hasVesting && vestingSchedule[key] ? (
+                                    <span className="text-sm">
+                                      {vestingSchedule[key].period} months
+                                    </span>
+                                  ) : (
+                                    <span className="text-sm text-muted-foreground">None</span>
+                                  )}
+                                </td>
+                              )}
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            {/* Recommendations */}
+            <Card className="glass-card">
+              <CardHeader>
+                <CardTitle>Expert Recommendations</CardTitle>
+                <CardDescription>Based on your token distribution and market patterns</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex items-start space-x-3 p-4 bg-green-500/5 rounded-lg border border-green-500/20">
+                    <Check className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="font-medium text-green-700">Community-centric allocation</p>
+                      <p className="text-sm text-green-600">
+                        Your {distribution.community.value}% community allocation supports organic growth and helps ensure broad distribution from launch.
                       </p>
                     </div>
                   </div>
                   
-                  {/* Team Vesting */}
-                  <div className="space-y-3 p-4 border rounded-lg">
-                    <h4 className="font-semibold text-foreground flex items-center">
-                      <Users className="w-4 h-4 mr-2" />
-                      {distribution.team.label} Vesting ({distribution.team.value}%)
-                    </h4>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <Label>Vesting Period (months)</Label>
-                          <span className="text-sm font-medium">{vestingSchedule.team.period}</span>
-                        </div>
-                        <Slider
-                          value={[vestingSchedule.team.period]}
-                          min={1}
-                          max={48}
-                          step={1}
-                          onValueChange={(value) => updateVestingSchedule('team', 'period', value[0])}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <Label>Cliff Period (months)</Label>
-                          <span className="text-sm font-medium">{vestingSchedule.team.cliff}</span>
-                        </div>
-                        <Slider
-                          value={[vestingSchedule.team.cliff]}
-                          min={0}
-                          max={12}
-                          step={1}
-                          onValueChange={(value) => updateVestingSchedule('team', 'cliff', value[0])}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <Label>Initial Release (%)</Label>
-                          <span className="text-sm font-medium">{vestingSchedule.team.initialRelease}%</span>
-                        </div>
-                        <Slider
-                          value={[vestingSchedule.team.initialRelease]}
-                          min={0}
-                          max={100}
-                          step={5}
-                          onValueChange={(value) => updateVestingSchedule('team', 'initialRelease', value[0])}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* Marketing Vesting */}
-                  <div className="space-y-3 p-4 border rounded-lg">
-                    <h4 className="font-semibold text-foreground flex items-center">
-                      <TrendingUp className="w-4 h-4 mr-2" />
-                      {distribution.marketing.label} Vesting ({distribution.marketing.value}%)
-                    </h4>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <Label>Vesting Period (months)</Label>
-                          <span className="text-sm font-medium">{vestingSchedule.marketing.period}</span>
-                        </div>
-                        <Slider
-                          value={[vestingSchedule.marketing.period]}
-                          min={1}
-                          max={48}
-                          step={1}
-                          onValueChange={(value) => updateVestingSchedule('marketing', 'period', value[0])}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <Label>Cliff Period (months)</Label>
-                          <span className="text-sm font-medium">{vestingSchedule.marketing.cliff}</span>
-                        </div>
-                        <Slider
-                          value={[vestingSchedule.marketing.cliff]}
-                          min={0}
-                          max={12}
-                          step={1}
-                          onValueChange={(value) => updateVestingSchedule('marketing', 'cliff', value[0])}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <Label>Initial Release (%)</Label>
-                          <span className="text-sm font-medium">{vestingSchedule.marketing.initialRelease}%</span>
-                        </div>
-                        <Slider
-                          value={[vestingSchedule.marketing.initialRelease]}
-                          min={0}
-                          max={100}
-                          step={5}
-                          onValueChange={(value) => updateVestingSchedule('marketing', 'initialRelease', value[0])}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* Development Vesting */}
-                  <div className="space-y-3 p-4 border rounded-lg">
-                    <h4 className="font-semibold text-foreground flex items-center">
-                      <Settings className="w-4 h-4 mr-2" />
-                      {distribution.development.label} Vesting ({distribution.development.value}%)
-                    </h4>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <Label>Vesting Period (months)</Label>
-                          <span className="text-sm font-medium">{vestingSchedule.development.period}</span>
-                        </div>
-                        <Slider
-                          value={[vestingSchedule.development.period]}
-                          min={1}
-                          max={48}
-                          step={1}
-                          onValueChange={(value) => updateVestingSchedule('development', 'period', value[0])}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <Label>Cliff Period (months)</Label>
-                          <span className="text-sm font-medium">{vestingSchedule.development.cliff}</span>
-                        </div>
-                        <Slider
-                          value={[vestingSchedule.development.cliff]}
-                          min={0}
-                          max={12}
-                          step={1}
-                          onValueChange={(value) => updateVestingSchedule('development', 'cliff', value[0])}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <Label>Initial Release (%)</Label>
-                          <span className="text-sm font-medium">{vestingSchedule.development.initialRelease}%</span>
-                        </div>
-                        <Slider
-                          value={[vestingSchedule.development.initialRelease]}
-                          min={0}
-                          max={100}
-                          step={5}
-                          onValueChange={(value) => updateVestingSchedule('development', 'initialRelease', value[0])}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* Vesting Schedule Visualization */}
-                  <div className="space-y-3 mt-4">
-                    <h4 className="font-semibold text-foreground">Token Release Schedule</h4>
-                    <div className="h-64 w-full">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={generateVestingData()} margin={{ top: 10, right: 30, left: 0, bottom: 10 }}>
-                          <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-                          <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-                          <YAxis tick={{ fontSize: 12 }} />
-                          <Tooltip 
-                            formatter={(value) => [`${Number(value).toLocaleString()} tokens`, 'Team Tokens Released']}
-                            labelFormatter={(value) => `${value}`}
-                          />
-                          <Line 
-                            type="monotone" 
-                            dataKey="team" 
-                            stroke="#3B82F6" 
-                            strokeWidth={2}
-                            name="Team Tokens"
-                          />
-                        </LineChart>
-                      </ResponsiveContainer>
-                    </div>
-                    <p className="text-sm text-muted-foreground text-center">
-                      Token release over time based on vesting schedule
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Health Score */}
-            <div className="glass-card p-8">
-              <h3 className="text-xl font-bold text-foreground mb-6">Distribution Health</h3>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-foreground font-medium">Health Score</span>
-                  <span className={`text-2xl font-bold ${calculateHealthScore() >= 80 ? 'text-green-500' : calculateHealthScore() >= 60 ? 'text-yellow-500' : 'text-red-500'}`}>
-                    {calculateHealthScore()}%
-                  </span>
-                </div>
-                
-                <div className="w-full bg-muted rounded-full h-3">
-                  <div 
-                    className={`h-3 rounded-full transition-all duration-500 ${calculateHealthScore() >= 80 ? 'bg-green-500' : calculateHealthScore() >= 60 ? 'bg-yellow-500' : 'bg-red-500'}`}
-                    style={{ width: `${calculateHealthScore()}%` }}
-                  ></div>
-                </div>
-
-                <div className="space-y-3">
-                  {getStrengths().map((strength, index) => (
-                    <div key={index} className="flex items-start space-x-2 text-sm">
-                      <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
-                      <span className="text-muted-foreground">{strength}</span>
-                    </div>
-                  ))}
-                  
-                  {getImprovements().map((improvement, index) => (
-                    <div key={index} className="flex items-start space-x-2 text-sm">
-                      <AlertTriangle className="w-4 h-4 text-yellow-500 mt-0.5 flex-shrink-0" />
-                      <span className="text-muted-foreground">{improvement}</span>
-                    </div>
-                  ))}
-                  
-                  {vestingSchedule.enabled && getVestingRecommendations().map((recommendation, index) => (
-                    <div key={`vesting-${index}`} className="flex items-start space-x-2 text-sm">
-                      <AlertTriangle className="w-4 h-4 text-yellow-500 mt-0.5 flex-shrink-0" />
-                      <span className="text-muted-foreground">{recommendation}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Export Options */}
-            <div className="glass-card p-8">
-              <h3 className="text-xl font-bold text-foreground mb-6">Export Reports</h3>
-              <div className="space-y-4">
-                <Button 
-                  onClick={generatePDFReport}
-                  className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white transform hover:scale-105 transition-all duration-300"
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  Generate PDF Report
-                </Button>
-                <Button 
-                  onClick={shareTokenomics}
-                  variant="outline"
-                  className="w-full border-border text-foreground hover:bg-muted transform hover:scale-105 transition-all duration-300"
-                >
-                  <Share2 className="w-4 h-4 mr-2" />
-                  Share Analysis
-                </Button>
-                <Button 
-                  onClick={generateDetailedReport}
-                  variant="outline"
-                  className="w-full border-border text-foreground hover:bg-muted transform hover:scale-105 transition-all duration-300"
-                >
-                  <FileText className="w-4 h-4 mr-2" />
-                  Export Report
-                </Button>
-              </div>
-              
-              {/* Apply to Token Creation Button */}
-              <div className="mt-6 pt-6 border-t border-border">
-                <Button 
-                  onClick={applyTokenomics}
-                  className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white transform hover:scale-105 transition-all duration-300 h-14 text-lg font-bold shadow-lg"
-                >
-                  <Rocket className="w-5 h-5 mr-2" />
-                  Apply to Token Creation
-                </Button>
-                <p className="text-xs text-muted-foreground text-center mt-2">
-                  This will save your tokenomics setup and apply it to the token creation form
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Visualization */}
-          <div className="space-y-8">
-            <div className="glass-card p-8">
-              <h3 className="text-xl font-bold text-foreground mb-6">Distribution Visualization</h3>
-              <div className="h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={pieData}
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={100}
-                      dataKey="value"
-                      label={({ name, value }) => `${name}: ${value}%`}
-                      animationBegin={0}
-                      animationDuration={1000}
-                      animationEasing="ease-out"
-                    >
-                      {pieData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      wrapperClassName="custom-tooltip"
-                      contentStyle={{}}
-                      content={({ active, payload }) => {
-                        if (active && payload && payload.length) {
-                          const data = payload[0].payload;
-                          return (
-                            <div className="p-4">
-                              <p className="text-foreground font-semibold mb-2">{data.name}</p>
-                              <div className="flex items-center space-x-2">
-                                <div 
-                                  className="w-3 h-3 rounded-full" 
-                                  style={{ backgroundColor: data.color }}
-                                />
-                                <span className="text-foreground text-sm">
-                                  <span className="font-bold">{data.value}%</span> of total supply
-                                </span>
-                              </div>
-                              <div className="mt-2 pt-2 border-t border-border">
-                                <p className="text-xs text-muted-foreground">
-                                  Tokens: {((data.value * parseFloat(totalSupply)) / 100).toLocaleString()}
-                                </p>
-                              </div>
-                            </div>
-                          );
-                        }
-                        return null;
-                      }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-
-            <div className="glass-card p-8">
-              <h3 className="text-xl font-bold text-foreground mb-6">Token Allocation</h3>
-              <div className="space-y-4">
-                {Object.entries(distribution).map(([key, data]) => {
-                  const tokens = (totalSupply * data.value / 100);
-                  return (
-                    <div key={key} className="flex justify-between items-center p-4 bg-muted/30 rounded-lg">
+                  {distribution.team.value > 20 && (
+                    <div className="flex items-start space-x-3 p-4 bg-yellow-500/5 rounded-lg border border-yellow-500/20">
+                      <AlertTriangle className="w-5 h-5 text-yellow-500 mt-0.5 flex-shrink-0" />
                       <div>
-                        <span className="text-foreground font-medium">{data.label}</span>
-                        <div className="text-sm text-muted-foreground">{data.value}% of total supply</div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-foreground font-bold">{tokens.toLocaleString()}</div>
-                        <div className="text-sm text-muted-foreground">tokens</div>
+                        <p className="font-medium text-yellow-700">Team allocation high</p>
+                        <p className="text-sm text-yellow-600">
+                          Your team allocation of {distribution.team.value}% is above market average of 15-18%. Consider reducing or extending vesting.
+                        </p>
                       </div>
                     </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="glass-card p-8">
-              <h3 className="text-xl font-bold text-foreground mb-6">Best Practices</h3>
-              <div className="space-y-4">
-                <div className="flex items-start space-x-3">
-                  <Target className="w-5 h-5 text-red-500 mt-1" />
-                  <div>
-                    <p className="text-foreground font-medium">Community First</p>
-                    <p className="text-muted-foreground text-sm">Allocate 40-60% to community to ensure decentralization</p>
-                  </div>
-                </div>
-                <div className="flex items-start space-x-3">
-                  <Users className="w-5 h-5 text-red-500 mt-1" />
-                  <div>
-                    <p className="text-foreground font-medium">Team Vesting</p>
-                    <p className="text-muted-foreground text-sm">Lock team tokens for 12-24 months to build trust</p>
-                  </div>
-                </div>
-                <div className="flex items-start space-x-3">
-                  <TrendingUp className="w-5 h-5 text-red-500 mt-1" />
-                  <div>
-                    <p className="text-foreground font-medium">Growth Reserve</p>
-                    <p className="text-muted-foreground text-sm">Keep 10-20% for future partnerships and development</p>
-                  </div>
-                </div>
-                <div className="flex items-start space-x-3">
-                  <Lightbulb className="w-5 h-5 text-red-500 mt-1" />
-                  <div>
-                    <p className="text-foreground font-medium">Transparency</p>
-                    <p className="text-muted-foreground text-sm">Publish clear documentation about token usage</p>
-                  </div>
-                </div>
-              </div>
-              
-              {vestingSchedule.enabled && (
-                <div className="glass-card p-8 mt-8">
-                  <h3 className="text-xl font-bold text-foreground mb-6">Vesting Summary</h3>
-                  <div className="space-y-6">
-                    <div className="grid grid-cols-3 gap-4">
-                      <div className="p-4 bg-blue-500/10 rounded-lg text-center">
-                        <div className="flex items-center justify-center space-x-2 mb-2">
-                          <Calendar className="w-4 h-4 text-blue-500" />
-                          <span className="text-blue-600 font-medium">Team</span>
-                        </div>
-                        <div className="text-foreground font-bold text-xl">{vestingSchedule.team.period}mo</div>
-                        <div className="text-sm text-muted-foreground">
-                          {vestingSchedule.team.cliff}mo cliff • {vestingSchedule.team.initialRelease}% TGE
-                        </div>
-                      </div>
-                      
-                      <div className="p-4 bg-green-500/10 rounded-lg text-center">
-                        <div className="flex items-center justify-center space-x-2 mb-2">
-                          <TrendingUp className="w-4 h-4 text-green-500" />
-                          <span className="text-green-600 font-medium">Marketing</span>
-                        </div>
-                        <div className="text-foreground font-bold text-xl">{vestingSchedule.marketing.period}mo</div>
-                        <div className="text-sm text-muted-foreground">
-                          {vestingSchedule.marketing.cliff}mo cliff • {vestingSchedule.marketing.initialRelease}% TGE
-                        </div>
-                      </div>
-                      
-                      <div className="p-4 bg-purple-500/10 rounded-lg text-center">
-                        <div className="flex items-center justify-center space-x-2 mb-2">
-                          <Settings className="w-4 h-4 text-purple-500" />
-                          <span className="text-purple-600 font-medium">Development</span>
-                        </div>
-                        <div className="text-foreground font-bold text-xl">{vestingSchedule.development.period}mo</div>
-                        <div className="text-sm text-muted-foreground">
-                          {vestingSchedule.development.cliff}mo cliff • {vestingSchedule.development.initialRelease}% TGE
-                        </div>
+                  )}
+                  
+                  {distribution.liquidity.value < 15 && (
+                    <div className="flex items-start space-x-3 p-4 bg-yellow-500/5 rounded-lg border border-yellow-500/20">
+                      <AlertTriangle className="w-5 h-5 text-yellow-500 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="font-medium text-yellow-700">Consider increasing liquidity</p>
+                        <p className="text-sm text-yellow-600">
+                          Liquidity allocation of {distribution.liquidity.value}% may lead to higher price volatility. 15-20% is recommended.
+                        </p>
                       </div>
                     </div>
-                    
-                    <div className="p-4 bg-orange-500/10 border border-orange-500/30 rounded-lg">
-                      <h4 className="font-medium text-orange-600 flex items-center mb-2">
-                        <Lock className="w-4 h-4 mr-2" />
-                        <span>Vesting Benefits</span>
-                      </h4>
-                      <ul className="text-sm space-y-1 list-disc list-inside text-muted-foreground">
-                        <li>Signals long-term commitment to investors</li>
-                        <li>Prevents market flooding with all tokens at once</li>
-                        <li>Protects token price in early stages</li>
-                        <li>Aligns team incentives with long-term success</li>
-                      </ul>
+                  )}
+                  
+                  {vestingEnabled && (
+                    <div className="flex items-start space-x-3 p-4 bg-green-500/5 rounded-lg border border-green-500/20">
+                      <Check className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="font-medium text-green-700">Vesting schedule</p>
+                        <p className="text-sm text-green-600">
+                          Your vesting schedules demonstrate long-term commitment and reduces selling pressure after launch.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="flex items-start space-x-3 p-4 bg-muted/30 rounded-lg border border-muted mt-4">
+                    <Shield className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="font-medium text-foreground">Tokenomics Health Score: {healthScore}/100</p>
+                      <div className="w-full h-2 bg-muted rounded-full mt-2 mb-3">
+                        <div 
+                          className="h-2 rounded-full transition-all duration-500"
+                          style={{ 
+                            width: `${healthScore}%`,
+                            background: healthScore >= 80 ? 'linear-gradient(90deg, #10b981, #34d399)' :
+                                       healthScore >= 60 ? 'linear-gradient(90deg, #3b82f6, #60a5fa)' :
+                                       healthScore >= 40 ? 'linear-gradient(90deg, #f59e0b, #fbbf24)' :
+                                                          'linear-gradient(90deg, #ef4444, #f87171)'
+                          }}
+                        ></div>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        {healthScore >= 80 ? 'Excellent tokenomics design with balanced allocations and strong governance mechanisms.' :
+                         healthScore >= 60 ? 'Good tokenomics with some room for improvement. Consider adjustments to optimize distribution.' :
+                         healthScore >= 40 ? 'Basic tokenomics with several areas that need attention for long-term success.' :
+                                           'Significant improvements needed. Current design may lead to centralization or poor incentives.'}
+                      </p>
                     </div>
                   </div>
                 </div>
-              )}
-            </div>
-
-          </div>
-        </div>
-
-        {/* Bottom CTA Section */}
-        <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-t from-background to-transparent py-4">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-center space-x-4">
-              <Button
-                onClick={applyTokenomics}
-                className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white shadow-lg"
+              </CardContent>
+            </Card>
+            
+            {/* Export and Apply */}
+            <div className="flex flex-col sm:flex-row gap-4">
+              <Button 
+                onClick={exportTokenomics}
+                variant="outline" 
+                className="border-border text-muted-foreground hover:bg-muted flex-1"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Export as PDF
+              </Button>
+              <Button 
+                onClick={applyToToken}
+                className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white flex-1"
               >
                 <Rocket className="w-4 h-4 mr-2" />
                 Apply to Token Creation
               </Button>
-              <Button
-                onClick={saveScenario}
-                variant="outline"
-              >
-                <Save className="w-4 h-4 mr-2" />
-                Save Scenario
-              </Button>
             </div>
           </div>
+        </div>
+        
+        {/* Template Gallery */}
+        <div className="mt-16 space-y-6">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold text-foreground">Tokenomics Templates Gallery</h2>
+            <p className="text-muted-foreground">Start with a proven template based on your project's needs</p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <Card className="glass-card hover:scale-105 transition-all duration-300 cursor-pointer">
+              <CardHeader>
+                <CardTitle>DeFi Protocol</CardTitle>
+                <CardDescription>Optimized for decentralized finance applications</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Community</span>
+                  <span className="font-semibold">40%</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Team</span>
+                  <span className="font-semibold">15%</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Treasury</span>
+                  <span className="font-semibold">25%</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Liquidity</span>
+                  <span className="font-semibold">20%</span>
+                </div>
+                
+                <Button className="w-full">
+                  <ChevronRight className="w-4 h-4 mr-2" />
+                  Use Template
+                </Button>
+              </CardContent>
+            </Card>
+            
+            <Card className="glass-card hover:scale-105 transition-all duration-300 cursor-pointer">
+              <CardHeader>
+                <CardTitle>DAO Governance</CardTitle>
+                <CardDescription>Balanced model for decentralized governance</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Community</span>
+                  <span className="font-semibold">60%</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Team</span>
+                  <span className="font-semibold">10%</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Investors</span>
+                  <span className="font-semibold">15%</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Treasury</span>
+                  <span className="font-semibold">15%</span>
+                </div>
+                
+                <Button className="w-full">
+                  <ChevronRight className="w-4 h-4 mr-2" />
+                  Use Template
+                </Button>
+              </CardContent>
+            </Card>
+            
+            <Card className="glass-card hover:scale-105 transition-all duration-300 cursor-pointer">
+              <CardHeader>
+                <CardTitle>GameFi Project</CardTitle>
+                <CardDescription>Optimized for gaming and metaverse projects</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Players & Rewards</span>
+                  <span className="font-semibold">35%</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Team</span>
+                  <span className="font-semibold">18%</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Investors</span>
+                  <span className="font-semibold">22%</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Marketing</span>
+                  <span className="font-semibold">25%</span>
+                </div>
+                
+                <Button className="w-full">
+                  <ChevronRight className="w-4 h-4 mr-2" />
+                  Use Template
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+        
+        {/* Expert Recommendations */}
+        <div className="mt-20 text-center">
+          <Link href="/create">
+            <Button className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white text-lg px-8 py-3 font-semibold">
+              <Rocket className="w-5 h-5 mr-2" />
+              Create Your Token Now
+            </Button>
+          </Link>
+          <p className="mt-4 text-muted-foreground">Apply this tokenomics design directly to your token creation</p>
         </div>
       </div>
     </div>

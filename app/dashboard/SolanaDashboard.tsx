@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { Button } from '@/components/ui/button';
+import { PublicKey } from '@solana/web3.js';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -13,7 +14,9 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { 
   Coins, 
   TrendingUp, 
-  Users, 
+  Users,
+  Play,
+  Pause,
   DollarSign, 
   Plus, 
   Settings, 
@@ -39,7 +42,9 @@ import {
   Shield,
   Activity,
   Clock,
-  Globe
+  Globe,
+  Pause,
+  Play
 } from 'lucide-react';
 import Link from 'next/link';
 import { useWallet } from '@solana/wallet-adapter-react';
@@ -52,11 +57,9 @@ import {
 import { 
   getEnhancedTokenInfo,
   getWalletTransactionHistory, 
-  getWalletSummary,
-  EnhancedTokenInfo,
-  TransactionInfo
+  getWalletSummary
 } from '@/lib/solana-data';
-import { mintTokens, burnTokens } from '@/lib/solana';
+import { mintTokens, burnTokens, transferTokens } from '@/lib/solana';
 import { useToast } from '@/hooks/use-toast';
 
 export default function SolanaDashboard() {
@@ -68,9 +71,11 @@ export default function SolanaDashboard() {
   const [isMintModalOpen, setIsMintModalOpen] = useState(false);
   const [isTransferDialogOpen, setIsTransferDialogOpen] = useState(false);
   const [isBurnModalOpen, setIsBurnModalOpen] = useState(false);
+  const [isPauseModalOpen, setIsPauseModalOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
   
   // Real data states
   const [userTokens, setUserTokens] = useState<EnhancedTokenInfo[]>([]);
@@ -217,32 +222,214 @@ export default function SolanaDashboard() {
     };
   };
 
+  // Pause Modal Component
+  const PauseModal = () => (
+    <Dialog open={isPauseModalOpen} onOpenChange={setIsPauseModalOpen}>
+      <DialogContent className="glass-card">
+        <DialogHeader>
+          <DialogTitle className="text-2xl font-bold">
+            {isPaused ? 'Unpause' : 'Pause'} {userTokens[selectedToken]?.symbol || ''} Tokens
+          </DialogTitle>
+          <DialogDescription>
+            {isPaused ? 
+              'Resume token transfers and enable normal operations.' : 
+              'Temporarily pause all token transfers. This is typically used during emergencies or upgrades.'
+            }
+          </DialogDescription>
+        </DialogHeader>
+        
+        <div className="space-y-4 py-4">
+          <div className="p-3 bg-orange-500/10 border border-orange-500/30 rounded-lg">
+            <p className="text-sm text-orange-600">
+              <AlertTriangle className="w-4 h-4 inline-block mr-1" />
+              {isPaused ? 
+                'Unpausing will re-enable all transfers of this token. Make sure any pending issues are resolved.' : 
+                'Warning: Pausing affects all token holders and should only be used in emergency situations.'
+              }
+            </p>
+          </div>
+        </div>
+        
+        <DialogFooter>
+          <Button
+            variant="outline"
+            onClick={() => setIsPauseModalOpen(false)}
+            disabled={isProcessing}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handlePauseToggle}
+            disabled={isProcessing}
+            className={isPaused ? 
+              "bg-green-500 hover:bg-green-600 text-white" : 
+              "bg-red-500 hover:bg-red-600 text-white"
+            }
+          >
+            {isProcessing ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Processing...
+              </>
+            ) : isPaused ? (
+              <>
+                <Play className="w-4 h-4 mr-2" />
+                Unpause Token
+              </>
+            ) : (
+              <>
+                <Pause className="w-4 h-4 mr-2" />
+                Pause Token
+              </>
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+
   // Handle transfer tokens
-  const handleTransfer = () => {
+  const handleTransfer = async () => {
     if (!transferAmount || !transferAddress) {
       toast({
-        title: "Missing Information",
-        description: "Please fill in both amount and recipient address",
+        title: "Invalid Input",
+        description: "Please enter both amount and recipient address",
         variant: "destructive"
       });
       return;
     }
     
-    // Simulate transfer success
-    toast({
-      title: "Transfer Initiated",
-      description: `Transferring ${transferAmount} ${userTokens[selectedToken]?.symbol} to ${transferAddress.slice(0, 8)}...`,
-    });
-    
-    setTimeout(() => {
+    if (!wallet) {
       toast({
-        title: "Transfer Successful",
-        description: `${transferAmount} ${userTokens[selectedToken]?.symbol} transferred successfully`,
+        title: "Wallet Error",
+        description: "Cannot access wallet functions",
+        variant: "destructive"
       });
-      setTransferAmount('');
-      setTransferAddress('');
-      setIsTransferDialogOpen(false);
-    }, 1000);
+      return;
+    }
+    
+    setIsProcessing(true);
+    try {
+      const selectedTokenData = userTokens[selectedToken];
+      
+      // Call the actual transfer function
+      const { transferTokens } = await import('@/lib/solana');
+      
+      toast({
+        title: "Processing Transfer",
+        description: "Please approve the transaction in your wallet",
+      });
+      
+      const result = await transferTokens(
+        wallet,
+        selectedTokenData.mint,
+        transferAddress,
+        parseFloat(transferAmount),
+        selectedTokenData.decimals
+      );
+
+      if (result.success) {
+        toast({
+          title: "Transfer Successful",
+          description: `Transferred ${transferAmount} ${selectedTokenData.symbol} to ${transferAddress.slice(0, 6)}...`,
+          variant: "default"
+        });
+        setTransferAmount('');
+        setTransferAddress('');
+        
+        // Refresh data
+        await fetchDashboardData();
+      } else {
+        throw new Error(result.error || "Transfer failed");
+      }
+      
+    } catch (error) {
+      console.error('Error transferring tokens:', error);
+      
+      let errorMessage = 'Failed to transfer tokens';
+      if (error instanceof Error) {
+        if (error.message.includes('insufficient')) {
+          errorMessage = 'Insufficient balance for this transfer';
+        } else if (error.message.includes('rejected') || error.message.includes('cancelled')) {
+          errorMessage = 'Transaction was cancelled';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
+      toast({
+        title: "Transfer Failed",
+        description: errorMessage,
+        variant: "destructive"
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+  
+  // Handle pause/unpause tokens
+  const handlePauseToggle = async () => {
+    if (!wallet || userTokens.length === 0) {
+      toast({
+        title: "Wallet Error",
+        description: "Cannot access wallet functions",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      const selectedTokenData = userTokens[selectedToken];
+      
+      // Import the appropriate function
+      const { pauseToken, unpauseToken } = await import('@/lib/solana');
+      
+      toast({
+        title: isPaused ? "Unpausing Token" : "Pausing Token",
+        description: "Please approve the transaction in your wallet",
+      });
+      
+      // Call either pause or unpause
+      const result = isPaused ? 
+        await unpauseToken(wallet, selectedTokenData.mint) :
+        await pauseToken(wallet, selectedTokenData.mint);
+
+      if (result.success) {
+        toast({
+          title: isPaused ? "Token Unpaused" : "Token Paused",
+          description: isPaused ? 
+            `${selectedTokenData.symbol} transfers are now enabled` : 
+            `${selectedTokenData.symbol} transfers are now paused`,
+          variant: "default"
+        });
+        
+        // Update state
+        setIsPaused(!isPaused);
+        setIsPauseModalOpen(false);
+        
+        // Refresh data
+        await fetchDashboardData();
+      } else {
+        throw new Error(result.error || `Failed to ${isPaused ? 'unpause' : 'pause'} token`);
+      }
+      
+    } catch (error) {
+      console.error('Error toggling pause state:', error);
+      
+      let errorMessage = `Failed to ${isPaused ? 'unpause' : 'pause'} token`;
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      
+      toast({
+        title: "Operation Failed",
+        description: errorMessage,
+        variant: "destructive"
+      });
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   // Simplified export function
@@ -879,7 +1066,17 @@ export default function SolanaDashboard() {
                         </Button>
                         
                         <Button 
-                          onClick={() => setIsMintModalOpen(true)}
+                          onClick={() => {
+                            if (userTokens[selectedToken]?.marketData?.canMint) {
+                              setIsMintModalOpen(true);
+                            } else {
+                              toast({
+                                title: "Minting Disabled",
+                                description: "This token does not have minting enabled",
+                                variant: "destructive"
+                              });
+                            }
+                          }}
                           variant="outline" 
                           className="h-20 border-border hover:bg-muted hover:border-red-500/30 transition-all group"
                         >
@@ -891,7 +1088,17 @@ export default function SolanaDashboard() {
                         </Button>
                         
                         <Button 
-                          onClick={() => setIsBurnModalOpen(true)}
+                          onClick={() => {
+                            if (userTokens[selectedToken]?.marketData?.canBurn) {
+                              setIsBurnModalOpen(true); 
+                            } else {
+                              toast({
+                                title: "Burning Disabled",
+                                description: "This token does not have burning enabled",
+                                variant: "destructive"
+                              });
+                            }
+                          }}
                           variant="outline" 
                           className="h-20 border-border hover:bg-muted hover:border-red-500/30 transition-all group"
                         >
@@ -899,6 +1106,59 @@ export default function SolanaDashboard() {
                             <Flame className="w-6 h-6 text-red-500 group-hover:scale-110 transition-transform" />
                             <span className="font-medium">Burn Tokens</span>
                             <span className="text-xs text-muted-foreground">Remove from supply</span>
+                          </div>
+                        </Button>
+                        
+                        <Button 
+                          variant="outline" 
+                          className="h-20 border-border hover:bg-muted hover:border-red-500/30 transition-all group"
+                          onClick={() => {
+                            if (userTokens[selectedToken]?.marketData?.canPause) {
+                              // Check current pause state first
+                              setIsPaused(userTokens[selectedToken]?.isPaused || false);
+                              setIsPauseModalOpen(true);
+                            } else {
+                              toast({
+                                title: "Pause Feature Disabled",
+                                description: "This token does not have pause functionality enabled",
+                                variant: "destructive"
+                              });
+                            }
+                          }}
+                        >
+                          <div className="flex flex-col items-center space-y-2">
+                            <Pause className="w-6 h-6 text-yellow-500 group-hover:scale-110 transition-transform" />
+                            <span className="font-medium">Pause/Unpause</span>
+                            <span className="text-xs text-muted-foreground">Control transfers</span>
+                          </div>
+                        </Button>
+                        
+                        <Button 
+                          variant="outline" 
+                          className="h-20 border-border hover:bg-muted hover:border-red-500/30 transition-all group"
+                          onClick={() => window.open(`https://explorer.solana.com/address/${userTokens[selectedToken].mint}?cluster=devnet`, '_blank')}
+                        >
+                          <div className="flex flex-col items-center space-y-2">
+                            <BarChart3 className="w-6 h-6 text-purple-500 group-hover:scale-110 transition-transform" />
+                            <span className="font-medium">View Analytics</span>
+                            <span className="text-xs text-muted-foreground">Detailed insights</span>
+                          </div>
+                        </Button>
+                        
+                        <Button 
+                          variant="outline" 
+                          onClick={() => {
+                            toast({
+                              title: "Feature Coming Soon",
+                              description: "Metadata updates will be available in the next release",
+                            });
+                          }}
+                          className="h-20 border-border hover:bg-muted hover:border-red-500/30 transition-all group"
+                        >
+                          <div className="flex flex-col items-center space-y-2">
+                            <Settings className="w-6 h-6 text-gray-500 group-hover:scale-110 transition-transform" />
+                            <span className="font-medium">Update Metadata</span>
+                            <span className="text-xs text-muted-foreground">Coming soon</span>
                           </div>
                         </Button>
                       </div>
@@ -1228,6 +1488,14 @@ export default function SolanaDashboard() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Render modals */}
+        {userTokens.length > 0 && (
+          <>
+            <PauseModal />
+          </>
+        )}
       </div>
     </div>
   );
+}

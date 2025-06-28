@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { 
@@ -56,6 +57,7 @@ const formatDate = (timestamp: number) => {
 export default function AlgorandDashboard() {
   const [selectedToken, setSelectedToken] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isTransferring, setIsTransferring] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -72,6 +74,7 @@ export default function AlgorandDashboard() {
   const { 
     connected, 
     address, 
+    signTransaction,
     selectedNetwork, 
     networkConfig,
     balance 
@@ -179,6 +182,11 @@ export default function AlgorandDashboard() {
 
   // Handle transfer of assets
   const handleTransfer = () => {
+    handleTransferAsset();
+  };
+  
+  // Implement actual Algorand asset transfer
+  const handleTransferAsset = async () => {
     if (!transferAddress || !transferAmount || filteredTokens.length === 0) {
       toast({
         title: "Missing Information",
@@ -187,28 +195,114 @@ export default function AlgorandDashboard() {
       });
       return;
     }
-
-    // Check if recipient has opted in (would normally check on-chain)
-    toast({
-      title: "Opt-in Required",
-      description: "The recipient must opt-in to this asset before you can transfer it",
-      variant: "default"
-    });
-
-    // In a real implementation, we would call the transfer function
-    // For demo purposes, just show a success message
-    setTimeout(() => {
+    
+    if (!signTransaction || !address) {
       toast({
-        title: "Transfer Simulated",
-        description: `Transfer of ${transferAmount} ${filteredTokens[selectedToken]?.symbol} would be sent to ${transferAddress.slice(0, 6)}...`,
+        title: "Wallet Error",
+        description: "Cannot access wallet signing functions",
+        variant: "destructive"
       });
+      return;
+    }
+    
+    setIsTransferring(true);
+    
+    try {
+      // Get selected token data
+      const selectedTokenData = filteredTokens[selectedToken];
+      const assetId = selectedTokenData.assetId;
+      
+      // Get amount with proper decimal handling
+      const amount = parseFloat(transferAmount);
+      const amountInBaseUnits = Math.floor(amount * Math.pow(10, selectedTokenData.decimals));
+      
+      console.log(`🔄 Transferring ${amount} ${selectedTokenData.symbol} (Asset ID: ${assetId}) to ${transferAddress}`);
+      
+      // Import algosdk dynamically to avoid server-side issues
+      const algosdk = (await import('algosdk')).default;
+      const { getAlgorandClient, waitForConfirmationWithRetry } = await import('@/lib/algorand');
+      
+      // Get Algorand client
+      const algodClient = getAlgorandClient(selectedNetwork);
+      
+      // Get suggested params
+      const suggestedParams = await algodClient.getTransactionParams().do();
+      
+      // Create asset transfer transaction
+      const assetTransferTxn = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
+        from: address,
+        to: transferAddress,
+        assetIndex: assetId,
+        amount: amountInBaseUnits,
+        suggestedParams
+      });
+      
+      toast({
+        title: "Approve Transaction",
+        description: "Please approve the transaction in your wallet",
+      });
+      
+      // Sign the transaction
+      const signedTxn = await signTransaction(assetTransferTxn);
+      
+      // Submit transaction to the network
+      const response = await algodClient.sendRawTransaction(signedTxn).do();
+      const txId = response.txId || response.txid;
+      
+      console.log('📡 Transaction submitted, waiting for confirmation:', txId);
+      
+      // Wait for confirmation
+      await waitForConfirmationWithRetry(algodClient, txId, 10, selectedNetwork);
+      
+      toast({
+        title: "Transfer Successful",
+        description: `${transferAmount} ${selectedTokenData.symbol} sent to ${transferAddress.slice(0, 6)}...`,
+        variant: "default"
+      });
+      
+      console.log('✅ Transaction confirmed');
+      
+      // Reset form
       setTransferAmount('');
       setTransferAddress('');
-    }, 1000);
+      
+      // Refresh dashboard data
+      await fetchDashboardData();
+      
+    } catch (err) {
+      console.error('❌ Transfer error:', err);
+      let errorMessage = 'Failed to transfer asset';
+      
+      if (err instanceof Error) {
+        if (err.message.includes('opt in')) {
+          errorMessage = 'Recipient has not opted in to this asset. They must opt in before you can transfer.';
+        } else if (err.message.includes('insufficient')) {
+          errorMessage = 'Insufficient balance for this transfer';
+        } else if (err.message.includes('cancelled') || err.message.includes('rejected')) {
+          errorMessage = 'Transaction was cancelled by user';
+        } else {
+          errorMessage = err.message;
+        }
+      }
+      
+      toast({
+        title: "Transfer Failed",
+        description: errorMessage,
+        variant: "destructive"
+      });
+      
+    } finally {
+      setIsTransferring(false);
+    }
   };
 
   // Handle opt-in to asset
   const handleOptIn = () => {
+    handleOptInToAsset();
+  };
+  
+  // Implement actual Algorand asset opt-in
+  const handleOptInToAsset = async () => {
     if (!optInAssetId) {
       toast({
         title: "Missing Information",
@@ -217,22 +311,79 @@ export default function AlgorandDashboard() {
       });
       return;
     }
-
-    toast({
-      title: "Opt-in Initiated",
-      description: `Opting in to Asset ID ${optInAssetId}...`,
-    });
-
-    // In a real implementation, we would call the opt-in function
-    // For demo purposes, just show a success message
-    setTimeout(() => {
+    
+    if (!signTransaction || !address) {
       toast({
-        title: "Opt-in Successful",
-        description: `Successfully opted in to Asset ID ${optInAssetId}`,
-        variant: "default"
+        title: "Wallet Error",
+        description: "Cannot access wallet signing functions",
+        variant: "destructive"
       });
-      setOptInAssetId('');
-    }, 1000);
+      return;
+    }
+    
+    const assetId = parseInt(optInAssetId);
+    if (isNaN(assetId)) {
+      toast({
+        title: "Invalid Asset ID",
+        description: "Please enter a valid Asset ID (number)",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setIsTransferring(true);
+    
+    try {
+      console.log(`🔄 Opting in to Asset ID: ${assetId}`);
+      
+      // Import functions
+      const { optInToAsset } = await import('@/lib/algorand');
+      
+      toast({
+        title: "Opt-in Initiated",
+        description: `Opting in to Asset ID ${assetId}...`,
+      });
+      
+      // Call the opt-in function
+      const result = await optInToAsset(address, assetId, signTransaction, selectedNetwork);
+      
+      if (result.success) {
+        toast({
+          title: "Opt-in Successful",
+          description: `Successfully opted in to Asset ID ${assetId}`,
+          variant: "default"
+        });
+        setOptInAssetId('');
+        
+        // Refresh dashboard data
+        await fetchDashboardData();
+      } else {
+        throw new Error(result.error || 'Failed to opt-in to asset');
+      }
+    } catch (err) {
+      console.error('❌ Opt-in error:', err);
+      let errorMessage = 'Failed to opt-in to asset';
+      
+      if (err instanceof Error) {
+        if (err.message.includes('already')) {
+          errorMessage = 'You have already opted in to this asset';
+        } else if (err.message.includes('insufficient')) {
+          errorMessage = 'Insufficient ALGO balance for opt-in';
+        } else if (err.message.includes('not found')) {
+          errorMessage = 'Asset ID not found on this network';
+        } else {
+          errorMessage = err.message;
+        }
+      }
+      
+      toast({
+        title: "Opt-in Failed",
+        description: errorMessage,
+        variant: "destructive"
+      });
+    } finally {
+      setIsTransferring(false);
+    }
   };
 
   const exportData = (type: 'transactions' | 'analytics' | 'all') => {
@@ -903,9 +1054,19 @@ export default function AlgorandDashboard() {
                       <Button 
                         onClick={handleTransfer}
                         className="w-full bg-gradient-to-r from-[#76f935] to-[#5dd128] hover:from-[#5dd128] hover:to-[#4bb01f] text-white mb-4"
+                        disabled={isTransferring}
                       >
-                        <Send className="w-4 h-4 mr-2" />
-                        Transfer Asset
+                        {isTransferring ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Processing...
+                          </>
+                        ) : (
+                          <>
+                            <Send className="w-4 h-4 mr-2" />
+                            Transfer Asset
+                          </>
+                        )}
                       </Button>
                       
                       <div className="flex items-start space-x-3 p-3 bg-blue-500/10 rounded-lg border border-blue-500/20">
@@ -939,9 +1100,19 @@ export default function AlgorandDashboard() {
                         <Button 
                           onClick={handleOptIn}
                           className="bg-blue-500 hover:bg-blue-600 text-white h-10"
+                          disabled={isTransferring}
                         >
-                          <Shield className="w-4 h-4 mr-2" />
-                          Opt-in
+                          {isTransferring ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Processing...
+                            </>
+                          ) : (
+                            <>
+                              <Shield className="w-4 h-4 mr-2" />
+                              Opt-in
+                            </>
+                          )}
                         </Button>
                       </div>
                       <p className="text-xs text-muted-foreground mt-3">
