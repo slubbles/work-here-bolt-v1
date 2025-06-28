@@ -140,14 +140,6 @@ export async function getAlgorandAssetInfo(assetId: number, network: string) {
       console.warn('Error converting total supply to number:', err);
     }
 
-    // Convert total supply safely with fallback to prevent BigInt errors
-    let totalSupply = 0;
-    try {
-      totalSupply = params.total !== undefined ? Number(params.total) : 0;
-    } catch (err) {
-      console.warn('Error converting total supply to number:', err);
-    }
-    
     // Parse metadata if available
     let metadata = {};
     if (params.url) {
