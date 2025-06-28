@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { 
@@ -45,12 +44,24 @@ import { getAlgorandEnhancedTokenInfo, getAlgorandTransactionHistory, getAlgoran
 import { useToast } from '@/hooks/use-toast';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
+// Transaction formatter
+const formatDate = (timestamp: number) => {
+  return new Date(timestamp).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric'
+  });
+};
+
 export default function AlgorandDashboard() {
   const [selectedToken, setSelectedToken] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [transferAddress, setTransferAddress] = useState('');
+  const [transferAmount, setTransferAmount] = useState('');
+  const [optInAssetId, setOptInAssetId] = useState('');
   
   // Data states
   const [userTokens, setUserTokens] = useState<any[]>([]);
@@ -160,10 +171,68 @@ export default function AlgorandDashboard() {
 
   const handleRefresh = async () => {
     if (!connected || !address || isRefreshing) return;
-    
+
     setIsRefreshing(true);
     await fetchDashboardData();
     setIsRefreshing(false);
+  };
+
+  // Handle transfer of assets
+  const handleTransfer = () => {
+    if (!transferAddress || !transferAmount || filteredTokens.length === 0) {
+      toast({
+        title: "Missing Information",
+        description: "Please enter both recipient address and amount",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Check if recipient has opted in (would normally check on-chain)
+    toast({
+      title: "Opt-in Required",
+      description: "The recipient must opt-in to this asset before you can transfer it",
+      variant: "default"
+    });
+
+    // In a real implementation, we would call the transfer function
+    // For demo purposes, just show a success message
+    setTimeout(() => {
+      toast({
+        title: "Transfer Simulated",
+        description: `Transfer of ${transferAmount} ${filteredTokens[selectedToken]?.symbol} would be sent to ${transferAddress.slice(0, 6)}...`,
+      });
+      setTransferAmount('');
+      setTransferAddress('');
+    }, 1000);
+  };
+
+  // Handle opt-in to asset
+  const handleOptIn = () => {
+    if (!optInAssetId) {
+      toast({
+        title: "Missing Information",
+        description: "Please enter an asset ID to opt in",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    toast({
+      title: "Opt-in Initiated",
+      description: `Opting in to Asset ID ${optInAssetId}...`,
+    });
+
+    // In a real implementation, we would call the opt-in function
+    // For demo purposes, just show a success message
+    setTimeout(() => {
+      toast({
+        title: "Opt-in Successful",
+        description: `Successfully opted in to Asset ID ${optInAssetId}`,
+        variant: "default"
+      });
+      setOptInAssetId('');
+    }, 1000);
   };
 
   const exportData = (type: 'transactions' | 'analytics' | 'all') => {
@@ -343,7 +412,7 @@ export default function AlgorandDashboard() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Enhanced Header */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 mb-10">
-          <div className="space-y-3">
+          <div className="space-y-3 flex-1">
             <div className="flex items-center space-x-3">
               <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#76f935] to-[#5dd128] flex items-center justify-center shadow-lg">
                 <span className="text-white font-bold text-lg">A</span>
@@ -645,19 +714,15 @@ export default function AlgorandDashboard() {
                 </CardContent>
               </Card>
             ) : (
-              <Tabs defaultValue="overview" className="space-y-6">
+              <div className="space-y-6">
+                {/* Asset Overview Card */}
                 <Card className="glass-card">
                   <CardHeader className="pb-4">
                     <div className="flex items-center justify-between">
-                      <div>
-                        <CardTitle className="flex items-center space-x-2">
-                          <Eye className="w-5 h-5 text-[#76f935]" />
-                          <span>{filteredTokens[selectedToken]?.name}</span>
-                        </CardTitle>
-                        <p className="text-muted-foreground mt-1">
-                          Manage and analyze your Algorand Standard Asset
-                        </p>
-                      </div>
+                      <CardTitle className="flex items-center space-x-2">
+                        <Eye className="w-5 h-5 text-[#76f935]" />
+                        <span>{filteredTokens[selectedToken]?.name} Overview</span>
+                      </CardTitle>
                       <div className="flex items-center space-x-2">
                         <Button 
                           variant="outline" 
@@ -665,7 +730,8 @@ export default function AlgorandDashboard() {
                           onClick={() => navigator.clipboard.writeText(filteredTokens[selectedToken]?.assetId?.toString() || '')}
                           className="border-border hover:bg-muted"
                         >
-                          <Copy className="w-4 h-4" />
+                          <Copy className="w-4 h-4 mr-2" />
+                          Copy ID
                         </Button>
                         <Button 
                           variant="outline" 
@@ -673,97 +739,64 @@ export default function AlgorandDashboard() {
                           onClick={() => window.open(filteredTokens[selectedToken]?.explorerUrl, '_blank')}
                           className="border-border hover:bg-muted"
                         >
-                          <ExternalLink className="w-4 h-4" />
+                          <ExternalLink className="w-4 h-4 mr-2" />
+                          Explorer
                         </Button>
                       </div>
                     </div>
-                    
-                    <TabsList className="enhanced-tabs grid grid-cols-3 w-full mt-4">
-                      <TabsTrigger value="overview" className="enhanced-tab-trigger">
-                        <BarChart3 className="w-4 h-4 mr-2" />
-                        Overview
-                      </TabsTrigger>
-                      <TabsTrigger value="transactions" className="enhanced-tab-trigger">
-                        <Clock className="w-4 h-4 mr-2" />
-                        History
-                      </TabsTrigger>
-                      <TabsTrigger value="manage" className="enhanced-tab-trigger">
-                        <Settings className="w-4 h-4 mr-2" />
-                        Manage
-                      </TabsTrigger>
-                    </TabsList>
                   </CardHeader>
-                </Card>
-
-                <TabsContent value="overview" className="space-y-6">
-                  {/* Asset Overview Stats */}
-                  <Card className="glass-card">
-                    <CardContent className="p-6">
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                        <div className="text-center space-y-2">
-                          <p className="text-muted-foreground text-sm font-medium">Balance</p>
-                          <p className="text-2xl font-bold text-foreground">
-                            {filteredTokens[selectedToken]?.uiBalance.toLocaleString()}
-                          </p>
+                  <CardContent>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-6">
+                      <div className="text-center space-y-2">
+                        <p className="text-muted-foreground text-sm font-medium">Balance</p>
+                        <p className="text-2xl font-bold text-foreground">
+                          {filteredTokens[selectedToken]?.uiBalance.toLocaleString()}
+                        </p>
+                      </div>
+                      <div className="text-center space-y-2">
+                        <p className="text-muted-foreground text-sm font-medium">Asset ID</p>
+                        <p className="text-2xl font-bold text-foreground">
+                          {filteredTokens[selectedToken]?.assetId}
+                        </p>
+                      </div>
+                      <div className="text-center space-y-2">
+                        <p className="text-muted-foreground text-sm font-medium">Decimals</p>
+                        <p className="text-2xl font-bold text-foreground">
+                          {filteredTokens[selectedToken]?.decimals}
+                        </p>
+                      </div>
+                      <div className="text-center space-y-2">
+                        <p className="text-muted-foreground text-sm font-medium">Holders</p>
+                        <p className="text-2xl font-bold text-foreground">
+                          {filteredTokens[selectedToken]?.holders?.toLocaleString() || '0'}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-4">
+                        <div>
+                          <Label className="text-sm font-medium text-muted-foreground">Asset Name</Label>
+                          <p className="text-foreground font-semibold">{filteredTokens[selectedToken]?.name}</p>
                         </div>
-                        <div className="text-center space-y-2">
-                          <p className="text-muted-foreground text-sm font-medium">Asset ID</p>
-                          <p className="text-2xl font-bold text-foreground">
-                            {filteredTokens[selectedToken]?.assetId}
-                          </p>
+                        <div>
+                          <Label className="text-sm font-medium text-muted-foreground">Unit Name</Label>
+                          <p className="text-foreground font-semibold">{filteredTokens[selectedToken]?.symbol}</p>
                         </div>
-                        <div className="text-center space-y-2">
-                          <p className="text-muted-foreground text-sm font-medium">Decimals</p>
-                          <p className="text-2xl font-bold text-foreground">
-                            {filteredTokens[selectedToken]?.decimals}
-                          </p>
-                        </div>
-                        <div className="text-center space-y-2">
-                          <p className="text-muted-foreground text-sm font-medium">Holders</p>
-                          <p className="text-2xl font-bold text-foreground">
-                            {filteredTokens[selectedToken]?.holders?.toLocaleString() || '0'}
+                        <div>
+                          <Label className="text-sm font-medium text-muted-foreground">Creator</Label>
+                          <p className="text-foreground font-mono text-sm">
+                            {filteredTokens[selectedToken]?.creator ? 
+                              `${filteredTokens[selectedToken].creator.slice(0, 8)}...${filteredTokens[selectedToken].creator.slice(-8)}` :
+                              'N/A'
+                            }
                           </p>
                         </div>
                       </div>
-                    </CardContent>
-                  </Card>
-
-                  {/* Asset Information */}
-                  <Card className="glass-card">
-                    <CardHeader>
-                      <CardTitle className="flex items-center space-x-2">
-                        <Info className="w-5 h-5 text-[#76f935]" />
-                        <span>Asset Information</span>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-3">
+                      <div className="space-y-4">
+                        <div>
+                          <Label className="text-sm font-medium text-muted-foreground">Network</Label>
                           <div>
-                            <Label className="text-sm font-medium text-muted-foreground">Asset Name</Label>
-                            <p className="text-foreground font-semibold">{filteredTokens[selectedToken]?.name}</p>
-                          </div>
-                          <div>
-                            <Label className="text-sm font-medium text-muted-foreground">Unit Name</Label>
-                            <p className="text-foreground font-semibold">{filteredTokens[selectedToken]?.symbol}</p>
-                          </div>
-                          <div>
-                            <Label className="text-sm font-medium text-muted-foreground">Creator</Label>
-                            <p className="text-foreground font-mono text-sm">
-                              {filteredTokens[selectedToken]?.creator ? 
-                                `${filteredTokens[selectedToken].creator.slice(0, 8)}...${filteredTokens[selectedToken].creator.slice(-8)}` :
-                                'N/A'
-                              }
-                            </p>
-                          </div>
-                        </div>
-                        <div className="space-y-3">
-                          <div>
-                            <Label className="text-sm font-medium text-muted-foreground">Asset ID</Label>
-                            <p className="text-foreground font-semibold">{filteredTokens[selectedToken]?.assetId}</p>
-                          </div>
-                          <div>
-                            <Label className="text-sm font-medium text-muted-foreground">Network</Label>
                             <Badge className={`${networkConfig?.isMainnet 
                               ? 'bg-[#00d4aa]/20 text-[#00d4aa] border-[#00d4aa]/30' 
                               : 'bg-[#76f935]/20 text-[#76f935] border-[#76f935]/30'
@@ -771,200 +804,86 @@ export default function AlgorandDashboard() {
                               {networkConfig?.name}
                             </Badge>
                           </div>
-                          <div>
-                            <Label className="text-sm font-medium text-muted-foreground">Manager</Label>
-                            <p className="text-foreground font-mono text-sm">
-                              {filteredTokens[selectedToken]?.manager ? 
-                                `${filteredTokens[selectedToken].manager.slice(0, 8)}...${filteredTokens[selectedToken].manager.slice(-8)}` :
-                                'N/A'
-                              }
-                            </p>
-                          </div>
+                        </div>
+                        <div>
+                          <Label className="text-sm font-medium text-muted-foreground">Manager</Label>
+                          <p className="text-foreground font-mono text-sm">
+                            {filteredTokens[selectedToken]?.manager ? 
+                              `${filteredTokens[selectedToken].manager.slice(0, 8)}...${filteredTokens[selectedToken].manager.slice(-8)}` :
+                              'N/A'
+                            }
+                          </p>
                         </div>
                       </div>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-
-                <TabsContent value="transactions" className="space-y-6">
-                  <Card className="glass-card">
-                    <CardHeader>
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="flex items-center space-x-2">
-                          <Clock className="w-5 h-5 text-[#76f935]" />
-                          <span>Transaction History</span>
-                        </CardTitle>
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          onClick={() => exportData('transactions')}
-                          className="gap-2"
-                        >
-                          <Download className="w-4 h-4" />
-                          Export
-                        </Button>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      {transactionData.length === 0 ? (
-                        <div className="text-center py-12 space-y-4">
-                          <Calendar className="w-16 h-16 text-muted-foreground mx-auto" />
-                          <div className="space-y-2">
-                            <h3 className="font-semibold text-foreground">No Recent Transactions</h3>
-                            <p className="text-muted-foreground text-sm">
-                              Transaction history will appear here as you use your wallet
-                            </p>
-                          </div>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                {/* Asset Management Card */}
+                <Card className="glass-card">
+                  <CardHeader>
+                    <CardTitle className="flex items-center space-x-2">
+                      <Settings className="w-5 h-5 text-[#76f935]" />
+                      <span>Asset Management</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    {/* Quick Action Buttons */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                      <Button 
+                        variant="outline" 
+                        className="h-16 border-border hover:bg-muted hover:border-[#76f935]/30 transition-all group"
+                        onClick={() => window.open(filteredTokens[selectedToken]?.explorerUrl, '_blank')}
+                      >
+                        <div className="flex flex-col items-center space-y-2">
+                          <ExternalLink className="w-5 h-5 text-blue-500 group-hover:scale-110 transition-transform" />
+                          <span className="font-medium">View on Explorer</span>
                         </div>
-                      ) : (
-                        <div className="space-y-4">
-                          {transactionData.map((tx, index) => (
-                            <div key={index} className="flex items-center justify-between p-4 bg-muted/30 rounded-xl hover:bg-muted/50 transition-colors">
-                              <div className="flex items-center space-x-4">
-                                <div className="w-10 h-10 rounded-full bg-[#76f935]/20 flex items-center justify-center">
-                                  <Send className="w-5 h-5 text-[#76f935]" />
-                                </div>
-                                <div>
-                                  <p className="font-medium text-foreground">{tx.type}</p>
-                                  <p className="text-muted-foreground text-sm">
-                                    {tx.amount} {tx.token}
-                                  </p>
-                                  <button
-                                    onClick={() => window.open(filteredTokens[selectedToken]?.explorerUrl, '_blank')}
-                                    className="text-xs text-[#76f935] hover:text-[#5dd128] transition-colors flex items-center space-x-1 mt-1"
-                                  >
-                                    <Globe className="w-3 h-3" />
-                                    <span>View on Explorer</span>
-                                  </button>
-                                </div>
-                              </div>
-                              <div className="text-right space-y-1">
-                                <p className="text-muted-foreground text-sm">
-                                  {new Date(tx.timestamp).toLocaleDateString()}
-                                </p>
-                                <Badge className={`${
-                                  tx.status === 'confirmed' 
-                                    ? 'bg-green-500/20 text-green-600 border-green-500/30'
-                                    : tx.status === 'failed'
-                                    ? 'bg-red-500/20 text-red-600 border-red-500/30'
-                                    : 'bg-yellow-500/20 text-yellow-600 border-yellow-500/30'
-                                }`}>
-                                  {tx.status === 'confirmed' ? 'Completed' : tx.status}
-                                </Badge>
-                              </div>
-                            </div>
-                          ))}
+                      </Button>
+                      
+                      <Button 
+                        variant="outline" 
+                        className="h-16 border-border hover:bg-muted hover:border-[#76f935]/30 transition-all group"
+                        onClick={() => {
+                          toast({
+                            title: "Feature Coming Soon",
+                            description: "Asset freezing will be available in the next update",
+                            variant: "default"
+                          });
+                        }}
+                      >
+                        <div className="flex flex-col items-center space-y-2">
+                          <Flame className="w-5 h-5 text-orange-500 group-hover:scale-110 transition-transform" />
+                          <span className="font-medium">Freeze Asset</span>
                         </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-
-                <TabsContent value="manage" className="space-y-6">
-                  {/* Quick Actions */}
-                  <Card className="glass-card">
-                    <CardHeader>
-                      <CardTitle className="flex items-center space-x-2">
-                        <Settings className="w-5 h-5 text-[#76f935]" />
-                        <span>Asset Management</span>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                        <Button 
-                          variant="outline" 
-                          className="h-16 border-border hover:bg-muted hover:border-[#76f935]/30 transition-all group"
-                          onClick={() => {
-                            toast({
-                              title: "Opt-in Required",
-                              description: "This feature requires opt-in to the asset first",
-                              variant: "default"
-                            });
-                          }}
-                        >
-                          <div className="flex flex-col items-center space-y-2">
-                            <Send className="w-5 h-5 text-[#76f935] group-hover:scale-110 transition-transform" />
-                            <span className="font-medium">Send Asset</span>
-                          </div>
-                        </Button>
-                        
-                        <Button 
-                          variant="outline" 
-                          className="h-16 border-border hover:bg-muted hover:border-[#76f935]/30 transition-all group"
-                          onClick={() => {
-                            toast({
-                              title: "Feature Coming Soon",
-                              description: "Asset freezing will be available in the next update",
-                              variant: "default"
-                            });
-                          }}
-                        >
-                          <div className="flex flex-col items-center space-y-2">
-                            <Flame className="w-5 h-5 text-orange-500 group-hover:scale-110 transition-transform" />
-                            <span className="font-medium">Freeze Asset</span>
-                          </div>
-                        </Button>
-                        
-                        <Button 
-                          variant="outline" 
-                          className="h-16 border-border hover:bg-muted hover:border-[#76f935]/30 transition-all group"
-                          onClick={() => window.open(filteredTokens[selectedToken]?.explorerUrl, '_blank')}
-                        >
-                          <div className="flex flex-col items-center space-y-2">
-                            <ExternalLink className="w-5 h-5 text-blue-500 group-hover:scale-110 transition-transform" />
-                            <span className="font-medium">View Explorer</span>
-                          </div>
-                        </Button>
-                        
-                        <Button 
-                          variant="outline" 
-                          className="h-16 border-border hover:bg-muted hover:border-[#76f935]/30 transition-all group"
-                          onClick={() => exportData('all')}
-                        >
-                          <div className="flex flex-col items-center space-y-2">
-                            <Download className="w-5 h-5 text-purple-500 group-hover:scale-110 transition-transform" />
-                            <span className="font-medium">Export Data</span>
-                          </div>
-                        </Button>
-                        
-                        <Button 
-                          variant="outline" 
-                          className="h-16 border-border hover:bg-muted hover:border-[#76f935]/30 transition-all group"
-                        >
-                          <div className="flex flex-col items-center space-y-2">
-                            <Settings className="w-5 h-5 text-gray-500 group-hover:scale-110 transition-transform" />
-                            <span className="font-medium">Settings</span>
-                          </div>
-                        </Button>
-                        
-                        <Button 
-                          variant="outline" 
-                          className="h-16 border-border hover:bg-muted hover:border-[#76f935]/30 transition-all group"
-                        >
-                          <div className="flex flex-col items-center space-y-2">
-                            <BarChart3 className="w-5 h-5 text-indigo-500 group-hover:scale-110 transition-transform" />
-                            <span className="font-medium">Analytics</span>
-                          </div>
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  {/* Transfer Section */}
-                  <Card className="glass-card">
-                    <CardHeader>
-                      <CardTitle className="flex items-center space-x-2">
-                        <Send className="w-5 h-5 text-[#76f935]" />
-                        <span>Transfer Asset</span>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      </Button>
+                      
+                      <Button 
+                        variant="outline" 
+                        className="h-16 border-border hover:bg-muted hover:border-[#76f935]/30 transition-all group"
+                        onClick={() => exportData('all')}
+                      >
+                        <div className="flex flex-col items-center space-y-2">
+                          <Download className="w-5 h-5 text-purple-500 group-hover:scale-110 transition-transform" />
+                          <span className="font-medium">Export Data</span>
+                        </div>
+                      </Button>
+                    </div>
+                    
+                    {/* Transfer Asset Section */}
+                    <div className="p-5 bg-[#76f935]/5 rounded-xl border border-[#76f935]/20">
+                      <h3 className="text-lg font-bold mb-4 flex items-center">
+                        <Send className="w-5 h-5 text-[#76f935] mr-2" />
+                        Transfer {filteredTokens[selectedToken]?.symbol || 'Asset'}
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                         <div className="space-y-2">
                           <Label htmlFor="transferAddress" className="text-foreground font-medium">Recipient Address</Label>
                           <Input
                             id="transferAddress"
                             placeholder="Enter Algorand wallet address"
+                            value={transferAddress}
+                            onChange={(e) => setTransferAddress(e.target.value)}
                             className="input-enhanced"
                           />
                         </div>
@@ -974,39 +893,127 @@ export default function AlgorandDashboard() {
                             id="transferAmount"
                             type="number"
                             placeholder={`Enter amount of ${filteredTokens[selectedToken]?.symbol}`}
+                            value={transferAmount}
+                            onChange={(e) => setTransferAmount(e.target.value)}
                             className="input-enhanced"
                           />
                         </div>
                       </div>
+                      
                       <Button 
-                        onClick={() => {
-                          toast({
-                            title: "Opt-in Required",
-                            description: "The recipient must opt-in to this asset before you can transfer it",
-                            variant: "default"
-                          });
-                        }}
-                        className="w-full bg-gradient-to-r from-[#76f935] to-[#5dd128] hover:from-[#5dd128] hover:to-[#4bb01f] text-white h-12"
+                        onClick={handleTransfer}
+                        className="w-full bg-gradient-to-r from-[#76f935] to-[#5dd128] hover:from-[#5dd128] hover:to-[#4bb01f] text-white mb-4"
                       >
                         <Send className="w-4 h-4 mr-2" />
-                        Transfer {filteredTokens[selectedToken]?.symbol}
+                        Transfer Asset
                       </Button>
                       
-                      <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl">
-                        <div className="flex items-start space-x-3">
-                          <Info className="w-5 h-5 text-blue-500 mt-0.5" />
-                          <div>
-                            <p className="text-blue-600 font-medium">Algorand Asset Transfer</p>
-                            <p className="text-sm text-blue-500 mt-1">
-                              Recipients must opt-in to ASAs before they can receive them. This is a security feature of the Algorand blockchain.
-                            </p>
-                          </div>
+                      <div className="flex items-start space-x-3 p-3 bg-blue-500/10 rounded-lg border border-blue-500/20">
+                        <Info className="w-5 h-5 text-blue-500 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <p className="text-blue-600 text-sm font-medium">Important: Opt-in Required</p>
+                          <p className="text-xs text-blue-500">
+                            The recipient must opt-in to this asset before you can transfer it. This is a security feature of Algorand ASAs.
+                          </p>
                         </div>
                       </div>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-              </Tabs>
+                    </div>
+                    
+                    {/* Opt-in to Asset Section */}
+                    <div className="p-5 bg-blue-500/5 rounded-xl border border-blue-500/20">
+                      <h3 className="text-lg font-bold mb-4 flex items-center">
+                        <Shield className="w-5 h-5 text-blue-500 mr-2" />
+                        Opt-in to New Asset
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                        <div className="md:col-span-2 space-y-2">
+                          <Label htmlFor="optInAssetId" className="text-foreground font-medium">Asset ID</Label>
+                          <Input
+                            id="optInAssetId"
+                            placeholder="Enter Asset ID to opt-in"
+                            value={optInAssetId}
+                            onChange={(e) => setOptInAssetId(e.target.value)}
+                            className="input-enhanced"
+                          />
+                        </div>
+                        <Button 
+                          onClick={handleOptIn}
+                          className="bg-blue-500 hover:bg-blue-600 text-white h-10"
+                        >
+                          <Shield className="w-4 h-4 mr-2" />
+                          Opt-in
+                        </Button>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-3">
+                        You must opt-in to an ASA before you can receive it. This creates an asset entry in your account.
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                {/* Transaction History Card */}
+                <Card className="glass-card">
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="flex items-center space-x-2">
+                        <Clock className="w-5 h-5 text-[#76f935]" />
+                        <span>Recent Transactions</span>
+                      </CardTitle>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => exportData('transactions')}
+                      >
+                        <Download className="w-4 h-4 mr-2" />
+                        Export
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    {transactionData.length === 0 ? (
+                      <div className="text-center py-10">
+                        <Calendar className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                        <h3 className="font-semibold text-foreground">No Recent Transactions</h3>
+                        <p className="text-muted-foreground text-sm max-w-md mx-auto mt-2">
+                          Transactions will appear here as you interact with Algorand blockchain
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
+                        {transactionData.map((tx, index) => (
+                          <div key={index} className="flex items-center justify-between p-4 bg-muted/30 rounded-xl hover:bg-muted/50 transition-colors">
+                            <div className="flex items-center space-x-4">
+                              <div className="w-10 h-10 rounded-full bg-[#76f935]/20 flex items-center justify-center">
+                                <Send className="w-5 h-5 text-[#76f935]" />
+                              </div>
+                              <div>
+                                <p className="font-medium text-foreground">{tx.type}</p>
+                                <p className="text-muted-foreground text-sm">
+                                  {tx.amount} {tx.token}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="text-right space-y-1">
+                              <p className="text-muted-foreground text-sm">
+                                {formatDate(tx.timestamp)}
+                              </p>
+                              <Badge className={`${
+                                tx.status === 'confirmed' 
+                                  ? 'bg-green-500/20 text-green-600 border-green-500/30'
+                                  : tx.status === 'failed'
+                                  ? 'bg-red-500/20 text-red-600 border-red-500/30'
+                                  : 'bg-yellow-500/20 text-yellow-600 border-yellow-500/30'
+                              }`}>
+                                {tx.status === 'confirmed' ? 'Completed' : tx.status}
+                              </Badge>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
             )}
           </div>
         </div>

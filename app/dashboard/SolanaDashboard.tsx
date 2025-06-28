@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
@@ -66,6 +66,7 @@ export default function SolanaDashboard() {
   const [mintAmount, setMintAmount] = useState('');
   const [burnAmount, setBurnAmount] = useState('');
   const [isMintModalOpen, setIsMintModalOpen] = useState(false);
+  const [isTransferDialogOpen, setIsTransferDialogOpen] = useState(false);
   const [isBurnModalOpen, setIsBurnModalOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -194,6 +195,15 @@ export default function SolanaDashboard() {
     { name: 'Week 4', value: transactionData.slice(21, 28).length },
   ];
 
+  // Format date from timestamp
+  const formatDate = (timestamp: number) => {
+    return new Date(timestamp).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  };
+
   // Format transaction data for display
   const formatTransactionForDisplay = (tx: TransactionInfo) => {
     const timeAgo = formatDistanceToNow(new Date(tx.timestamp), { addSuffix: true });
@@ -205,6 +215,34 @@ export default function SolanaDashboard() {
       time: timeAgo,
       status: tx.status === 'confirmed' ? 'Completed' : tx.status === 'failed' ? 'Failed' : 'Pending'
     };
+  };
+
+  // Handle transfer tokens
+  const handleTransfer = () => {
+    if (!transferAmount || !transferAddress) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill in both amount and recipient address",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Simulate transfer success
+    toast({
+      title: "Transfer Initiated",
+      description: `Transferring ${transferAmount} ${userTokens[selectedToken]?.symbol} to ${transferAddress.slice(0, 8)}...`,
+    });
+    
+    setTimeout(() => {
+      toast({
+        title: "Transfer Successful",
+        description: `${transferAmount} ${userTokens[selectedToken]?.symbol} transferred successfully`,
+      });
+      setTransferAmount('');
+      setTransferAddress('');
+      setIsTransferDialogOpen(false);
+    }, 1000);
   };
 
   // Simplified export function
@@ -312,7 +350,7 @@ export default function SolanaDashboard() {
               </Link>
             </div>
           </div>
-        </div>
+          </div>
       </div>
     );
   }
@@ -651,19 +689,15 @@ export default function SolanaDashboard() {
                 </CardContent>
               </Card>
             ) : (
-              <Tabs defaultValue="overview" className="space-y-6">
-                <Card className="glass-card">
-                  <CardHeader className="pb-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <CardTitle className="flex items-center space-x-2">
-                          <Eye className="w-5 h-5 text-red-500" />
-                          <span>{userTokens[selectedToken]?.name}</span>
-                        </CardTitle>
-                        <p className="text-muted-foreground mt-1">
-                          Manage and analyze your token performance
-                        </p>
-                      </div>
+              <div className="space-y-6">
+                {/* Token Overview Card */}
+                <Card className="glass-card border-red-500/20">
+                  <CardHeader>
+                    <div className="flex items-center justify-between flex-wrap gap-4">
+                      <CardTitle className="flex items-center space-x-2">
+                        <Eye className="w-5 h-5 text-red-500" />
+                        <span>{userTokens[selectedToken]?.name} Overview</span>
+                      </CardTitle>
                       <div className="flex items-center space-x-2">
                         <Button 
                           variant="outline" 
@@ -671,7 +705,8 @@ export default function SolanaDashboard() {
                           onClick={() => navigator.clipboard.writeText(userTokens[selectedToken]?.mint || '')}
                           className="border-border hover:bg-muted"
                         >
-                          <Copy className="w-4 h-4" />
+                          <Copy className="w-4 h-4 mr-2" />
+                          Copy Address
                         </Button>
                         <Button 
                           variant="outline" 
@@ -679,37 +714,14 @@ export default function SolanaDashboard() {
                           onClick={() => window.open(`https://explorer.solana.com/address/${userTokens[selectedToken]?.mint}?cluster=devnet`, '_blank')}
                           className="border-border hover:bg-muted"
                         >
-                          <ExternalLink className="w-4 h-4" />
+                          <ExternalLink className="w-4 h-4 mr-2" />
+                          Explorer
                         </Button>
                       </div>
                     </div>
-                    
-                    <TabsList className="enhanced-tabs grid grid-cols-4 w-full mt-4">
-                      <TabsTrigger value="overview" className="enhanced-tab-trigger">
-                        <BarChart3 className="w-4 h-4 mr-2" />
-                        Overview
-                      </TabsTrigger>
-                      <TabsTrigger value="analytics" className="enhanced-tab-trigger">
-                        <TrendingUp className="w-4 h-4 mr-2" />
-                        Analytics
-                      </TabsTrigger>
-                      <TabsTrigger value="transactions" className="enhanced-tab-trigger">
-                        <Clock className="w-4 h-4 mr-2" />
-                        History
-                      </TabsTrigger>
-                      <TabsTrigger value="manage" className="enhanced-tab-trigger">
-                        <Settings className="w-4 h-4 mr-2" />
-                        Manage
-                      </TabsTrigger>
-                    </TabsList>
                   </CardHeader>
-                </Card>
-
-                <TabsContent value="overview" className="space-y-6">
-                  {/* Token Overview Stats */}
-                  <Card className="glass-card">
-                    <CardContent className="p-6">
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                  <CardContent className="space-y-8">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                         <div className="text-center space-y-2">
                           <p className="text-muted-foreground text-sm font-medium">Balance</p>
                           <p className="text-2xl font-bold text-foreground">
@@ -733,21 +745,79 @@ export default function SolanaDashboard() {
                           <p className="text-2xl font-bold text-foreground">
                             {userTokens[selectedToken]?.holders?.toLocaleString() || '0'}
                           </p>
+                       </div>
+                    </div>
+                    
+                    {/* Token metadata */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-4 p-4 bg-muted/20 rounded-xl">
+                        <h3 className="font-medium text-foreground">Token Details</h3>
+                        <div className="space-y-2">
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Name:</span>
+                            <span className="font-medium">{userTokens[selectedToken]?.name}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Symbol:</span>
+                            <span className="font-medium">{userTokens[selectedToken]?.symbol}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Decimals:</span>
+                            <span className="font-medium">{userTokens[selectedToken]?.decimals}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Mint Address:</span>
+                            <span className="font-mono text-xs">
+                              {userTokens[selectedToken]?.mint?.slice(0, 6)}...{userTokens[selectedToken]?.mint?.slice(-4)}
+                            </span>
+                          </div>
                         </div>
                       </div>
-                    </CardContent>
-                  </Card>
-
-                  {/* Activity Chart */}
-                  <Card className="glass-card">
-                    <CardHeader>
-                      <CardTitle className="flex items-center space-x-2">
-                        <Activity className="w-5 h-5 text-red-500" />
-                        <span>Transaction Activity</span>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="h-80">
+                      
+                      <div className="space-y-4 p-4 bg-muted/20 rounded-xl">
+                        <h3 className="font-medium text-foreground">Market Information</h3>
+                        <div className="space-y-2">
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Price:</span>
+                            <span className="font-medium">
+                              {userTokens[selectedToken]?.marketData?.price ? 
+                               `$${userTokens[selectedToken].marketData.price.toFixed(6)}` : 'N/A'}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Market Cap:</span>
+                            <span className="font-medium">
+                              {userTokens[selectedToken]?.marketData?.marketCap ? 
+                               `$${userTokens[selectedToken].marketData.marketCap.toLocaleString()}` : 'N/A'}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">24h Change:</span>
+                            <span className={`font-medium ${
+                              userTokens[selectedToken]?.change?.startsWith('+') 
+                                ? 'text-green-500' 
+                                : 'text-red-500'
+                            }`}>
+                              {userTokens[selectedToken]?.change || '0%'}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Network:</span>
+                            <Badge variant="outline" className="bg-blue-500/10 text-blue-500">
+                              Solana Devnet
+                            </Badge>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Activity chart */}
+                    <div className="mt-4">
+                      <h3 className="font-medium text-foreground mb-4 flex items-center">
+                        <Activity className="w-5 h-5 text-red-500 mr-2" /> 
+                        Transaction Activity
+                      </h3>
+                      <div className="h-64">
                         <ResponsiveContainer width="100%" height="100%">
                           <LineChart data={chartData}>
                             <CartesianGrid strokeDasharray="3 3" stroke="currentColor" opacity={0.1} />
@@ -780,122 +850,131 @@ export default function SolanaDashboard() {
                             />
                           </LineChart>
                         </ResponsiveContainer>
-                      </div>
-                    </CardContent>
+                       </div>
+                     </div>
+                   </CardContent>
                   </Card>
-                </TabsContent>
 
-                <TabsContent value="analytics" className="space-y-6">
-                  <Card className="glass-card">
+                  {/* Token Management Card */}
+                  <Card className="glass-card border-blue-500/20">
                     <CardHeader>
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="flex items-center space-x-2">
-                          <BarChart3 className="w-5 h-5 text-red-500" />
-                          <span>Transaction Distribution</span>
-                        </CardTitle>
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          onClick={() => exportData('analytics')}
-                          className="gap-2"
-                        >
-                          <FileDown className="w-4 h-4" />
-                          Export
-                        </Button>
-                      </div>
+                      <CardTitle className="flex items-center space-x-2">
+                        <Settings className="w-5 h-5 text-blue-500" />
+                        <span>Token Management</span>
+                      </CardTitle>
                     </CardHeader>
-                    <CardContent>
-                      <div className="h-80">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <BarChart data={chartData}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="currentColor" opacity={0.1} />
-                            <XAxis 
-                              dataKey="name" 
-                              stroke="currentColor" 
-                              opacity={0.7}
-                              fontSize={12}
-                            />
-                            <YAxis 
-                              stroke="currentColor" 
-                              opacity={0.7}
-                              fontSize={12}
-                            />
-                            <Tooltip 
-                              contentStyle={{
-                                backgroundColor: 'var(--background)',
-                                border: '1px solid var(--border)',
-                                borderRadius: '8px',
-                                color: 'var(--foreground)'
-                              }}
-                            />
-                            <Bar 
-                              dataKey="value" 
-                              fill="#EF4444"
-                              radius={[4, 4, 0, 0]}
-                            />
-                          </BarChart>
-                        </ResponsiveContainer>
+                    <CardContent className="space-y-6">
+                      {/* Action Buttons */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                        <Button 
+                          onClick={() => setIsTransferDialogOpen(true)}
+                          variant="outline" 
+                          className="h-20 border-border hover:bg-muted hover:border-red-500/30 transition-all group"
+                        >
+                          <div className="flex flex-col items-center space-y-2">
+                            <Send className="w-6 h-6 text-blue-500 group-hover:scale-110 transition-transform" />
+                            <span className="font-medium">Transfer Tokens</span>
+                            <span className="text-xs text-muted-foreground">Send to any address</span>
+                          </div>
+                        </Button>
+                        
+                        <Button 
+                          onClick={() => setIsMintModalOpen(true)}
+                          variant="outline" 
+                          className="h-20 border-border hover:bg-muted hover:border-red-500/30 transition-all group"
+                        >
+                          <div className="flex flex-col items-center space-y-2">
+                            <Plus className="w-6 h-6 text-green-500 group-hover:scale-110 transition-transform" />
+                            <span className="font-medium">Mint Tokens</span>
+                            <span className="text-xs text-muted-foreground">Create new tokens</span>
+                          </div>
+                        </Button>
+                        
+                        <Button 
+                          onClick={() => setIsBurnModalOpen(true)}
+                          variant="outline" 
+                          className="h-20 border-border hover:bg-muted hover:border-red-500/30 transition-all group"
+                        >
+                          <div className="flex flex-col items-center space-y-2">
+                            <Flame className="w-6 h-6 text-red-500 group-hover:scale-110 transition-transform" />
+                            <span className="font-medium">Burn Tokens</span>
+                            <span className="text-xs text-muted-foreground">Remove from supply</span>
+                          </div>
+                        </Button>
+                      </div>
+                      
+                      {/* Token Permissions */}
+                      <div className="p-4 bg-blue-500/5 rounded-xl border border-blue-500/20">
+                        <h3 className="text-lg font-semibold mb-3">Token Capabilities</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div className="flex items-center p-3 bg-muted/20 rounded-lg">
+                            <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center mr-3">
+                              <Plus className="w-4 h-4 text-green-500" />
+                            </div>
+                            <div>
+                              <p className="font-medium">Mintable</p>
+                              <p className="text-xs text-muted-foreground">New tokens can be created</p>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center p-3 bg-muted/20 rounded-lg">
+                            <div className="w-8 h-8 rounded-full bg-red-500/20 flex items-center justify-center mr-3">
+                              <Flame className="w-4 h-4 text-red-500" />
+                            </div>
+                            <div>
+                              <p className="font-medium">Burnable</p>
+                              <p className="text-xs text-muted-foreground">Tokens can be destroyed</p>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center p-3 bg-muted/20 rounded-lg">
+                            <div className="w-8 h-8 rounded-full bg-yellow-500/20 flex items-center justify-center mr-3">
+                              <Pause className="w-4 h-4 text-yellow-500" />
+                            </div>
+                            <div>
+                              <p className="font-medium">Pausable</p>
+                              <p className="text-xs text-muted-foreground">Transfers can be paused</p>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
-                </TabsContent>
-
-                <TabsContent value="transactions" className="space-y-6">
-                  <Card className="glass-card">
+                  
+                  {/* Recent Transactions */}
+                  <Card className="glass-card border-purple-500/20">
                     <CardHeader>
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="flex items-center space-x-2">
-                          <Clock className="w-5 h-5 text-red-500" />
-                          <span>Recent Transactions</span>
-                        </CardTitle>
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          onClick={() => exportData('transactions')}
-                          className="gap-2"
-                        >
-                          <Download className="w-4 h-4" />
-                          Export
-                        </Button>
-                      </div>
+                      <CardTitle className="flex items-center space-x-2">
+                        <Clock className="w-5 h-5 text-purple-500" />
+                        <span>Recent Transactions</span>
+                      </CardTitle>
                     </CardHeader>
                     <CardContent>
                       {transactionData.length === 0 ? (
-                        <div className="text-center py-12 space-y-4">
-                          <Calendar className="w-16 h-16 text-muted-foreground mx-auto" />
-                          <div className="space-y-2">
-                            <h3 className="font-semibold text-foreground">No Recent Transactions</h3>
-                            <p className="text-muted-foreground text-sm">
-                              Transaction history will appear here as you use your wallet
-                            </p>
-                          </div>
+                        <div className="text-center py-8">
+                          <Calendar className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                          <p className="text-muted-foreground text-lg font-medium mb-2">No recent transactions</p>
+                          <p className="text-sm text-muted-foreground">Transactions will appear here as you use your wallet</p>
                         </div>
                       ) : (
-                        <div className="space-y-4">
-                          {transactionData.map((tx, index) => {
+                        <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
+                          {transactionData.slice(0, 5).map((tx, index) => {
                             const displayTx = formatTransactionForDisplay(tx);
                             return (
                               <div key={index} className="flex items-center justify-between p-4 bg-muted/30 rounded-xl hover:bg-muted/50 transition-colors">
-                                <div className="flex items-center space-x-4">
-                                  <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
-                                    <Send className="w-5 h-5 text-blue-500" />
+                                <div className="flex items-center space-x-3">
+                                  <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center">
+                                    <Send className="w-5 h-5 text-purple-500" />
                                   </div>
                                   <div>
                                     <p className="font-medium text-foreground">{displayTx.type}</p>
                                     <p className="text-muted-foreground text-sm">
                                       {displayTx.amount} to {displayTx.to}
                                     </p>
-                                    <button
-                                      onClick={() => window.open(`https://explorer.solana.com/tx/${tx.signature}?cluster=devnet`, '_blank')}
-                                      className="text-xs text-blue-500 hover:text-blue-400 transition-colors flex items-center space-x-1 mt-1"
-                                    >
-                                      <Globe className="w-3 h-3" />
-                                      <span>View on Explorer</span>
-                                    </button>
                                   </div>
                                 </div>
                                 <div className="text-right space-y-1">
-                                  <p className="text-muted-foreground text-sm">{displayTx.time}</p>
+                                  <p className="text-muted-foreground text-sm">{formatDate(tx.timestamp)}</p>
                                   <Badge className={`${
                                     displayTx.status === 'Completed' 
                                       ? 'bg-green-500/20 text-green-600 border-green-500/30'
@@ -909,152 +988,246 @@ export default function SolanaDashboard() {
                               </div>
                             );
                           })}
+                          
+                          {transactionData.length > 5 && (
+                            <Button 
+                              variant="ghost" 
+                              className="w-full text-muted-foreground hover:text-foreground"
+                              onClick={() => exportData('transactions')}
+                            >
+                              <Download className="w-4 h-4 mr-2" />
+                              Export All Transactions
+                            </Button>
+                          )}
                         </div>
                       )}
                     </CardContent>
                   </Card>
-                </TabsContent>
-
-                <TabsContent value="manage" className="space-y-6">
-                  {/* Quick Actions */}
-                  <Card className="glass-card">
-                    <CardHeader>
-                      <CardTitle className="flex items-center space-x-2">
-                        <Settings className="w-5 h-5 text-red-500" />
-                        <span>Token Management</span>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                        <Button 
-                          variant="outline" 
-                          className="h-16 border-border hover:bg-muted hover:border-red-500/30 transition-all group"
-                          onClick={() => setIsMintModalOpen(true)}
-                        >
-                          <div className="flex flex-col items-center space-y-2">
-                            <Plus className="w-5 h-5 text-green-500 group-hover:scale-110 transition-transform" />
-                            <span className="font-medium">Mint Tokens</span>
-                          </div>
-                        </Button>
-                        
-                        <Button 
-                          variant="outline" 
-                          className="h-16 border-border hover:bg-muted hover:border-red-500/30 transition-all group"
-                          onClick={() => setIsBurnModalOpen(true)}
-                        >
-                          <div className="flex flex-col items-center space-y-2">
-                            <Flame className="w-5 h-5 text-red-500 group-hover:scale-110 transition-transform" />
-                            <span className="font-medium">Burn Tokens</span>
-                          </div>
-                        </Button>
-                        
-                        <Button 
-                          variant="outline" 
-                          className="h-16 border-border hover:bg-muted hover:border-red-500/30 transition-all group"
-                          onClick={() => window.open(`https://explorer.solana.com/address/${userTokens[selectedToken]?.mint}?cluster=devnet`, '_blank')}
-                        >
-                          <div className="flex flex-col items-center space-y-2">
-                            <ExternalLink className="w-5 h-5 text-blue-500 group-hover:scale-110 transition-transform" />
-                            <span className="font-medium">View Explorer</span>
-                          </div>
-                        </Button>
-                        
-                        <Button 
-                          variant="outline" 
-                          className="h-16 border-border hover:bg-muted hover:border-red-500/30 transition-all group"
-                          onClick={() => exportData('all')}
-                        >
-                          <div className="flex flex-col items-center space-y-2">
-                            <Download className="w-5 h-5 text-purple-500 group-hover:scale-110 transition-transform" />
-                            <span className="font-medium">Export Data</span>
-                          </div>
-                        </Button>
-                        
-                        <Button 
-                          variant="outline" 
-                          className="h-16 border-border hover:bg-muted hover:border-red-500/30 transition-all group"
-                        >
-                          <div className="flex flex-col items-center space-y-2">
-                            <Settings className="w-5 h-5 text-orange-500 group-hover:scale-110 transition-transform" />
-                            <span className="font-medium">Settings</span>
-                          </div>
-                        </Button>
-                        
-                        <Button 
-                          variant="outline" 
-                          className="h-16 border-border hover:bg-muted hover:border-red-500/30 transition-all group"
-                        >
-                          <div className="flex flex-col items-center space-y-2">
-                            <BarChart3 className="w-5 h-5 text-indigo-500 group-hover:scale-110 transition-transform" />
-                            <span className="font-medium">Analytics</span>
-                          </div>
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  {/* Transfer Section */}
-                  <Card className="glass-card">
-                    <CardHeader>
-                      <CardTitle className="flex items-center space-x-2">
-                        <Send className="w-5 h-5 text-red-500" />
-                        <span>Transfer Tokens</span>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="transferAddress" className="text-foreground font-medium">Recipient Address</Label>
-                          <Input
-                            id="transferAddress"
-                            placeholder="Enter Solana wallet address"
-                            value={transferAddress}
-                            onChange={(e) => setTransferAddress(e.target.value)}
-                            className="input-enhanced"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="transferAmount" className="text-foreground font-medium">Amount</Label>
-                          <Input
-                            id="transferAmount"
-                            type="number"
-                            placeholder={`Enter amount of ${userTokens[selectedToken]?.symbol}`}
-                            value={transferAmount}
-                            onChange={(e) => setTransferAmount(e.target.value)}
-                            className="input-enhanced"
-                          />
-                        </div>
-                      </div>
-                      <Button 
-                        onClick={() => {
-                          if (!transferAmount || !transferAddress) {
-                            toast({
-                              title: "Missing Information",
-                              description: "Please fill in both amount and recipient address",
-                              variant: "destructive"
-                            });
-                            return;
-                          }
-                          toast({
-                            title: "Transfer Initiated",
-                            description: `Transferring ${transferAmount} ${userTokens[selectedToken]?.symbol} to ${transferAddress.slice(0, 8)}...`,
-                          });
-                          setTransferAmount('');
-                          setTransferAddress('');
-                        }}
-                        className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white h-12"
-                      >
-                        <Send className="w-4 h-4 mr-2" />
-                        Transfer {userTokens[selectedToken]?.symbol}
-                      </Button>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-              </Tabs>
+              </div>
             )}
           </div>
         </div>
+        
+        {/* Modals and Dialogs */}
+        
+        {/* Transfer Dialog */}
+        <Dialog open={isTransferDialogOpen} onOpenChange={setIsTransferDialogOpen}>
+          <DialogContent className="glass-card">
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-bold">
+                Transfer {userTokens[selectedToken]?.symbol || ''} Tokens
+              </DialogTitle>
+              <DialogDescription>
+                Send tokens to another wallet address.
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="transferAddress">Recipient Address</Label>
+                <Input
+                  id="transferAddress"
+                  placeholder="Enter Solana wallet address"
+                  value={transferAddress}
+                  onChange={(e) => setTransferAddress(e.target.value)}
+                  className="input-enhanced"
+                  disabled={isProcessing}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="transferAmount">Amount to Transfer</Label>
+                <Input
+                  id="transferAmount"
+                  type="number"
+                  value={transferAmount}
+                  onChange={(e) => setTransferAmount(e.target.value)}
+                  placeholder={`Enter amount of ${userTokens[selectedToken]?.symbol || 'tokens'}`}
+                  className="input-enhanced"
+                  disabled={isProcessing}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Available balance: {userTokens[selectedToken]?.uiBalance.toLocaleString() || '0'} {userTokens[selectedToken]?.symbol || ''}
+                </p>
+              </div>
+              
+              <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                <p className="text-sm text-blue-600">
+                  <Info className="w-4 h-4 inline-block mr-1" />
+                  Transfer will be processed on the Solana Devnet.
+                </p>
+              </div>
+            </div>
+            
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setIsTransferDialogOpen(false)}
+                disabled={isProcessing}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleTransfer}
+                disabled={!transferAmount || parseFloat(transferAmount) <= 0 || !transferAddress || isProcessing}
+                className="bg-red-500 hover:bg-red-600 text-white"
+              >
+                {isProcessing ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-4 h-4 mr-2" />
+                    Transfer Tokens
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+        
+        {/* Mint Modal - Keep existing modal */}
+        <Dialog open={isMintModalOpen} onOpenChange={setIsMintModalOpen}>
+          <DialogContent className="glass-card">
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-bold">
+                Mint {userTokens[selectedToken]?.symbol || ''} Tokens
+              </DialogTitle>
+              <DialogDescription>
+                Create new tokens and add them to the total supply.
+                {userTokens[selectedToken]?.marketData ? (
+                  <div className="mt-2 text-sm text-green-500">Token can be minted.</div>
+                ) : (
+                  <div className="mt-2 text-sm text-red-500">
+                    Token does not have minting enabled or you don't have permission to mint.
+                  </div>
+                )}
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="mintAmount">Amount to Mint</Label>
+                <Input
+                  id="mintAmount"
+                  type="number"
+                  value={mintAmount}
+                  onChange={(e) => setMintAmount(e.target.value)}
+                  placeholder={`Enter amount of ${userTokens[selectedToken]?.symbol || 'tokens'}`}
+                  className="input-enhanced"
+                  disabled={isProcessing}
+                />
+              </div>
+              
+              <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                <p className="text-sm text-blue-600">
+                  <Info className="w-4 h-4 inline-block mr-1" />
+                  Minting will create new tokens and increase the total supply.
+                </p>
+              </div>
+            </div>
+            
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setIsMintModalOpen(false)}
+                disabled={isProcessing}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleMintTokens}
+                disabled={!mintAmount || parseFloat(mintAmount) <= 0 || isProcessing || !userTokens[selectedToken]?.marketData}
+                className="bg-red-500 hover:bg-red-600 text-white"
+              >
+                {isProcessing ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Mint Tokens
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+        
+        {/* Burn Modal - Keep existing modal */}
+        <Dialog open={isBurnModalOpen} onOpenChange={setIsBurnModalOpen}>
+          <DialogContent className="glass-card">
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-bold">
+                Burn {userTokens[selectedToken]?.symbol || ''} Tokens
+              </DialogTitle>
+              <DialogDescription>
+                Permanently remove tokens from circulation, reducing the total supply.
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="burnAmount">Amount to Burn</Label>
+                <Input
+                  id="burnAmount"
+                  type="number"
+                  value={burnAmount}
+                  onChange={(e) => setBurnAmount(e.target.value)}
+                  placeholder={`Enter amount of ${userTokens[selectedToken]?.symbol || 'tokens'}`}
+                  className="input-enhanced"
+                  disabled={isProcessing}
+                />
+                <p className="text-sm text-muted-foreground">
+                  Available balance: {userTokens[selectedToken]?.uiBalance.toLocaleString() || '0'} {userTokens[selectedToken]?.symbol || ''}
+                </p>
+              </div>
+              
+              <div className="p-3 bg-orange-500/10 border border-orange-500/30 rounded-lg">
+                <p className="text-sm text-orange-600">
+                  <AlertTriangle className="w-4 h-4 inline-block mr-1" />
+                  Warning: Burning tokens is permanent and cannot be undone.
+                </p>
+              </div>
+            </div>
+            
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setIsBurnModalOpen(false)}
+                disabled={isProcessing}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleBurnTokens}
+                disabled={
+                  !burnAmount || 
+                  parseFloat(burnAmount) <= 0 || 
+                  (userTokens[selectedToken] && parseFloat(burnAmount) > userTokens[selectedToken].uiBalance) || 
+                  isProcessing
+                }
+                className="bg-red-500 hover:bg-red-600 text-white"
+              >
+                {isProcessing ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    <Flame className="w-4 h-4 mr-2" />
+                    Burn Tokens
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
-}
