@@ -70,9 +70,6 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
   const [dialogTitle, setDialogTitle] = useState('');
   const [dialogMessage, setDialogMessage] = useState('');
   const [dialogType, setDialogType] = useState<'success' | 'error'>('success');
-  
-  // Network selection states
-  const [showNetworkOptions, setShowNetworkOptions] = useState(false);
 
   // Wallet connections
   const { connected: solanaConnected, publicKey: solanaPublicKey, wallet: solanaWallet } = useWallet();
@@ -80,7 +77,8 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
     connected: algorandConnected, 
     address: algorandAddress, 
     signTransaction: algorandSignTransaction,
-    selectedNetwork: algorandNetwork 
+    selectedNetwork: algorandNetwork,
+    setSelectedNetwork: setAlgorandSelectedNetwork
   } = useAlgorandWallet();
 
   // Show result dialog helper
@@ -141,20 +139,61 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
     }
   };
 
+  // Check for network mismatch
+  const getNetworkMismatch = () => {
+    if (tokenData.network.startsWith('algorand')) {
+      if (algorandConnected && algorandAddress) {
+        return tokenData.network !== algorandNetwork;
+      }
+      return false; // No mismatch if wallet not connected (will be handled separately)
+    } else if (tokenData.network === 'solana-devnet') {
+      return !(solanaConnected && solanaPublicKey);
+    }
+    return false;
+  };
+
+  const hasNetworkMismatch = getNetworkMismatch();
+
+  // Get network mismatch message
+  const getNetworkMismatchMessage = () => {
+    if (tokenData.network.startsWith('algorand') && algorandConnected && algorandAddress) {
+      const targetNetwork = tokenData.network === 'algorand-mainnet' ? 'Algorand Mainnet' : 'Algorand Testnet';
+      const currentNetwork = algorandNetwork === 'algorand-mainnet' ? 'Algorand Mainnet' : 'Algorand Testnet';
+      return `Your Pera Wallet is connected to ${currentNetwork}, but you've selected ${targetNetwork} for token deployment. Please switch your wallet network to match your selection.`;
+    } else if (tokenData.network === 'solana-devnet' && !solanaConnected) {
+      return 'Please connect your Solana wallet to deploy tokens on Solana Devnet.';
+    }
+    return '';
+  };
+
+  // Handle network selection with automatic wallet switching
+  const handleNetworkSelection = async (network: string) => {
+    setTokenData({ ...tokenData, network });
+    
+    // Attempt to switch Algorand wallet network if needed
+    if (network.startsWith('algorand') && setAlgorandSelectedNetwork) {
+      try {
+        await setAlgorandSelectedNetwork(network);
+      } catch (error) {
+        console.warn('Could not automatically switch Algorand network:', error);
+      }
+    }
+  };
+
   // Check wallet connection based on selected network
   const isWalletConnected = () => {
-    if (tokenData.network === 'algorand') {
+    if (tokenData.network.startsWith('algorand')) {
       return algorandConnected && algorandAddress;
-    } else if (tokenData.network === 'solana') {
+    } else if (tokenData.network === 'solana-devnet') {
       return solanaConnected && solanaPublicKey;
     }
     return false;
   };
 
   const getConnectedAddress = () => {
-    if (tokenData.network === 'algorand') {
+    if (tokenData.network.startsWith('algorand')) {
       return algorandAddress;
-    } else if (tokenData.network === 'solana') {
+    } else if (tokenData.network === 'solana-devnet') {
       return solanaPublicKey?.toString();
     }
     return null;
@@ -259,7 +298,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
     try {
       let result;
 
-      if (tokenData.network === 'algorand') {
+      if (tokenData.network.startsWith('algorand')) {
         // Algorand token creation
         setDeploymentStep('Creating Algorand Standard Asset...');
         
@@ -288,7 +327,7 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
           algorandNetwork
         );
 
-      } else if (tokenData.network === 'solana') {
+      } else if (tokenData.network === 'solana-devnet') {
         // Solana token creation
         setDeploymentStep('Creating Solana token...');
         
@@ -348,36 +387,35 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
 
   // Get network display info
   const getNetworkInfo = () => {
-    if (tokenData.network === 'algorand') {
-      // Use the network selected in the Algorand wallet provider
-      return algorandNetwork === 'algorand-mainnet' 
-        ? { 
-            name: 'Algorand MainNet', 
-            color: 'bg-[#00d4aa]/20 text-[#00d4aa] border-[#00d4aa]/30',
-            cost: '~$0.002'
-          }
-        : { 
-            name: 'Algorand TestNet', 
-            color: 'bg-[#76f935]/20 text-[#76f935] border-[#76f935]/30',
-            cost: '~$0.001'
-          };
-    } else if (tokenData.network === 'solana') {
-      return { 
-        name: 'Solana Devnet', 
-        color: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-        cost: 'Free'
-      };
-    }
-    
-    // Fallback
     const networks = {
-      'solana': { 
+      'algorand-mainnet': { 
+        name: 'Algorand Mainnet', 
+        color: 'bg-[#00d4aa]/20 text-[#00d4aa] border-[#00d4aa]/30',
+        cost: '~$0.002'
+      },
+      'algorand-testnet': { 
+        name: 'Algorand Testnet', 
+        color: 'bg-[#76f935]/20 text-[#76f935] border-[#76f935]/30',
+        cost: '~$0.001'
+      },
+      'solana-devnet': { 
         name: 'Solana Devnet', 
         color: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
         cost: 'Free'
       }
     };
-    return networks[tokenData.network as keyof typeof networks] || networks['solana'];
+    
+    return networks[tokenData.network as keyof typeof networks] || networks['algorand-testnet'];
+  };
+
+  // Get wallet type for current network
+  const getWalletTypeForNetwork = () => {
+    if (tokenData.network.startsWith('algorand')) {
+      return 'Algorand';
+    } else if (tokenData.network === 'solana-devnet') {
+      return 'Solana';
+    }
+    return 'Blockchain';
   };
 
   const networkInfo = getNetworkInfo();
@@ -411,6 +449,22 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
         </Alert>
       )}
 
+      {/* Network Mismatch Warning */}
+      {hasNetworkMismatch && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            <div className="space-y-2">
+              <p className="font-semibold text-red-600">Network Mismatch Detected</p>
+              <p className="text-sm">{getNetworkMismatchMessage()}</p>
+              <div className="mt-3 text-xs text-red-500">
+                <p><strong>Tip:</strong> You can switch your wallet network using the wallet options in the top navigation bar.</p>
+              </div>
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Network Selection Card */}
       <Card className="glass-card">
         <CardHeader>
@@ -427,93 +481,83 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
         <CardContent className="space-y-6">
           <div className="space-y-2">
             <Label>Select Network</Label>
-            <div className="grid grid-cols-2 gap-4">
-              {/* Algorand Network */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Algorand Testnet */}
               <div 
                 className={`network-card flex flex-col justify-center items-center p-6 transition-all duration-300 cursor-pointer ${
-                  tokenData.network === 'algorand' ? 'active algorand-card shadow-lg transform -translate-y-1' : ''
+                  tokenData.network === 'algorand-testnet' ? 'active algorand-card shadow-lg transform -translate-y-1' : ''
                 } cursor-pointer`}
-                onClick={() => {
-                  setTokenData({ ...tokenData, network: 'algorand' });
-                  setShowNetworkOptions(true);
-                }}
+                onClick={() => handleNetworkSelection('algorand-testnet')}
               >
                 <div className="w-12 h-12 bg-[#76f935]/20 rounded-full flex items-center justify-center mb-3 shadow-md">
-                  <span className="text-xl font-bold text-[#76f935]">A</span>
+                  <span className="text-lg font-bold text-[#76f935]">AT</span>
                 </div>
-                <h3 className="font-semibold text-lg mb-2">Algorand</h3>
-                <Badge className="algorand-badge">Ultra Low Cost</Badge>
-                <p className="text-sm text-muted-foreground mt-2 text-center">Perfect for cost-sensitive projects</p>
+                <h3 className="font-semibold text-base mb-2 text-center">Algorand Testnet</h3>
+                <Badge className="algorand-badge text-xs">~$0.001 cost</Badge>
+                <p className="text-xs text-muted-foreground mt-2 text-center">Perfect for testing & development</p>
               </div>
               
-              {/* Solana Network */}
+              {/* Algorand Mainnet */}
               <div 
                 className={`network-card flex flex-col justify-center items-center p-6 transition-all duration-300 cursor-pointer ${
-                  tokenData.network === 'solana' ? 'active shadow-lg transform -translate-y-1' : ''
+                  tokenData.network === 'algorand-mainnet' ? 'active shadow-lg transform -translate-y-1' : ''
                 } cursor-pointer`}
-                onClick={() => setTokenData({ ...tokenData, network: 'solana' })}
+                onClick={() => handleNetworkSelection('algorand-mainnet')}
+              >
+                <div className="w-12 h-12 bg-[#00d4aa]/20 rounded-full flex items-center justify-center mb-3 shadow-md">
+                  <span className="text-lg font-bold text-[#00d4aa]">AM</span>
+                </div>
+                <h3 className="font-semibold text-base mb-2 text-center">Algorand Mainnet</h3>
+                <Badge className="algorand-mainnet-badge text-xs">~$0.002 cost</Badge>
+                <p className="text-xs text-muted-foreground mt-2 text-center">Production-ready deployment</p>
+              </div>
+              
+              {/* Solana Devnet */}
+              <div 
+                className={`network-card flex flex-col justify-center items-center p-6 transition-all duration-300 cursor-pointer ${
+                  tokenData.network === 'solana-devnet' ? 'active shadow-lg transform -translate-y-1' : ''
+                } cursor-pointer`}
+                onClick={() => handleNetworkSelection('solana-devnet')}
               >
                 <div className="w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center mb-3 shadow-md">
-                  <span className="text-xl font-bold text-blue-500">S</span>
+                  <span className="text-lg font-bold text-blue-500">SD</span>
                 </div>
-                <h3 className="font-semibold text-lg mb-2">Solana</h3>
-                <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">Fast & Reliable</Badge>
-                <p className="text-sm text-muted-foreground mt-2 text-center">Best for high-performance projects</p>
+                <h3 className="font-semibold text-base mb-2 text-center">Solana Devnet</h3>
+                <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30 text-xs">Free</Badge>
+                <p className="text-xs text-muted-foreground mt-2 text-center">High-performance testing</p>
               </div>
             </div>
-            
-            {/* Algorand Network Options Dialog */}
-            {showNetworkOptions && tokenData.network === 'algorand' && (
-              <div className="mt-4 p-4 bg-muted/20 border border-border rounded-lg">
-                <h4 className="font-medium text-foreground mb-3">Choose Algorand Network</h4>
-                <div className="grid grid-cols-2 gap-3">
-                  <Button
-                    variant={algorandNetwork === 'algorand-testnet' ? 'default' : 'outline'}
-                    onClick={() => {
-                      if (setAlgorandSelectedNetwork) {
-                        setAlgorandSelectedNetwork('algorand-testnet');
-                      }
-                      setShowNetworkOptions(false);
-                    }}
-                    className="h-16 flex flex-col items-center justify-center"
-                  >
-                    <span className="font-semibold">Algorand Testnet</span>
-                    <span className="text-xs opacity-75">~$0.001 cost</span>
-                  </Button>
-                  <Button
-                    variant={algorandNetwork === 'algorand-mainnet' ? 'default' : 'outline'}
-                    onClick={() => {
-                      if (setAlgorandSelectedNetwork) {
-                        setAlgorandSelectedNetwork('algorand-mainnet');
-                      }
-                      setShowNetworkOptions(false);
-                    }}
-                    className="h-16 flex flex-col items-center justify-center"
-                  >
-                    <span className="font-semibold">Algorand Mainnet</span>
-                    <span className="text-xs opacity-75">~$0.002 cost</span>
-                  </Button>
-                </div>
-              </div>
-            )}
           </div>
 
-          {/* Address Input */}
+          {/* Selected Network Summary */}
           <div className="mt-4 p-4 rounded-lg border border-border bg-muted/30">
             <div className="flex justify-between items-center">
               <div>
                 <h4 className="font-semibold text-foreground">Selected Network</h4>
                 <p className="text-sm text-muted-foreground">Deployment cost: {networkInfo.cost}</p>
+                {isWalletConnected() && !hasNetworkMismatch && (
+                  <p className="text-xs text-green-600 flex items-center mt-1">
+                    <CheckCircle className="w-3 h-3 mr-1" />
+                    Wallet network matches selection
+                  </p>
+                )}
               </div>
               <Badge className={`${networkInfo.color} px-3 py-1 text-sm`}>
                 {networkInfo.name}
               </Badge>
             </div>
             
-            {tokenData.network === 'algorand' && algorandNetwork === 'algorand-testnet' && (
+            {tokenData.network === 'algorand-testnet' && (
               <div className="mt-3 flex items-start gap-2 text-sm text-amber-500">
                 <Info className="w-4 h-4 mt-0.5 flex-shrink-0" />
                 <p>Using Testnet for development. Tokens are not tradable on Mainnet.</p>
+              </div>
+            )}
+            
+            {hasNetworkMismatch && (
+              <div className="mt-3 flex items-start gap-2 text-sm text-red-500">
+                <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                <p>Please switch your {getWalletTypeForNetwork()} wallet to {networkInfo.name} to proceed.</p>
               </div>
             )}
           </div>
@@ -875,15 +919,21 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
           {/* Wallet Connection Status */}
           <div className={`p-5 rounded-lg border ${
             isWalletConnected() 
-              ? 'bg-green-500/10 border-green-500/30 shadow-md' 
+              ? hasNetworkMismatch
+                ? 'bg-yellow-500/10 border-yellow-500/30 shadow-md'
+                : 'bg-green-500/10 border-green-500/30 shadow-md' 
               : 'bg-red-500/10 border-red-500/30'
           } transition-all duration-300`}>
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <div className={`w-3 h-3 rounded-full ${isWalletConnected() ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
+                <div className={`w-3 h-3 rounded-full ${
+                  isWalletConnected() 
+                    ? hasNetworkMismatch ? 'bg-yellow-500 animate-pulse' : 'bg-green-500 animate-pulse'
+                    : 'bg-red-500'
+                }`}></div>
                 <div>
                   <span className="text-foreground font-medium">
-                    {tokenData.network.includes('algorand') ? 'Algorand' : 'Solana'} Wallet
+                    {getWalletTypeForNetwork()} Wallet
                   </span>
                   {isWalletConnected() && (
                     <p className="text-sm text-muted-foreground mt-1">
@@ -893,17 +943,26 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
                 </div>
               </div>
               <span className={`text-sm font-semibold px-3 py-1 rounded-full ${isWalletConnected() 
-                ? 'text-green-500 bg-green-500/10' 
+                ? hasNetworkMismatch
+                  ? 'text-yellow-500 bg-yellow-500/10'
+                  : 'text-green-500 bg-green-500/10' 
                 : 'text-red-500 bg-red-500/10 animate-pulse'}`}
               >
-                {isWalletConnected() ? 'Connected ✓' : 'Not Connected'}
+                {isWalletConnected() ? (hasNetworkMismatch ? 'Wrong Network ⚠' : 'Connected ✓') : 'Not Connected'}
               </span>
             </div>
             
             {!isWalletConnected() && (
               <div className="mt-3 text-sm text-red-600 flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4" />
-                <span>Please connect your {tokenData.network === 'algorand' ? 'Algorand' : 'Solana'} wallet in the top navigation bar first</span>
+                <span>Please connect your {getWalletTypeForNetwork()} wallet in the top navigation bar first</span>
+              </div>
+            )}
+            
+            {isWalletConnected() && hasNetworkMismatch && (
+              <div className="mt-3 text-sm text-yellow-600 flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4" />
+                <span>Your wallet is connected to the wrong network. Please switch to {networkInfo.name}.</span>
               </div>
             )}
           </div>
@@ -962,9 +1021,9 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
           {/* Deploy Button */}
           <Button 
             onClick={handleCreateToken}
-            disabled={isDeploying || !isWalletConnected() || validationErrors.length > 0}
+            disabled={isDeploying || !isWalletConnected() || validationErrors.length > 0 || hasNetworkMismatch}
             className={`w-full h-16 text-xl font-bold rounded-xl transition-all duration-500 ${
-              isWalletConnected() && validationErrors.length === 0
+              isWalletConnected() && validationErrors.length === 0 && !hasNetworkMismatch
                 ? 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white shadow-xl hover:shadow-2xl hover:scale-105'
                 : 'bg-gradient-to-r from-gray-500 to-gray-600 text-white'
             }`}
@@ -977,12 +1036,17 @@ export default function TokenForm({ tokenData, setTokenData }: TokenFormProps) {
             ) : !isWalletConnected() ? (
               <div className="flex items-center justify-center">
                 <Wallet className="w-5 h-5 mr-3" />
-                Connect {tokenData.network === 'algorand' ? 'Algorand' : 'Solana'} Wallet First
+                Connect {getWalletTypeForNetwork()} Wallet First
               </div>
             ) : validationErrors.length > 0 ? (
               <div className="flex items-center justify-center">
                 <AlertTriangle className="w-5 h-5 mr-3" />
                 Fix Form Errors First
+              </div>
+            ) : hasNetworkMismatch ? (
+              <div className="flex items-center justify-center">
+                <AlertTriangle className="w-5 h-5 mr-3" />
+                Switch to {networkInfo.name} First
               </div>
             ) : (
               <div className="flex items-center justify-center">
