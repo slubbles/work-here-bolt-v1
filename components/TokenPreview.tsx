@@ -247,8 +247,8 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
                   </Link>
                 </div>
               </>
-              </>
-          )}
+            )}
+          </div>
         </div>
 
         <div className="text-base text-muted-foreground uppercase tracking-wide text-center font-bold">
