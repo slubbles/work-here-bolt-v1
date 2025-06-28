@@ -26,7 +26,7 @@ export default function Footer() {
       links: [
         { name: 'About Us', href: 'https://about.snarbles.xyz', icon: Users },
         { name: 'Blog', href: 'https://blog.snarbles.xyz', icon: FileText },
-        { name: 'Contact', href: 'https://contact.snarbles.xyz', icon: MessageCircle },
+        { name: 'Contact Us', href: '/support', icon: MessageCircle },
         { name: 'GitHub', href: 'https://github.com/snarbles', icon: Code },
       ],
     },
