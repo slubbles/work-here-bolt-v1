@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
-import { Check, AlertCircle, Loader2, ExternalLink, Clipboard, CheckCircle, Calculator } from 'lucide-react';
+import { Check, AlertCircle, Loader2, ExternalLink, Clipboard, CheckCircle, Calculator, Copy } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
@@ -548,23 +548,9 @@ ${tokenomicsInfo.vestingSchedule?.enabled ? `- Vesting: Enabled (Team: ${tokenom
         {isDeploying && (
           <div className="space-y-6">
             <div className="text-center">
-              <h3 className="text-lg font-semibold mb-2">Deploying Your Token</h3>
-              <Progress value={deploymentProgress} className="w-full" />
-              <p className="text-sm text-gray-600 mt-2">{deploymentProgress}% Complete</p>
-            </div>
-
-            {/* Progress Bar */}
-            <div className="mt-6 space-y-2">
-              <div className="bg-muted h-2 rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-gradient-to-r from-red-500 to-red-600 transition-all duration-500 ease-out"
-                  style={{ width: `${deploymentProgress}%` }}
-                ></div>
-              </div>
-              <div className="flex justify-between text-xs text-muted-foreground">
-                <span>Creating {formData.name}...</span>
-                <span>{deploymentProgress}%</span>
-              </div>
+              <h3 className="text-lg font-semibold mb-3 text-foreground">Deploying Your Token</h3>
+              <Progress value={deploymentProgress} className="w-full h-3 bg-muted/50" />
+              <p className="text-sm text-muted-foreground mt-2">{deploymentProgress}% Complete</p>
             </div>
 
             <div className="space-y-3">
@@ -603,49 +589,116 @@ ${tokenomicsInfo.vestingSchedule?.enabled ? `- Vesting: Enabled (Team: ${tokenom
         {deploymentComplete && (
           <div className="text-center space-y-4">
             <div className="flex justify-center">
-              <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center">
-                <Check className="w-8 h-8 text-green-600" />
+              <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center animate-bounce-once shadow-lg shadow-green-200">
+                <Check className="w-10 h-10 text-green-600" />
               </div>
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-green-800">Token Deployed Successfully!</h3>
-              <p className="text-sm text-gray-600">Your token is now live on the blockchain</p>
+              <h3 className="text-xl font-semibold text-green-700 mt-2">Token Deployed Successfully!</h3>
+              <p className="text-muted-foreground mt-1">Your token is now live on the blockchain</p>
             </div>
             
             {/* Result details */}
             {result && (
-              <div className="border rounded-md p-4 mt-4 text-left">
-                <h4 className="font-semibold mb-2">Token Details:</h4>
+              <div className="border border-green-500/30 bg-green-500/5 rounded-md p-4 mt-4 text-left shadow-sm">
+                <h4 className="font-semibold mb-3 flex items-center text-green-700">
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  Token Details:
+                </h4>
                 <div className="space-y-2 text-sm">
                   {result.assetId && (
-                    <div className="flex justify-between">
-                      <span className="font-medium">Asset ID:</span>
-                      <span className="font-mono">{result.assetId}</span>
+                    <div className="flex flex-col sm:flex-row sm:justify-between p-2 bg-green-500/10 rounded-md">
+                      <span className="font-medium text-green-800">Asset ID:</span>
+                      <div className="flex items-center mt-1 sm:mt-0">
+                        <span className="font-mono text-green-700">{result.assetId}</span>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => {
+                            navigator.clipboard.writeText(result.assetId.toString());
+                            toast({
+                              title: "Copied!",
+                              description: "Asset ID copied to clipboard",
+                              duration: 2000
+                            });
+                          }}
+                          className="ml-2 h-6 w-6 p-0"
+                        >
+                          <Copy className="h-3 w-3" />
+                        </Button>
+                      </div>
                     </div>
                   )}
                   {result.mintAddress && (
-                    <div className="flex justify-between">
-                      <span className="font-medium">Mint Address:</span>
-                      <span className="font-mono">{result.mintAddress.substring(0, 10)}...{result.mintAddress.substring(result.mintAddress.length - 4)}</span>
+                    <div className="flex flex-col sm:flex-row sm:justify-between p-2 bg-blue-500/10 rounded-md">
+                      <span className="font-medium text-blue-800">Mint Address:</span>
+                      <div className="flex items-center mt-1 sm:mt-0">
+                        <span className="font-mono text-blue-700">{result.mintAddress.substring(0, 6)}...{result.mintAddress.substring(result.mintAddress.length - 4)}</span>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => {
+                            navigator.clipboard.writeText(result.mintAddress);
+                            toast({
+                              title: "Copied!",
+                              description: "Mint address copied to clipboard",
+                              duration: 2000
+                            });
+                          }}
+                          className="ml-2 h-6 w-6 p-0"
+                        >
+                          <Copy className="h-3 w-3" />
+                        </Button>
+                      </div>
                     </div>
                   )}
                   {result.tokenAddress && (
-                    <div className="flex justify-between">
-                      <span className="font-medium">Token Address:</span>
-                      <span className="font-mono">{result.tokenAddress.substring(0, 10)}...{result.tokenAddress.substring(result.tokenAddress.length - 4)}</span>
+                    <div className="flex flex-col sm:flex-row sm:justify-between p-2 bg-purple-500/10 rounded-md">
+                      <span className="font-medium text-purple-800">Token Address:</span>
+                      <div className="flex items-center mt-1 sm:mt-0">
+                        <span className="font-mono text-purple-700">{result.tokenAddress.substring(0, 6)}...{result.tokenAddress.substring(result.tokenAddress.length - 4)}</span>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => {
+                            navigator.clipboard.writeText(result.tokenAddress);
+                            toast({
+                              title: "Copied!",
+                              description: "Token address copied to clipboard",
+                              duration: 2000
+                            });
+                          }}
+                          className="ml-2 h-6 w-6 p-0"
+                        >
+                          <Copy className="h-3 w-3" />
+                        </Button>
+                      </div>
                     </div>
                   )}
-                  {result.transactionId || result.signature && (
-                    <div className="flex justify-between">
-                      <span className="font-medium">Transaction:</span>
+                  {(result.transactionId || result.signature) && (
+                    <div className="flex flex-col sm:flex-row sm:justify-between p-2 bg-amber-500/10 rounded-md">
+                      <span className="font-medium text-amber-800">Transaction:</span>
                       <a 
                         href={result.details?.explorerUrl || '#'} 
                         target="_blank" 
                         rel="noopener noreferrer" 
-                        className="text-blue-600 hover:underline flex items-center"
+                        className="text-amber-600 hover:underline flex items-center mt-1 sm:mt-0"
                       >
-                        View in Explorer <ExternalLink className="h-3 w-3 ml-1" />
+                        {result.transactionId ? 
+                          `${result.transactionId.slice(0, 6)}...${result.transactionId.slice(-4)}` : 
+                          result.signature ? 
+                            `${result.signature.slice(0, 6)}...${result.signature.slice(-4)}` : 
+                            'Transaction'}
+                        <ExternalLink className="h-3 w-3 ml-1" />
                       </a>
+                    </div>
+                  )}
+                  {result.message && (
+                    <div className="mt-3 p-3 bg-blue-500/10 border border-blue-500/30 rounded-md text-blue-700 text-xs">
+                      <div className="flex items-start">
+                        <AlertCircle className="w-4 h-4 mr-2 flex-shrink-0 mt-0.5" />
+                        <div>{result.message}</div>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -653,33 +706,45 @@ ${tokenomicsInfo.vestingSchedule?.enabled ? `- Vesting: Enabled (Team: ${tokenom
             )}
             
             <div className="flex space-x-4 mt-4">
-              <Button 
+              <Button
                 onClick={() => {
-                  setDeploymentComplete(false);
-                  setDeploymentProgress(0);
-                  if (tracker) tracker.reset();
-                  setResult(null);
-                  setFormData({
-                    name: '',
-                    symbol: '',
-                    description: '',
-                    totalSupply: '',
-                    decimals: '6',
-                    logoUrl: '',
+                  // Show success toast first
+                  toast({
+                    title: "Token Created Successfully!",
+                    description: `Your ${formData.name} token is now live on the blockchain.`,
+                    duration: 5000,
+                    variant: "success"
                   });
+                  
+                  // Clear form after a brief delay so user can see the success message
+                  setTimeout(() => {
+                    setDeploymentComplete(false);
+                    setDeploymentProgress(0);
+                    if (tracker) tracker.reset();
+                    setResult(null);
+                    setFormData({
+                      name: '',
+                      symbol: '',
+                      description: '',
+                      totalSupply: '',
+                      decimals: '6',
+                      logoUrl: '',
+                    });
+                  }, 500);
                 }}
                 variant="outline"
-                className="flex-1"
+                className="flex-1 border-green-500/30 text-green-700 hover:bg-green-500/10"
               >
                 Create Another Token
               </Button>
               
               {result && result.details?.explorerUrl && (
-                <Button 
+                <Button
                   onClick={() => window.open(result.details.explorerUrl, '_blank')}
-                  className="flex-1"
+                  className="flex-1 bg-red-500 hover:bg-red-600 text-white flex items-center justify-center gap-2"
                 >
-                  View Token
+                  <ExternalLink className="w-4 h-4" />
+                  View on Explorer
                 </Button>
               )}
             </div>

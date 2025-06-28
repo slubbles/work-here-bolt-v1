@@ -398,31 +398,56 @@ export async function createAlgorandToken(
       console.log('🔍 Attempting to retrieve asset ID from account assets...');
       
       try {
-        // First try the indexer for more recent data
+        // Use indexerClient to lookup transactions - need to allow some time for indexer to update
+        // Add a small delay before looking up the transaction
+        await new Promise(resolve => setTimeout(resolve, 2000));
+         
+        // Try the indexer to lookup the transaction
         const indexerClient = getAlgorandIndexerClient(network);
-        
-        // Look up the transaction to get asset ID
         try {
-          console.log('🔄 Searching for transaction ID:', txId);
-          const txnInfo = await indexerClient.lookupTransaction(txId).do();
-          if (txnInfo.transaction && txnInfo.transaction['created-asset-index']) {
-            assetId = txnInfo.transaction['created-asset-index'];
+          const txResponse = await retryWithBackoff(async () => {
+            console.log('🔄 Searching for transaction ID in indexer:', txId);
+            try {
+              const txnInfo = await indexerClient.lookupTransaction(txId).do();
+              console.log('Transaction found:', txnInfo);
+              return txnInfo;
+            } catch (err) {
+              console.log('Indexer lookup failed, retrying...');
+              throw err;
+            }
+          }, 3, 1000);
+          
+          if (txResponse && txResponse.transaction && txResponse.transaction['created-asset-index']) {
+            assetId = txResponse.transaction['created-asset-index'];
             console.log('✅ Found asset ID from indexer transaction lookup:', assetId);
+          } else if (txResponse && txResponse.transaction) {
+            console.log('Transaction found but no created-asset-index field:', txResponse.transaction);
           }
         } catch (indexerError) {
-          console.log('Indexer lookup failed, trying account info...');
+          console.log('Indexer lookup failed after retries:', indexerError);
+        }
+        
+        // If we still don't have the asset ID, try looking at account assets
+        if (!assetId) {
+          console.log('Trying account info to find asset ID...');
           
-          // Fallback to account info
-          const accountInfo = await algodClient.accountInformation(creatorAddress).do();
-          const assets = accountInfo.createdAssets || [];
+          try {
+            // Add a small delay before checking account info
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            const accountInfo = await algodClient.accountInformation(creatorAddress).do();
+            const assets = accountInfo.createdAssets || [];
           
-          if (assets.length > 0) {
-            // Get the asset with the highest ID (most recently created)
-            const latestAsset = assets.reduce((prev: any, current: any) => 
-              (current.index > prev.index) ? current : prev
-            );
-            assetId = latestAsset.index;
-            console.log('✅ Found asset ID from account assets:', assetId);
+            if (assets.length > 0) {
+              // Get the asset with the highest ID (most recently created)
+              const latestAsset = assets.reduce((prev: any, current: any) => 
+                (current.index > prev.index) ? current : prev, assets[0]
+              );
+              assetId = latestAsset.index;
+              console.log('✅ Found asset ID from account assets:', assetId);
+            }
+          } catch (accountError) {
+            console.warn('Could not retrieve account info for asset ID lookup:', accountError);
           }
         }
       } catch (accountError) {
@@ -464,7 +489,7 @@ export async function createAlgorandToken(
         success: true,
         transactionId: txId,
         assetId: null, // We'll handle this null case in the UI
-        message: 'Transaction successful, but asset ID couldn\'t be automatically determined. Check explorer for details.',
+        message: 'Your token was successfully created! To find your Asset ID, check the Algorand Explorer using the link below.',
         details: {
           network: network,
           explorerUrl: `${networkConfig.explorer}/tx/${txId}`,

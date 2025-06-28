@@ -304,7 +304,8 @@ export function createTokenCreationSteps(network: 'solana' | 'algorand'): Transa
 export async function retryWithBackoff<T>(
   operation: () => Promise<T>,
   maxRetries: number = 3,
-  baseDelay: number = 1000
+  baseDelay: number = 1000,
+  options?: { onRetry?: (attempt: number, error: any) => void }
 ): Promise<T> {
   let lastError: any;
   
@@ -313,6 +314,11 @@ export async function retryWithBackoff<T>(
       return await operation();
     } catch (error) {
       lastError = error;
+      
+      // Call onRetry callback if provided
+      if (options?.onRetry) {
+        options.onRetry(attempt + 1, error);
+      }
       
       if (attempt === maxRetries - 1) {
         throw error;
