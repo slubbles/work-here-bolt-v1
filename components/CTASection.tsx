@@ -47,10 +47,7 @@ export default function CTASection() {
                   <div key={i} className="w-8 h-8 rounded-full bg-gradient-to-br from-red-500 to-red-600 border-2 border-black flex items-center justify-center text-[#fefde0] text-xs font-bold">
                     {String.fromCharCode(64 + i)}
                   </div>
-                  <h3 className="text-xl font-bold text-[#fefde0] mb-2">MetaCollective</h3>
-                  <p className="text-gray-300 text-sm mb-6">
-                    "Deployed our governance token in 32 seconds. Now powering decisions for 5,000+ members with $2.8M in treasury assets!"
-                </div>
+                ))}
               </div>
             </div>
           </div>
@@ -90,7 +87,6 @@ export default function CTASection() {
             </div>
           </div>
         </div>
-
       </div>
     </section>
   );
