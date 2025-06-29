@@ -22,10 +22,10 @@ export interface TransactionStep {
 // Solana-specific error patterns
 const SOLANA_ERROR_PATTERNS = {
   INSUFFICIENT_FUNDS: {
-    patterns: ['insufficient funds', 'insufficient lamports', 'account does not have enough sol'],
+    patterns: ['insufficient funds', 'insufficient lamports', '0x1', 'account does not have enough sol'],
     code: 'INSUFFICIENT_FUNDS',
     userMessage: 'Insufficient SOL balance to complete this transaction',
-    action: 'Add SOL to your wallet and try again',
+    action: 'Add SOL to your wallet from the Solana devnet faucet and try again',
     severity: 'high' as const
   },
   WALLET_DISCONNECTED: {
@@ -39,7 +39,7 @@ const SOLANA_ERROR_PATTERNS = {
     patterns: ['user rejected', 'cancelled', 'denied by user', 'transaction rejected'],
     code: 'TRANSACTION_REJECTED',
     userMessage: 'Transaction was cancelled',
-    action: 'Approve the transaction in your wallet to continue',
+    action: 'Please approve the transaction in your wallet to continue',
     severity: 'medium' as const
   },
   NETWORK_ERROR: {
@@ -69,6 +69,13 @@ const SOLANA_ERROR_PATTERNS = {
     userMessage: 'Transaction expired',
     action: 'Please try the transaction again',
     severity: 'medium' as const
+  },
+  PLATFORM_NOT_INITIALIZED: {
+    patterns: ['not initialized', 'account not initialized', 'platform not initialized', 'state account does not exist'],
+    code: 'PLATFORM_NOT_INITIALIZED',
+    userMessage: 'Platform not initialized',
+    action: 'Please visit the Admin page and initialize the platform first (requires admin wallet)',
+    severity: 'high' as const
   }
 };
 
@@ -240,10 +247,15 @@ export function createTokenCreationSteps(network: 'solana' | 'algorand'): Transa
     return [
       ...commonSteps,
       {
+        id: 'wallet-check',
+        title: 'Checking Wallet Connection',
+        description: 'Verifying wallet is properly connected to Solana devnet'
+      },
+      {
         id: 'platform-check',
         title: 'Platform Check',
-        description: 'Verifying platform initialization'
-      },
+        description: 'Verifying platform initialization status'
+      }
       {
         id: 'wallet-approval',
         title: 'Awaiting Wallet Confirmation',
@@ -257,12 +269,12 @@ export function createTokenCreationSteps(network: 'solana' | 'algorand'): Transa
       {
         id: 'confirmation',
         title: 'Confirming on Blockchain',
-        description: 'Waiting for Solana devnet confirmation'
+        description: 'Waiting for network confirmation'
       },
       {
         id: 'finalization',
         title: 'Finalizing Token',
-        description: 'Completing token creation and verification'
+        description: 'Setting up token accounts and permissions'
       }
     ].map((step, index) => ({
       ...step,
