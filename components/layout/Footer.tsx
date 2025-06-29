@@ -123,7 +123,7 @@ export default function Footer() {
                   alt="Powered by Bolt.new" 
                   className="w-8 h-8"
                 />
-              </Link>
+              </a>
             </div>
           </div>
           
