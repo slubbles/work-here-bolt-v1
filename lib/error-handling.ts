@@ -70,6 +70,14 @@ const SOLANA_ERROR_PATTERNS = {
     action: 'Please try the transaction again',
     severity: 'medium' as const
   }
+  ,
+  PLATFORM_NOT_INITIALIZED: {
+    patterns: ['not initialized', 'account not initialized', 'platform not initialized', 'state account does not exist'],
+    code: 'PLATFORM_NOT_INITIALIZED',
+    userMessage: 'Platform not initialized',
+    action: 'Please visit the Admin page and initialize the platform first (requires admin wallet)',
+    severity: 'high' as const
+  }
 };
 
 // Algorand-specific error patterns

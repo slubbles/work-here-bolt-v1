@@ -356,6 +356,13 @@ ${tokenomicsInfo.vestingSchedule?.enabled ? `- Vesting: Enabled (Team: ${tokenom
           tracker.failStep(currentStep.id, userFriendlyError);
         }
       }
+      // Show error toast for better visibility
+      toast({
+        title: "Error Creating Token",
+        description: userFriendlyError,
+        variant: "destructive",
+        duration: 6000
+      });
 
     } finally {
       setIsDeploying(false);
