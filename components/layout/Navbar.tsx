@@ -17,7 +17,7 @@ export default function Navbar() {
   const [mounted, setMounted] = useState(false);
   const [showWalletOptions, setShowWalletOptions] = useState(false);
   const [copiedAddress, setCopiedAddress] = useState<string | null>(null);
-  
+  const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
   const pathname = usePathname();
   
   // Solana wallet

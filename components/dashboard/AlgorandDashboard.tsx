@@ -59,6 +59,10 @@ import {
   unfreezeAlgorandAsset,
   getAlgorandNetwork
 } from '@/lib/algorand';
+import { TokenHistoryList } from '@/components/TokenHistoryList';
+import { SupabaseAuthModal } from '@/components/SupabaseAuthModal';
+import { isSupabaseAvailable } from '@/lib/supabase-client';
+import { trackPageView } from '@/lib/analytics';
 
 export default function AlgorandDashboard() {
   const { toast } = useToast();
@@ -69,6 +73,9 @@ export default function AlgorandDashboard() {
     selectedNetwork,
     networkConfig
   } = useAlgorandWallet();
+  
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [supabaseConfigured, setSupabaseConfigured] = useState(false);
   
   // State for tokens, transactions, and wallet summary
   const [tokens, setTokens] = useState<AlgorandTokenInfo[]>([]);
@@ -109,6 +116,13 @@ export default function AlgorandDashboard() {
   
   // Load data when wallet connects or network changes
   useEffect(() => {
+    setSupabaseConfigured(isSupabaseAvailable());
+    
+    // Track page view
+    if (isSupabaseAvailable()) {
+      trackPageView('algorand_dashboard');
+    }
+    
     if (connected && walletAddress) {
       setLoading(true);
       loadDashboardData();
@@ -1421,6 +1435,21 @@ export default function AlgorandDashboard() {
           </DialogContent>
         </Dialog>
       </div>
+      
+      {/* Token History Section */}
+      {supabaseConfigured && walletAddress && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <TokenHistoryList walletAddress={walletAddress} limit={5} />
+        </div>
+      )}
+      
+      {/* Supabase Auth Modal */}
+      {showAuthModal && (
+        <SupabaseAuthModal
+          isOpen={showAuthModal}
+          onClose={() => setShowAuthModal(false)}
+        />
+      )}
     </div>
   );
 }
