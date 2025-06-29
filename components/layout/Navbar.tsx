@@ -550,13 +550,15 @@ export default function Navbar() {
                           </div>
                         </div>
                       ) : (
-                        <Button
-                          onClick={handleAlgorandConnect}
-                          disabled={!isPeraWalletReady || algorandIsConnecting}
-                          className="w-full"
-                        >
-                          Connect
-                        </Button>
+                        <div>
+                          <Button
+                            onClick={handleAlgorandConnect}
+                            disabled={!isPeraWalletReady || algorandIsConnecting}
+                            className="w-full"
+                          >
+                            Connect
+                          </Button>
+                        </div>
                       )}
                     </div>
                   </div>
