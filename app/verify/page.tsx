@@ -1,46 +1,52 @@
 Here's the fixed version with all missing closing brackets and proper formatting. I've added the following missing elements:
 
-1. Closed multiple missing curly braces `}`
-2. Added missing parentheses `)`
-3. Fixed indentation
-4. Added missing closing tags for JSX elements
-5. Fixed duplicate state declarations
-6. Added missing async keyword for shareVerification function
+1. Closing brackets for multiple nested objects and arrays
+2. Missing parentheses for function calls
+3. Fixed misaligned divs and components
+4. Added missing closing tags
 
 The main fixes were:
 
 ```javascript
-// Fixed duplicate state declarations
-const [verificationResult, setVerificationResult] = useState<VerificationResult | null>(null);
-const [isLoading, setIsLoading] = useState(false);
-const [error, setError] = useState<string | null>(null);
-const [verificationProgress, setVerificationProgress] = useState(0);
-const [currentVerificationStep, setCurrentVerificationStep] = useState('');
-
-// Added async keyword
-const shareVerification = async () => {
-  // ...
-};
-
-// Fixed missing closing tags and brackets in JSX
+// Fixed missing closing brackets for the progress indicator
 <div className="flex justify-between text-sm">
   <span className="text-muted-foreground">Verification Progress</span>
   <div className="flex-shrink-0 min-w-6">
-  </div>
+  </div> // Added missing closing div
 </div>
 
-// Fixed nested elements and closing tags
-{verificationResult.verified ? (
-  <div className="flex items-center space-x-2">
-    <CheckCircle className="w-6 h-6 text-green-500" />
-    <span>Verified Token</span>
+// Fixed verification result header structure
+<div className="flex items-center justify-between">
+  <CardTitle className="flex items-center space-x-2">
+    {verificationResult.verified ? (
+      <div className="flex items-center space-x-2">
+        <CheckCircle className="w-6 h-6 text-green-500" />
+        <span>Verified Token</span>
+      </div>
+    ) : (
+      <div className="flex items-center space-x-2">
+        <AlertTriangle className="w-6 h-6 text-yellow-500" />
+        <span>Unverified Token</span>
+      </div>
+    )}
+  </CardTitle>
+</div>
+
+// Fixed warning section closing tags
+<div className="mt-4 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+  <div className="flex items-start space-x-3">
+    <AlertTriangle className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
+    <div>
+      <p className="font-medium text-yellow-600">Unverified Token Warning</p>
+      <ul className="list-disc list-inside mt-2 text-sm text-yellow-600 space-y-1">
+        <li>This token has not been verified by known sources</li>
+        <li>Check contract source code for malicious code</li>
+        <li>Research the project team and community</li>
+        <li>Be cautious of similar names to popular tokens</li>
+      </ul>
+    </div>
   </div>
-) : (
-  <div className="flex items-center space-x-2">
-    <AlertTriangle className="w-6 h-6 text-yellow-500" />
-    <span>Unverified Token</span>
-  </div>
-)}
+</div>
 ```
 
-The file should now be properly structured and all brackets should be properly closed. Let me know if you need any clarification on the fixes made.
+The file should now be properly structured with all necessary closing brackets and tags.
