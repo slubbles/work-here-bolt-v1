@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import Footer from '@/components/layout/Footer';
 import { Toaster } from '@/components/ui/toaster';
 import dynamic from 'next/dynamic';
+import { SupabaseAuthProvider } from '@/components/providers/SupabaseAuthProvider';
 
 // Dynamically import components that use browser APIs with better error handling
 const Navbar = dynamic(() => import('@/components/layout/Navbar').catch(err => {
@@ -91,14 +92,16 @@ export default function RootLayout({
       </head>
       <body className="font-inter antialiased">
         <WalletContextProvider>
-          <div className="relative min-h-screen">
-            <Navbar />
-            <main className="pt-16">
-              {children}
-            </main>
-            <Footer />
-          </div>
-          <Toaster />
+          <SupabaseAuthProvider>
+            <div className="relative min-h-screen">
+              <Navbar />
+              <main className="pt-16">
+                {children}
+              </main>
+              <Footer />
+            </div>
+            <Toaster />
+          </SupabaseAuthProvider>
         </WalletContextProvider>
       </body>
     </html>
