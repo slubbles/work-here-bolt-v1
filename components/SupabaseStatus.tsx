@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { getSupabaseStatus, initializeStorageBuckets } from '@/lib/supabase-client';
-import { Database, ShieldCheck, ShieldX, Server, File, Cog, RefreshCw, AlertTriangle, AlertCircle, Check } from 'lucide-react';
+import { Database, ShieldCheck, Shield as ShieldX, Server, File, Cog, RefreshCw, AlertTriangle, AlertCircle, Check } from 'lucide-react';
 
 export function SupabaseStatus({ showDetailedInfo = false }: { showDetailedInfo?: boolean }) {
   const [status, setStatus] = useState<any>(null);
