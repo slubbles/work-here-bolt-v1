@@ -326,7 +326,8 @@ export default function Navbar() {
                                 Disconnect
                               </Button>
                             </div>
-                          ) : (
+                          )}
+                          {(!solanaConnected || !solanaPublicKey) && (
                             <div>
                               <WalletMultiButton className="!w-full !bg-[#AB9FF2] hover:!bg-[#9B8FE2] !rounded-lg !h-10 !text-base !text-white !font-medium !shadow-md" />
                             </div>
