@@ -66,7 +66,7 @@ import {
   getWalletSummary as fetchWalletSummary,
   formatAlgorandTransactionForDisplay
 } from '@/lib/solana-data';
-import { mintTokens, burnTokens, transferTokens, getTokenBalance } from '@/lib/solana';
+import { mintTokens, burnTokens, transferTokens, getTokenBalance, pauseToken, unpauseToken } from '@/lib/solana';
 import { DashboardSkeleton, TokenCardSkeleton } from '@/components/skeletons/DashboardSkeletons';
 import { TokenHistoryList } from '@/components/TokenHistoryList';
 import { SupabaseAuthModal } from '@/components/SupabaseAuthModal';
@@ -84,6 +84,7 @@ interface TokenData {
   value?: string;
   change?: string;
   holders?: number;
+  isPaused?: boolean;
   verified?: boolean;
   createdAt?: Date;
   marketData?: any;
