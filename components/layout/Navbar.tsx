@@ -525,38 +525,40 @@ export default function Navbar() {
                 <div className="grid grid-cols-1 gap-5">
                   {/* Solana Wallet Card */}
                   <div className="rounded-xl overflow-hidden border border-[#AB9FF2]/20 shadow-md">
+                    <div className="bg-[#AB9FF2]/10 p-4">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 rounded-full bg-[#AB9FF2] flex items-center justify-center shadow-md">
+                          <span className="text-white font-bold text-sm">S</span>
+                        </div>
                         <div>
                           <p className="text-foreground font-medium">Solana Wallet</p>
                           <p className="text-muted-foreground text-sm">For Solana Network tokens</p>
-                          </div>
-                        )}
+                        </div>
                       </div>
+                    </div>
+                    <div className="p-4">
                       {algorandConnected ? (
                         <div className="space-y-2">
                           <div className="flex gap-1 bg-muted rounded-lg p-1">
-                    <div className="p-4">
-                      {algorandConnected ? (
-                        <div className="space-y-4">
-                          <div className="text-center space-x-2">
-                            <Button 
-                              variant="default"
-                              size="sm"
-                              className="bg-red-500 text-white w-24"
-                              onClick={() => setAlgorandSelectedNetwork('algorand-testnet')}
-                            >
-                              Testnet
-                            </Button>
                             <Button
                               variant="outline"
-                              size="sm"
-                              className="w-24"
-                              onClick={() => setAlgorandSelectedNetwork('algorand-mainnet')}
+                              onClick={handleAlgorandDisconnect}
+                              className="w-full"
                             >
-                              Mainnet
+                              Disconnect
                             </Button>
                           </div>
-                          
-                          <Button
+                        </div>
+                      ) : (
+                        <Button
+                          onClick={handleAlgorandConnect}
+                          disabled={!isPeraWalletReady || algorandIsConnecting}
+                          className="w-full"
+                        >
+                          Connect
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
