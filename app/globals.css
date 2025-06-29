@@ -816,6 +816,20 @@
     color: rgba(0, 0, 0, 0.9) !important;
     border: 1px solid rgba(0, 0, 0, 0.1) !important;
   }
+
+  /* Technology carousel animation */
+  @keyframes carousel {
+    0% {
+      transform: translateX(0);
+    }
+    100% {
+      transform: translateX(calc(-150px * 6 - 16px * 12));
+    }
+  }
+  
+  .animate-carousel {
+    animation: carousel 30s linear infinite;
+  }
 }
 
 /* Enhanced scrollbar */
