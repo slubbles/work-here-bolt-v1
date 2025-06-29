@@ -682,9 +682,6 @@ export async function burnAlgorandAssets(
     // Convert amount to base units
     const amountInBaseUnits = Math.floor(amount * Math.pow(10, assetData.decimals || 0));
     
-    // Get the user's associated token account
-    const tokenAccount = await getAssociatedTokenAddress(new PublicKey(address), new PublicKey(address));
-    
     // Create asset transfer transaction to burn address (clawback to zero address)
     const burnTxn = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
       sender: address,
