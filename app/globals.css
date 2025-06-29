@@ -820,11 +820,11 @@
   /* Technology carousel animation */
   @keyframes carousel {
     0% { transform: translateX(0); }
-    100% { transform: translateX(calc(-164px * 6)); }
+    100% { transform: translateX(calc(-236px * 6)); }
   }
   
   .animate-carousel {
-    animation: carousel 40s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    animation: carousel 60s linear infinite;
   }
 }
 
