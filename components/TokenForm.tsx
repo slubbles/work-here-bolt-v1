@@ -266,7 +266,6 @@ ${tokenomicsInfo.vestingSchedule?.enabled ? `- Vesting: Enabled (Team: ${tokenom
         }
         
         // Create Solana token
-        // Create Solana token
         createResult = await createTokenOnChain(
           solanaWallet,
           {
@@ -278,7 +277,7 @@ ${tokenomicsInfo.vestingSchedule?.enabled ? `- Vesting: Enabled (Team: ${tokenom
             logoUrl: formData.logoUrl || '',
             website: '',
             github: '',
-            twitter: '', 
+            twitter: '',
             mintable: true,
             burnable: false,
             pausable: false,
@@ -357,6 +356,14 @@ ${tokenomicsInfo.vestingSchedule?.enabled ? `- Vesting: Enabled (Team: ${tokenom
           tracker.failStep(currentStep.id, userFriendlyError);
         }
       }
+      
+      // Show error toast for better visibility
+      toast({
+        title: "Error Creating Token",
+        description: userFriendlyError,
+        variant: "destructive",
+        duration: 6000
+      });
 
     } finally {
       setIsDeploying(false);
@@ -434,7 +441,7 @@ ${tokenomicsInfo.vestingSchedule?.enabled ? `- Vesting: Enabled (Team: ${tokenom
             <div className="space-y-2">
               <Label htmlFor="network">Blockchain Network</Label>
               <select 
-                id="network"
+                id="network" 
                 className="w-full p-2 border rounded-md"
                 value={network}
                 onChange={(e) => setNetwork(e.target.value)}
@@ -710,6 +717,12 @@ ${tokenomicsInfo.vestingSchedule?.enabled ? `- Vesting: Enabled (Team: ${tokenom
                       </div>
                     </div>
                   )}
+                  {/* Solana specific - network explorers */}
+                  {result.details?.network === 'solana-devnet' && (
+                    <div className="p-3 mt-3 text-xs bg-blue-500/10 rounded">
+                      <p className="text-blue-700">Note: You can view your token on Solana Devnet Explorer</p>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -719,7 +732,7 @@ ${tokenomicsInfo.vestingSchedule?.enabled ? `- Vesting: Enabled (Team: ${tokenom
                 onClick={() => {
                   // Show success toast first
                   toast({
-                    title: "Token Created Successfully!",
+                    title: "Token Created Successfully! 🎉",
                     description: `Your ${formData.name} token is now live on the blockchain.`,
                     duration: 5000,
                     variant: "success"
@@ -750,7 +763,7 @@ ${tokenomicsInfo.vestingSchedule?.enabled ? `- Vesting: Enabled (Team: ${tokenom
               {result && result.details?.explorerUrl && (
                 <Button
                   onClick={() => window.open(result.details.explorerUrl, '_blank')}
-                  className="flex-1 bg-red-500 hover:bg-red-600 text-white flex items-center justify-center gap-2"
+                  className="flex-1 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white flex items-center justify-center gap-2"
                 >
                   <ExternalLink className="w-4 h-4" />
                   View on Explorer

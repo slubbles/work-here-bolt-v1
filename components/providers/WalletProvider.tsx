@@ -19,8 +19,8 @@ interface WalletContextProviderProps {
 
 export default function WalletContextProvider({ children }: WalletContextProviderProps) {
   // Use devnet for development, mainnet-beta for production
-  const network = WalletAdapterNetwork.Devnet;
-  const endpoint = useMemo(() => NETWORK_ENDPOINT, []);
+  const solanaNetwork = WalletAdapterNetwork.Devnet;
+  const endpoint = useMemo(() => NETWORK_ENDPOINT, []); // Use the endpoint from solana.ts
 
   const wallets = useMemo(
     () => [
@@ -31,7 +31,8 @@ export default function WalletContextProvider({ children }: WalletContextProvide
   );
 
   return (
-    <ConnectionProvider endpoint={endpoint}>
+    <ConnectionProvider endpoint={endpoint} config={{ commitment: 'confirmed' }}>
+      {/* Use ConnectionProvider with explicit commitment level */}
       <WalletProvider wallets={wallets} autoConnect>
         <WalletModalProvider>
           <AlgorandWalletProvider>

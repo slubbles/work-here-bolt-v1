@@ -257,12 +257,12 @@ export function createTokenCreationSteps(network: 'solana' | 'algorand'): Transa
       {
         id: 'confirmation',
         title: 'Confirming on Blockchain',
-        description: 'Waiting for network confirmation'
+        description: 'Waiting for Solana devnet confirmation'
       },
       {
         id: 'finalization',
         title: 'Finalizing Token',
-        description: 'Setting up token accounts and permissions'
+        description: 'Completing token creation and verification'
       }
     ].map((step, index) => ({
       ...step,
