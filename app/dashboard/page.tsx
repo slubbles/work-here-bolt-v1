@@ -10,6 +10,9 @@ import { Wallet, Network, ArrowRight, AlertCircle, Loader2, HelpCircle } from 'l
 import Link from 'next/link';
 import SolanaDashboard from './SolanaDashboard';
 import { NewUserGuide } from '@/components/NewUserGuide';
+import { TokenHistory } from '@/components/dashboard/TokenHistory'; 
+import { SupabaseStatus } from '@/components/SupabaseStatus';
+import { isSupabaseAvailable } from '@/lib/supabase-client';
 import dynamic from 'next/dynamic';
 
 // Dynamically import AlgorandDashboard to fix hydration issues
@@ -32,6 +35,7 @@ const AlgorandDashboard = dynamic(
 
 export default function DashboardPage() {
   const [mounted, setMounted] = useState(false);
+  const [supabaseConfigured, setSupabaseConfigured] = useState(false);
   
   // Wallet connections
   const { connected: solanaConnected } = useWallet();
@@ -39,6 +43,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     setMounted(true);
+    setSupabaseConfigured(isSupabaseAvailable());
   }, []);
 
   // Don't render until mounted to avoid hydration issues
@@ -115,7 +120,16 @@ export default function DashboardPage() {
   // Determine which dashboard to render based on wallet connection
   // If both are connected, prioritize Solana (this can be changed as needed)
   if (solanaConnected) {
-    return <SolanaDashboard />;
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50">
+        {process.env.NODE_ENV === 'development' && (
+          <div className="max-w-md mx-auto pt-6">
+            <SupabaseStatus showDetailedInfo={true} />
+          </div>
+        )}
+        <SolanaDashboard />
+      </div>
+    );
   } else if (algorandConnected) {
     return (
       <div>
@@ -139,6 +153,11 @@ export default function DashboardPage() {
             </div>
           )}
         </div>
+        {process.env.NODE_ENV === 'development' && (
+          <div className="max-w-md mx-auto pt-6">
+            <SupabaseStatus showDetailedInfo={true} />
+          </div>
+        )}
         <AlgorandDashboard />
       </div>
     );

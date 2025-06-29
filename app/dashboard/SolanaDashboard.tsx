@@ -52,6 +52,15 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { 
+  Tooltip,
+} from '@/components/ui/tooltip';
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { 
   getEnhancedTokenInfo as fetchEnhancedTokenInfo,
   getWalletTransactionHistory as fetchWalletTransactionHistory, 
   getWalletSummary as fetchWalletSummary,
@@ -59,6 +68,9 @@ import {
 } from '@/lib/solana-data';
 import { mintTokens, burnTokens, transferTokens, getTokenBalance } from '@/lib/solana';
 import { DashboardSkeleton, TokenCardSkeleton } from '@/components/skeletons/DashboardSkeletons';
+import { TokenHistoryList } from '@/components/TokenHistoryList';
+import { SupabaseAuthModal } from '@/components/SupabaseAuthModal';
+import { isSupabaseAvailable } from '@/lib/supabase-client';
 import { useToast } from '@/hooks/use-toast';
 
 interface TokenData {
@@ -91,6 +103,8 @@ interface Transaction {
 export default function SolanaDashboard() {
   const { connected, publicKey } = useWallet();
   const { toast } = useToast();
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [supabaseConfigured, setSupabaseConfigured] = useState(false);
   
   const [tokens, setTokens] = useState<TokenData[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -114,6 +128,7 @@ export default function SolanaDashboard() {
   const [actionError, setActionError] = useState('');
   const [actionSuccess, setActionSuccess] = useState('');
   const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
+  const [showTokenHistory, setShowTokenHistory] = useState(true);
 
   const chartData = [
     { name: 'Jan', value: 400 },
@@ -132,6 +147,11 @@ export default function SolanaDashboard() {
       }
     }
   }, [connected, publicKey]);
+  
+  // Check if Supabase is configured
+  useEffect(() => {
+    setSupabaseConfigured(isSupabaseAvailable());
+  }, []);
 
   useEffect(() => {
     // Start dashboard data loading
@@ -554,7 +574,7 @@ export default function SolanaDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50">
+    <div className="min-h-screen">
       <div className="max-w-7xl mx-auto p-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
@@ -578,6 +598,15 @@ export default function SolanaDashboard() {
               <Copy className="w-4 h-4 mr-2" />
               Copy Address
             </Button>
+            {supabaseConfigured && (
+              <Button 
+                variant="outline" 
+                onClick={() => setShowAuthModal(true)}
+                className="ml-2"
+              >
+                Account
+              </Button>
+            )}
           </div>
         </div>
 
@@ -881,6 +910,13 @@ export default function SolanaDashboard() {
             </Card>
           </div>
         </div>
+        
+        {/* Token History Section */}
+        {supabaseConfigured && showTokenHistory && publicKey && (
+          <div className="mt-8">
+            <TokenHistoryList walletAddress={publicKey.toString()} limit={5} />
+          </div>
+        )}
 
         {/* Mint Dialog */}
         <Dialog open={showMintDialog} onOpenChange={setShowMintDialog}>
@@ -1075,6 +1111,14 @@ export default function SolanaDashboard() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        
+        {/* Supabase Auth Modal */}
+        {showAuthModal && (
+          <SupabaseAuthModal
+            isOpen={showAuthModal}
+            onClose={() => setShowAuthModal(false)}
+          />
+        )}
       </div>
     </div>
   );
