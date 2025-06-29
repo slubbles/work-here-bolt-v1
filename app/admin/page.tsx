@@ -310,17 +310,6 @@ export default function AdminPage() {
           </div>
         </div>
 
-      
-      {/* DEV INFO - Platform State and ID */}
-      <div className="mt-4 p-4 text-xs font-mono bg-black/80 text-green-400 rounded overflow-auto">
-        <h5 className="font-bold mb-2">Debug Info (Devnet)</h5>
-        <div>
-          <p>Program ID: {PROGRAM_ID.toString()}</p>
-          <p>Admin Wallet: {ADMIN_WALLET.toString()}</p>
-          <p>Expected State PDA: {getPlatformStatePDA().toString()}</p>
-          <p>Alt State PDA 1: {getPlatformStatePDAAlternative1().toString()}</p>
-        </div>
-      </div>
         {/* Header */}
         <div className="text-center space-y-4">
           <div className="flex items-center justify-center space-x-2 text-red-500">
