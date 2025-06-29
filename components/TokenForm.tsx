@@ -266,6 +266,7 @@ ${tokenomicsInfo.vestingSchedule?.enabled ? `- Vesting: Enabled (Team: ${tokenom
         }
         
         // Create Solana token
+        // Create Solana token
         createResult = await createTokenOnChain(
           solanaWallet,
           {
@@ -277,7 +278,7 @@ ${tokenomicsInfo.vestingSchedule?.enabled ? `- Vesting: Enabled (Team: ${tokenom
             logoUrl: formData.logoUrl || '',
             website: '',
             github: '',
-            twitter: '',
+            twitter: '', 
             mintable: true,
             burnable: false,
             pausable: false,
