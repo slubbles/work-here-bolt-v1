@@ -320,9 +320,9 @@ export async function getWalletTransactionHistory(walletAddress: string, limit: 
     // Get transaction signatures
     const signatures = await connection.getSignaturesForAddress(walletPubkey, { limit });
     
-    // Process transactions with proper rate limiting
+    // Get transaction details for a subset (to avoid rate limits)
     const transactionInfos: TransactionInfo[] = [];
-    const maxTransactionsToProcess = Math.min(signatures.length, 15); // Limit to 15 for production performance
+    const maxTransactionsToProcess = Math.min(signatures.length, 20); // Increased to 20 for better data
     
     for (let i = 0; i < maxTransactionsToProcess; i++) {
       const sig = signatures[i];
@@ -333,8 +333,8 @@ export async function getWalletTransactionHistory(walletAddress: string, limit: 
         });
         
         if (transaction && transaction.meta) {
-          // Create transaction info object with careful error handling
-          let transactionInfo: TransactionInfo = {
+          // Parse transaction to extract relevant info
+          const transactionInfo: TransactionInfo = {
             signature: sig.signature,
             type: determineTransactionType(transaction),
             amount: '0', // Would need to parse from transaction details
@@ -363,17 +363,13 @@ export async function getWalletTransactionHistory(walletAddress: string, limit: 
           
           // Extract SOL transfer amount
           if (transaction.meta.preBalances && transaction.meta.postBalances) {
-            try {
-              const preBalance = transaction.meta.preBalances[0] || 0;
-              const postBalance = transaction.meta.postBalances[0] || 0;
-              const solDiff = Math.abs(postBalance - preBalance) / 1000000000; // Convert to SOL
+            const preBalance = transaction.meta.preBalances[0] || 0;
+            const postBalance = transaction.meta.postBalances[0] || 0;
+            const solDiff = Math.abs(postBalance - preBalance) / 1000000000; // Convert to SOL
             
-              if (solDiff > 0.001) { // Only count significant SOL transfers
-                transactionInfo.amount = solDiff.toFixed(4);
-                transactionInfo.token = 'SOL';
-              }
-            } catch (balanceError) {
-              console.warn('Error extracting balance change:', balanceError);
+            if (solDiff > 0.001) { // Only count significant SOL transfers
+              transactionInfo.amount = solDiff.toFixed(4);
+              transactionInfo.token = 'SOL';
             }
           }
           
