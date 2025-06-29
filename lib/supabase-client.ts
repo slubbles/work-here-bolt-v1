@@ -8,13 +8,16 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const isSupabaseConfigured = 
   supabaseUrl && 
   supabaseAnonKey && 
+  supabaseUrl.trim() !== '' &&
+  supabaseAnonKey.trim() !== '' &&
   !supabaseUrl.includes('placeholder') && 
   !supabaseAnonKey.includes('placeholder');
 
 // Create Supabase client with proper error handling
-export const supabase = isSupabaseConfigured 
-  ? createClient(supabaseUrl!, supabaseAnonKey!)
-  : createClient('https://placeholder.supabase.co', 'placeholder-anon-key');
+export const supabase = createClient(
+  isSupabaseConfigured ? supabaseUrl! : 'https://placeholder.supabase.co',
+  isSupabaseConfigured ? supabaseAnonKey! : 'placeholder-anon-key'
+);
 
 /**
  * Check if Supabase is properly configured

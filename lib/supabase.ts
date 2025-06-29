@@ -19,10 +19,14 @@ const filebaseBucket = process.env.NEXT_PUBLIC_FILEBASE_BUCKET || 'snarbles-toke
 
 // Check for placeholder values
 const isSupabasePlaceholder = 
-  supabaseUrl?.includes('placeholder') || 
   !supabaseUrl || 
+  !supabaseAnonKey ||
+  supabaseUrl.trim() === '' ||
+  supabaseAnonKey.trim() === '' ||
+  supabaseUrl?.includes('placeholder') || 
   supabaseAnonKey?.includes('placeholder') || 
-  !supabaseAnonKey;
+  supabaseUrl === 'undefined' ||
+  supabaseAnonKey === 'undefined';
 
 const isFilebaseConfigured = 
   filebaseAccessKey && 
@@ -42,8 +46,8 @@ if (!isFilebaseConfigured) {
 
 // Create Supabase client with fallback values
 export const supabase = createClient(
-  supabaseUrl || 'https://placeholder.supabase.co', 
-  supabaseAnonKey || 'placeholder-key'
+  (supabaseUrl && !isSupabasePlaceholder) ? supabaseUrl : 'https://placeholder.supabase.co', 
+  (supabaseAnonKey && !isSupabasePlaceholder) ? supabaseAnonKey : 'placeholder-anon-key'
 );
 
 // Create S3 client for Filebase

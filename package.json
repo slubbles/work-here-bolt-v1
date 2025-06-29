@@ -3,15 +3,15 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "rm -rf .next && next dev",
-    "build": "rm -rf .next && next build",
+    "dev": "rm -rf .next && sleep 1 && next dev",
+    "build": "rm -rf .next && sleep 1 && next build",
     "build:production": "npm run lint:fix && npm run build",
     "start": "next start",
     "lint": "next lint",
     "lint:fix": "next lint --fix",
     "analyze": "cross-env ANALYZE=true npm run build",
-    "clean": "rm -rf .next out",
-    "clean:all": "rm -rf .next out node_modules package-lock.json",
+    "clean": "rm -rf .next out && sleep 1",
+    "clean:all": "rm -rf .next out node_modules package-lock.json && sleep 1",
     "fresh": "npm run clean:all && npm install && npm run dev"
   },
   "dependencies": {
