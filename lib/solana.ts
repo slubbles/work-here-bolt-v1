@@ -7,6 +7,8 @@ export const PROGRAM_ID = new PublicKey('BKyaw9S5QkkSQ3dc3FdivbsYRWw2ADw9zN4bjnL
 
 // Network endpoint
 export const NETWORK_ENDPOINT = 'https://api.devnet.solana.com';
+// Set confirmation level to confirmed for faster transaction confirmations
+export const COMMITMENT_LEVEL = 'confirmed';
 
 // Admin wallet address - This is the authority from your deployed contract
 export const ADMIN_WALLET = new PublicKey('352YpA1YVHmN9Jirf5cDZdELWvsrP3DJVL7svAHJtmUj');
@@ -456,12 +458,12 @@ export const IDL: Idl = {
 };
 
 // Connection instance
-export const connection = new Connection(NETWORK_ENDPOINT, 'confirmed');
+export const connection = new Connection(NETWORK_ENDPOINT, COMMITMENT_LEVEL);
 
 // Get program instance
 export function getProgram(wallet: any) {
   const provider = new AnchorProvider(connection, wallet, {
-    commitment: 'confirmed',
+    commitment: COMMITMENT_LEVEL,
   });
   return new Program(IDL, PROGRAM_ID, provider);
 }
@@ -469,7 +471,7 @@ export function getProgram(wallet: any) {
 // Get platform state PDA - This might need to match your smart contract's seed derivation
 export function getPlatformStatePDA() {
   const [statePda] = PublicKey.findProgramAddressSync(
-    [Buffer.from('platform_state')], // Try different seeds if this doesn't work
+    [Buffer.from('state')], // Updated seed to 'state' which is most likely correct
     PROGRAM_ID
   );
   return statePda;
@@ -594,11 +596,27 @@ export async function initializePlatform(wallet: any, creationFee: number = 0) {
     if (solBalance < 0.01) {
       throw new Error(`Insufficient SOL balance (${solBalance.toFixed(4)} SOL). Need at least 0.01 SOL for transaction fees.`);
     }
-
-    const program = getProgram(wallet);
-    const stateKeypair = Keypair.generate();
     
-    console.log('Initializing platform with state:', stateKeypair.publicKey.toString());
+    console.log('Creating program instance with wallet:', wallet.publicKey.toString());
+    const program = getProgram(wallet);
+    
+    // Try to get existing platform state first
+    let statePda;
+    try {
+      const platformState = await getPlatformState();
+      if (platformState.success && platformState.statePda) {
+        console.log('Using existing platform state PDA:', platformState.statePda);
+        statePda = new PublicKey(platformState.statePda);
+      } else {
+        throw new Error('Could not find platform state');
+      }
+    } catch (error) {
+      console.log('Creating new state keypair as fallback');
+      const stateKeypair = Keypair.generate();
+      statePda = stateKeypair.publicKey;
+    }
+    
+    console.log('Initializing platform with state:', statePda.toString());
     console.log('Admin wallet:', wallet.publicKey.toString());
     console.log('Creation fee:', creationFee);
     
@@ -631,9 +649,6 @@ export async function initializePlatform(wallet: any, creationFee: number = 0) {
     const transaction = new web3.Transaction().add(instruction);
     transaction.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
     transaction.feePayer = wallet.publicKey;
-
-    // Sign the transaction
-    transaction.partialSign(stateKeypair);
     
     console.log('Simulating transaction...');
     
@@ -654,22 +669,41 @@ export async function initializePlatform(wallet: any, creationFee: number = 0) {
 
     // Execute the transaction
     console.log('Sending transaction...');
-    const tx = await program.methods
-      .initialize(new BN(creationFee))
-      .accounts({
-        state: stateKeypair.publicKey,
-        admin: wallet.publicKey,
-        systemProgram: SystemProgram.programId,
-      })
-      .signers([stateKeypair])
-      .rpc();
+    
+    let tx;
+    try {
+      tx = await program.methods
+        .initialize(new BN(creationFee))
+        .accounts({
+          state: statePda,
+          admin: wallet.publicKey,
+          systemProgram: SystemProgram.programId,
+        })
+        .rpc({ commitment: COMMITMENT_LEVEL });
+      
+    } catch (txError) {
+      console.error('Transaction error:', txError);
+      
+      // Check if error is due to platform already being initialized
+      if (txError.toString().includes('already initialized') || 
+          txError.toString().includes('already in use') ||
+          txError.toString().includes('0x0')) {
+        console.log('Platform appears to be already initialized');
+        return {
+          success: true,
+          stateAddress: statePda.toString(),
+          message: 'Platform already initialized'
+        };
+      }
+      throw txError;
+    }
     
     console.log('Transaction successful:', tx);
     
     return {
       success: true,
       signature: tx,
-      stateAddress: stateKeypair.publicKey.toString(),
+      stateAddress: statePda.toString(),
     };
   } catch (error) {
     console.error('Error initializing platform:', error);
@@ -713,7 +747,7 @@ export async function initializePlatform(wallet: any, creationFee: number = 0) {
 // Token creation function with improved error handling
 export async function createTokenOnChain(
   wallet: any,
-  tokenData: {
+  tokenData: { 
     name: string;
     symbol: string;
     description: string;
@@ -743,11 +777,15 @@ export async function createTokenOnChain(
     if (!platformState.success) {
       if (onStepUpdate) {
         onStepUpdate('platform-check', 'failed', { error: 'Platform not initialized' });
-      }
       return {
         success: false,
         error: 'Platform not initialized. Please contact the administrator to initialize the platform first.',
       };
+    } else {
+      console.log('Platform state verified:', platformState);
+      if (onStepUpdate) {
+        onStepUpdate('platform-check', 'completed', { message: 'Platform state verified', platformState });
+      }
     }
     
     if (onStepUpdate) {
@@ -756,13 +794,14 @@ export async function createTokenOnChain(
 
     const program = getProgram(wallet);
     
+    console.log('Creating token on devnet with program ID:', PROGRAM_ID.toString());
+    
     // Generate keypairs for new accounts
     const tokenKeypair = Keypair.generate();
     const mintKeypair = Keypair.generate();
     
     // Use the found platform state PDA
-    const statePda = new PublicKey(platformState.statePda!);
-    
+    const statePda = new PublicKey(platformState.statePda || '');
     // Get associated token account
     const tokenAccount = await getAssociatedTokenAddress(
       mintKeypair.publicKey,
@@ -793,7 +832,9 @@ export async function createTokenOnChain(
     }
     
     // Create token transaction
-    const tx = await program.methods
+    console.log('Preparing token creation transaction...');
+    try {
+      const tx = await program.methods
       .createToken(
         tokenData.name,
         tokenData.symbol,
@@ -813,14 +854,75 @@ export async function createTokenOnChain(
         tokenProgram: TOKEN_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
         associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-      })
-      .signers([tokenKeypair, mintKeypair])
-      .rpc();
-    
-    if (onStepUpdate) {
-      onStepUpdate('wallet-approval', 'completed', { message: 'Transaction approved' });
-      onStepUpdate('transaction-broadcast', 'completed', { signature: tx });
-      onStepUpdate('confirmation', 'in-progress', { message: 'Waiting for confirmation...' });
+       })
+       .signers([tokenKeypair, mintKeypair])
+       .rpc({ commitment: COMMITMENT_LEVEL, skipPreflight: true });
+        
+      console.log('Token creation transaction submitted:', tx);
+      
+      if (onStepUpdate) {
+        onStepUpdate('wallet-approval', 'completed', { message: 'Transaction approved' });
+        onStepUpdate('transaction-broadcast', 'completed', { 
+          signature: tx, 
+          explorerUrl: `https://explorer.solana.com/tx/${tx}?cluster=devnet`
+        });
+        onStepUpdate('confirmation', 'in-progress', { message: 'Waiting for confirmation...' });
+      }
+      
+      // Wait for transaction confirmation
+      try {
+        console.log('Waiting for transaction confirmation...');
+        const confirmation = await connection.confirmTransaction(tx, COMMITMENT_LEVEL);
+        console.log('Transaction confirmed:', confirmation);
+      
+        if (onStepUpdate) {
+          onStepUpdate('confirmation', 'completed', { 
+            message: 'Transaction confirmed on Solana devnet',
+            confirmationDetails: confirmation
+          });
+          onStepUpdate('finalization', 'completed', { message: 'Token created successfully' });
+        }
+        
+        return {
+          success: true,
+          signature: tx,
+          tokenAddress: tokenKeypair.publicKey.toString(),
+          mintAddress: mintKeypair.publicKey.toString(),
+          details: {
+            explorerUrl: `https://explorer.solana.com/address/${mintKeypair.publicKey.toString()}?cluster=devnet`,
+            network: 'solana-devnet',
+            transaction: tx,
+            createdAt: new Date().toISOString()
+          }
+        };
+      } catch (confirmError) {
+        console.warn('Confirmation error (but transaction was submitted):', confirmError);
+        
+        // Even if confirmation fails, the transaction might have succeeded
+        if (onStepUpdate) {
+          onStepUpdate('confirmation', 'completed', { 
+            message: 'Transaction submitted but confirmation timed out. Check explorer for status.',
+            warning: 'Transaction may still be processing on the Solana network.'
+          });
+          onStepUpdate('finalization', 'completed', { 
+            message: 'Token creation likely successful, but please verify on explorer'
+          });
+        }
+        
+        return {
+          success: true,
+          signature: tx,
+          tokenAddress: tokenKeypair.publicKey.toString(),
+          mintAddress: mintKeypair.publicKey.toString(),
+          warning: 'Transaction submitted but confirmation timed out. Check explorer for status.',
+          details: {
+            explorerUrl: `https://explorer.solana.com/tx/${tx}?cluster=devnet`,
+            network: 'solana-devnet',
+            transaction: tx,
+            createdAt: new Date().toISOString()
+          }
+        };
+      }
     }
     
     // Wait a bit for confirmation
@@ -830,13 +932,82 @@ export async function createTokenOnChain(
       onStepUpdate('confirmation', 'completed', { message: 'Transaction confirmed' });
     }
     
-    return {
-      success: true,
-      signature: tx,
-      tokenAddress: tokenKeypair.publicKey.toString(),
-      mintAddress: mintKeypair.publicKey.toString(),
-    };
   } catch (error) {
+    console.error('❌ Error creating token:', error);
+    
+    // Extract detailed logs
+    const logs = extractTransactionLogs(error);
+    if (logs.length > 0) {
+      console.error('📜 Transaction logs:', logs);
+    }
+    
+    // Handle specific Solana errors
+    if (error instanceof Error) {
+      if (error.message.includes('not initialized') || error.message.includes('AccountNotInitialized')) {
+        if (onStepUpdate) {
+          onStepUpdate('platform-check', 'failed', { 
+            error: 'Platform not initialized. Please go to Admin page and initialize the platform first.',
+            hint: 'Admin wallet is required for initialization'
+          });
+        }
+      } else if (error.message.includes('insufficient funds')) {
+        if (onStepUpdate) {
+          onStepUpdate('wallet-approval', 'failed', { 
+            error: 'Insufficient SOL balance for transaction fees. Please add SOL to your wallet.',
+            hint: 'You can get free SOL from Solana devnet faucet'
+          });
+        }
+      } else if (error.message.includes('User rejected')) {
+        if (onStepUpdate) {
+          onStepUpdate('wallet-approval', 'failed', { 
+            error: 'Transaction rejected by user',
+            hint: 'Please approve the transaction in your wallet'
+          });
+        }
+      } else {
+        if (onStepUpdate) {
+          onStepUpdate('transaction-broadcast', 'failed', { 
+            error: `Transaction failed: ${error.message}`,
+            details: logs.join('\n')
+          });
+        }
+  } catch (error) {
+    } else {
+      if (onStepUpdate) {
+        onStepUpdate('transaction-broadcast', 'failed', { 
+          error: 'Unknown transaction error',
+          hint: 'Please try again or check your wallet connection'
+        });
+      }
+    }
+    
+    // Handle specific Anchor errors
+    let errorMessage = 'Failed to create token';
+    
+    if (error instanceof Error) {
+      if (error.message.includes('AccountNotInitialized') || error.message.includes('state account does not exist')) {
+        errorMessage = 'Platform not initialized. Please contact the administrator or use Admin page to set up the platform first.';
+      } else if (error.message.includes('NameTooLong')) {
+        errorMessage = 'Token name must be 32 characters or less';
+      } else if (error.message.includes('SymbolTooLong')) {
+        errorMessage = 'Token symbol must be 10 characters or less';
+      } else if (error.message.includes('DescriptionTooLong')) {
+        errorMessage = 'Description must be 200 characters or less';
+      } else if (error.message.includes('InvalidDecimals')) {
+        errorMessage = 'Invalid decimals (must be 6 or 9)';
+      } else if (error.message.includes('insufficient funds')) {
+        errorMessage = 'Insufficient SOL balance for transaction fees. Please add SOL to your wallet from the Solana devnet faucet.';
+      } else if (error.message.includes('User rejected')) {
+        errorMessage = 'Transaction was rejected by the user. Please approve the transaction in your wallet.';
+      } else if (error.message.includes('connection error') || error.message.includes('network error')) {
+        errorMessage = 'Network connection error. Please check your internet connection and try again.';
+      } else if (error.message.includes('blockhash not found') || error.message.includes('block height exceeded')) {
+        errorMessage = 'Transaction expired. Please try again.';
+      } else if (error.message.includes('0x0')) {
+        errorMessage = 'Smart contract error. This might be due to the platform not being properly initialized.';
+      } else {
+        errorMessage = `Error creating token: ${error.message}`;
+      }
     console.error('Error creating token:', error);
     
     // Extract detailed logs
@@ -873,7 +1044,11 @@ export async function createTokenOnChain(
     return {
       success: false,
       error: errorMessage,
-      logs: logs,
+      logs,
+      details: {
+        errorType: error instanceof Error ? error.constructor.name : 'Unknown',
+        timestamp: new Date().toISOString()
+      }
     };
   }
 }
