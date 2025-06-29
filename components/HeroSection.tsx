@@ -50,17 +50,17 @@ export default function HeroSection() {
             </div>
             
             {/* Header Image */}
-            <div className="mb-6">
-              <img 
-                src="/header.png" 
-                alt="Turn Your Idea Into a Real Token in 30 Seconds" 
-                className="max-w-full h-auto" 
-              />
+            <div className="mb-6 text-5xl lg:text-6xl font-bold leading-tight tracking-tight">
+              <h1>
+                Turn Your Idea<br />
+                Into a <span className="text-red-500">Real Token</span><br />
+                in 30 Seconds
+              </h1>
             </div>
             
             {/* Subheadline */}
             <p className="text-xl lg:text-2xl text-muted-foreground leading-relaxed max-w-3xl mt-4">
-              <span className="text-foreground font-semibold"> Zero coding, zero complexity</span>—pure innovation unleashed.
+              Join thousands of creators who've already launched successful tokens. <span className="text-foreground font-semibold">No coding, no complexity</span>—just your vision brought to life.
             </p>
 
             {/* Social Proof */}
