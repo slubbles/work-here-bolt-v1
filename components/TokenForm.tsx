@@ -13,6 +13,8 @@ import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { useWallet } from '@solana/wallet-adapter-react';
+import { isSupabaseAvailable } from '@/lib/supabase-client';
+import { trackTokenCreation } from '@/lib/token-tracking';
 import { useAlgorandWallet } from '@/components/providers/AlgorandWalletProvider';
 import { createTokenOnChain } from '@/lib/solana';
 import { createAlgorandToken, supabaseHelpers } from '@/lib/algorand';
@@ -61,6 +63,7 @@ export default function TokenForm({ onTokenCreate, defaultNetwork = 'algorand-te
   
   // Transaction tracker
   const [tracker, setTracker] = useState<TransactionTracker | null>(null);
+  const [supabaseTracking, setSupabaseTracking] = useState(false);
 
   // Router and search params
   const searchParams = useSearchParams();
@@ -69,6 +72,9 @@ export default function TokenForm({ onTokenCreate, defaultNetwork = 'algorand-te
   
   // Initialize transaction tracker
   useEffect(() => {
+    // Check if Supabase is available for tracking
+    setSupabaseTracking(isSupabaseAvailable());
+    
     const newTracker = new TransactionTracker((steps) => {
       setDeploymentSteps(steps);
       
@@ -311,6 +317,50 @@ ${tokenomicsInfo.vestingSchedule?.enabled ? `- Vesting: Enabled (Team: ${tokenom
         
         // Store result for UI display
         setResult(createResult);
+        
+        // Track token creation in Supabase if available
+        if (supabaseTracking && createResult.success) {
+          try {
+            console.log('Tracking token creation in Supabase...');
+            const walletAddress = network.includes('algorand') ? algorandAddress! : solanaPublicKey!.toString();
+            
+            // Extract appropriate data based on blockchain
+            const tokenDetails = {
+              tokenName: formData.name,
+              tokenSymbol: formData.symbol,
+              network: network,
+              contractAddress: isAlgorand 
+                ? createResult.assetId?.toString() || ''
+                : createResult.mintAddress || '',
+              description: formData.description,
+              totalSupply: formData.totalSupply,
+              decimals: parseInt(formData.decimals),
+              logoUrl: formData.logoUrl,
+              website: formData.website || '',
+              github: formData.github || '',
+              twitter: formData.twitter || '',
+              mintable: formData.mintable,
+              burnable: formData.burnable,
+              pausable: formData.pausable,
+              transactionHash: isAlgorand 
+                ? createResult.transactionId
+                : createResult.signature,
+              walletAddress
+            };
+            
+            // Track the token creation asynchronously
+            trackTokenCreation(tokenDetails).then(result => {
+              if (result.success) {
+                console.log('Token creation tracked successfully');
+              } else {
+                console.warn('Token tracking failed:', result.error);
+              }
+            });
+          } catch (trackingError) {
+            // Don't let tracking errors affect the main flow
+            console.error('Error tracking token creation:', trackingError);
+          }
+        }
         
         // Complete any remaining steps
         if (tracker) {
@@ -763,6 +813,13 @@ ${tokenomicsInfo.vestingSchedule?.enabled ? `- Vesting: Enabled (Team: ${tokenom
                 </Button>
               )}
             </div>
+          </div>
+        )}
+        
+        {/* Optional tracking information */}
+        {supabaseTracking && (
+          <div className="text-center text-xs text-muted-foreground mt-3">
+            <p>Token creations are tracked for your convenience.</p>
           </div>
         )}
       </CardContent>
