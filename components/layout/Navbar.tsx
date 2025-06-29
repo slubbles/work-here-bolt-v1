@@ -317,3 +317,213 @@ export default function Navbar() {
                           )}
                           {(!solanaConnected || !solanaPublicKey) && (
                             <div>
+                              <WalletMultiButton className="w-full bg-[#AB9FF2] hover:bg-[#AB9FF2]/80 text-white font-medium py-2 px-4 rounded-lg transition-colors" />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {/* Algorand Wallet Card */}
+                      <div className="rounded-xl overflow-hidden border border-[#22C55E]/20 shadow-md">
+                        <div className="bg-[#22C55E]/10 p-4">
+                          <div className="flex items-center space-x-3">
+                            <div className="w-10 h-10 rounded-full bg-[#22C55E] flex items-center justify-center shadow-md">
+                              <span className="text-white font-bold text-sm">A</span>
+                            </div>
+                            <div>
+                              <p className="text-foreground font-medium">Algorand Wallet</p>
+                              <p className="text-muted-foreground text-sm">For Algorand Network tokens</p>
+                            </div>
+                            
+                            {algorandConnected && (
+                              <div className="ml-auto flex items-center space-x-2">
+                                <span className="flex items-center text-green-500 text-xs font-medium">
+                                  <span className="w-2 h-2 bg-green-500 rounded-full mr-1"></span>
+                                  Connected
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="p-4 space-y-3">
+                          {algorandConnected && algorandAddress && (
+                            <div className="space-y-2">
+                              {/* Network Display */}
+                              <div className="flex items-center justify-between p-2 pl-3 bg-[#22C55E]/5 border border-[#22C55E]/20 rounded-lg">
+                                <p className="text-[#22C55E] text-xs font-medium uppercase tracking-wider">
+                                  {algorandSelectedNetwork}
+                                </p>
+                              </div>
+                              
+                              {/* Wallet Address Display */}
+                              <div className="flex items-center justify-between p-2 pl-3 bg-[#22C55E]/5 border border-[#22C55E]/20 rounded-lg">
+                                <p className="text-[#22C55E] text-sm font-mono">{formatAddress(algorandAddress)}</p>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => copyToClipboard(algorandAddress, 'Algorand')}
+                                  className="h-7 w-7 p-0"
+                                  title="Copy full address"
+                                >
+                                  {copiedAddress === algorandAddress ? (
+                                    <Check className="w-3.5 h-3.5 text-green-500" />
+                                  ) : (
+                                    <Copy className="w-3.5 h-3.5 text-[#22C55E]" />
+                                  )}
+                                </Button>
+                              </div>
+                              
+                              {/* Disconnect Button */}
+                              <Button
+                                onClick={handleAlgorandDisconnect}
+                                variant="outline"
+                                className="w-full border-[#22C55E]/20 text-[#22C55E] hover:bg-[#22C55E]/10"
+                              >
+                                Disconnect Algorand
+                              </Button>
+                            </div>
+                          )}
+                          
+                          {!algorandConnected && (
+                            <div className="space-y-3">
+                              {!isPeraWalletReady ? (
+                                <div className="flex items-center justify-center p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                                  <AlertTriangle className="w-5 h-5 text-yellow-600 mr-2" />
+                                  <p className="text-yellow-800 text-sm">
+                                    Pera Wallet extension not detected. Please install it first.
+                                  </p>
+                                </div>
+                              ) : (
+                                <Button
+                                  onClick={handleAlgorandConnect}
+                                  disabled={algorandIsConnecting}
+                                  className="w-full bg-[#22C55E] hover:bg-[#22C55E]/80 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+                                >
+                                  {algorandIsConnecting ? 'Connecting...' : 'Connect Algorand Wallet'}
+                                </Button>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Close Button */}
+                    <div className="mt-6 pt-4 border-t border-border">
+                      <Button
+                        onClick={() => setShowWalletOptions(false)}
+                        variant="outline"
+                        className="w-full"
+                      >
+                        Close
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <Button variant="ghost" size="sm" className="md:hidden" onClick={() => setIsMenuOpen(!isMenuOpen)}>
+              {isMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </Button>
+          </div>
+        </div>
+        
+        {/* Mobile Navigation */}
+        {isMenuOpen && (
+          <div className="md:hidden">
+            <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 border-t border-border bg-background/95 backdrop-blur-xl">
+              {navLinks.map((link) => (
+                <Link
+                  key={link.name}
+                  href={link.href}
+                  onClick={() => {
+                    handleNavigation(link.href);
+                    setIsMenuOpen(false);
+                  }}
+                  className={`block px-3 py-2 text-base font-medium transition-colors duration-200 rounded-lg ${
+                    pathname === link.href
+                      ? 'text-red-500 bg-red-50 dark:bg-red-950/20'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                  }`}
+                >
+                  {link.name}
+                </Link>
+              ))}
+              
+              {/* Admin Link for Mobile */}
+              {isAdmin && (
+                <Link
+                  href="/admin"
+                  onClick={() => setIsMenuOpen(false)}
+                  className={`block px-3 py-2 text-base font-medium transition-colors duration-200 rounded-lg ${
+                    pathname === '/admin'
+                      ? 'text-red-500 bg-red-50 dark:bg-red-950/20'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                  }`}
+                >
+                  Admin
+                </Link>
+              )}
+              
+              {/* Mobile Theme Toggle */}
+              <div className="px-3 py-2">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={toggleTheme}
+                  className="w-full justify-start text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg"
+                >
+                  {theme === 'dark' ? <Sun className="w-5 h-5 mr-2" /> : <Moon className="w-5 h-5 mr-2" />}
+                  {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+                </Button>
+              </div>
+              
+              {/* Mobile Wallet Section */}
+              <div className="px-3 py-2 border-t border-border mt-2 pt-4">
+                {isAnyWalletConnected ? (
+                  <div className="space-y-3">
+                    {solanaConnected && (
+                      <div className="p-3 bg-[#AB9FF2]/10 border border-[#AB9FF2]/20 rounded-lg">
+                        <div className="flex items-center space-x-2 mb-2">
+                          <div className="w-6 h-6 rounded-full bg-[#AB9FF2] flex items-center justify-center">
+                            <span className="text-white font-bold text-xs">S</span>
+                          </div>
+                          <span className="text-foreground text-sm font-medium">Solana Connected</span>
+                        </div>
+                        <p className="text-[#AB9FF2] text-xs font-mono">{formatAddress(solanaPublicKey!.toString())}</p>
+                      </div>
+                    )}
+                    
+                    {algorandConnected && (
+                      <div className="p-3 bg-[#22C55E]/10 border border-[#22C55E]/20 rounded-lg">
+                        <div className="flex items-center space-x-2 mb-2">
+                          <div className="w-6 h-6 rounded-full bg-[#22C55E] flex items-center justify-center">
+                            <span className="text-white font-bold text-xs">A</span>
+                          </div>
+                          <span className="text-foreground text-sm font-medium">Algorand Connected</span>
+                        </div>
+                        <p className="text-[#22C55E] text-xs font-mono">{formatAddress(algorandAddress!)}</p>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <Button
+                    onClick={() => {
+                      setShowWalletOptions(true);
+                      setIsMenuOpen(false);
+                    }}
+                    className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold rounded-xl py-2 shadow-lg"
+                  >
+                    <Wallet className="w-4 h-4 mr-2" />
+                    Connect Wallet
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </nav>
+  );
+}
