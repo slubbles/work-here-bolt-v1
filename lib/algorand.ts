@@ -721,6 +721,211 @@ export async function burnAlgorandAssets(
   }
 }
 
+// Freeze Algorand assets (pause)
+export async function freezeAlgorandAsset(
+  address: string,
+  assetId: number,
+  accountToFreeze: string,
+  signTransaction: (txn: any) => Promise<Uint8Array>,
+  network: string
+) {
+  try {
+    console.log(`❄️ Freezing asset ${assetId} for account ${accountToFreeze} on ${network}`);
+    
+    const algodClient = getAlgorandClient(network);
+    
+    // Get suggested transaction parameters
+    const suggestedParams = await algodClient.getTransactionParams().do();
+    
+    // Get asset information
+    const assetInfo = await getAlgorandAssetInfo(assetId, network);
+    if (!assetInfo.success || !assetInfo.data) {
+      throw new Error('Asset not found');
+    }
+    
+    const assetData = assetInfo.data;
+    
+    // Check if freezing is allowed (freeze address should be set)
+    if (!assetData.freeze || assetData.freeze !== address) {
+      throw new Error('Only the freeze address can freeze/unfreeze assets');
+    }
+    
+    // Create freeze transaction
+    const freezeTxn = algosdk.makeAssetFreezeTxnWithSuggestedParamsFromObject({
+      from: address,
+      freezeTarget: accountToFreeze,
+      freezeState: true,
+      assetIndex: assetId,
+      suggestedParams
+    });
+    
+    console.log('📝 Signing freeze transaction...');
+    const signedTxn = await signTransaction(freezeTxn);
+    
+    console.log('📡 Sending freeze transaction...');
+    const response = await algodClient.sendRawTransaction(signedTxn).do();
+    const txId = response.txid;
+    
+    console.log('⏳ Waiting for freeze confirmation...');
+    await waitForConfirmationWithRetry(algodClient, txId, 20, network);
+    
+    console.log(`✅ Successfully froze asset ${assetId} for account ${accountToFreeze}`);
+    
+    return {
+      success: true,
+      transactionId: txId
+    };
+    
+  } catch (error) {
+    console.error(`❌ Error freezing Algorand asset on ${network}:`, error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to freeze asset'
+    };
+  }
+}
+
+// Unfreeze Algorand assets (unpause)
+export async function unfreezeAlgorandAsset(
+  address: string,
+  assetId: number,
+  accountToUnfreeze: string,
+  signTransaction: (txn: any) => Promise<Uint8Array>,
+  network: string
+) {
+  try {
+    console.log(`🔥 Unfreezing asset ${assetId} for account ${accountToUnfreeze} on ${network}`);
+    
+    const algodClient = getAlgorandClient(network);
+    
+    // Get suggested transaction parameters
+    const suggestedParams = await algodClient.getTransactionParams().do();
+    
+    // Get asset information
+    const assetInfo = await getAlgorandAssetInfo(assetId, network);
+    if (!assetInfo.success || !assetInfo.data) {
+      throw new Error('Asset not found');
+    }
+    
+    const assetData = assetInfo.data;
+    
+    // Check if unfreezing is allowed (freeze address should be set)
+    if (!assetData.freeze || assetData.freeze !== address) {
+      throw new Error('Only the freeze address can freeze/unfreeze assets');
+    }
+    
+    // Create unfreeze transaction
+    const unfreezeTxn = algosdk.makeAssetFreezeTxnWithSuggestedParamsFromObject({
+      from: address,
+      freezeTarget: accountToUnfreeze,
+      freezeState: false,
+      assetIndex: assetId,
+      suggestedParams
+    });
+    
+    console.log('📝 Signing unfreeze transaction...');
+    const signedTxn = await signTransaction(unfreezeTxn);
+    
+    console.log('📡 Sending unfreeze transaction...');
+    const response = await algodClient.sendRawTransaction(signedTxn).do();
+    const txId = response.txid;
+    
+    console.log('⏳ Waiting for unfreeze confirmation...');
+    await waitForConfirmationWithRetry(algodClient, txId, 20, network);
+    
+    console.log(`✅ Successfully unfroze asset ${assetId} for account ${accountToUnfreeze}`);
+    
+    return {
+      success: true,
+      transactionId: txId
+    };
+    
+  } catch (error) {
+    console.error(`❌ Error unfreezing Algorand asset on ${network}:`, error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to unfreeze asset'
+    };
+  }
+}
+
+// Transfer Algorand assets
+export async function transferAlgorandAssets(
+  sender: string,
+  assetId: number,
+  receiverAddress: string,
+  amount: number,
+  signTransaction: (txn: any) => Promise<Uint8Array>,
+  network: string
+) {
+  try {
+    console.log(`💸 Transferring ${amount} units of asset ${assetId} to ${receiverAddress} on ${network}`);
+    
+    const algodClient = getAlgorandClient(network);
+    
+    // Get suggested transaction parameters
+    const suggestedParams = await algodClient.getTransactionParams().do();
+    
+    // Get asset information
+    const assetInfo = await getAlgorandAssetInfo(assetId, network);
+    if (!assetInfo.success || !assetInfo.data) {
+      throw new Error('Asset not found');
+    }
+    
+    const assetData = assetInfo.data;
+    
+    // Check if the receiver has opted-in to the asset
+    try {
+      const receiverInfo = await algodClient.accountInformation(receiverAddress).do();
+      const receiverAssets = receiverInfo.assets || [];
+      
+      const hasOptedIn = receiverAssets.some(asset => asset['asset-id'] === assetId);
+      
+      if (!hasOptedIn) {
+        throw new Error(`Receiver ${receiverAddress} has not opted-in to asset ${assetId}. They must opt-in before receiving this asset.`);
+      }
+    } catch (optInError) {
+      console.error('Error checking opt-in status:', optInError);
+      throw new Error(`Could not verify if receiver has opted in to the asset. Please ensure the receiver has opted in to asset ${assetId}.`);
+    }
+    
+    // Convert amount to base units
+    const amountInBaseUnits = Math.floor(amount * Math.pow(10, assetData.decimals || 0));
+    
+    // Create asset transfer transaction
+    const transferTxn = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
+      from: sender,
+      to: receiverAddress,
+      assetIndex: assetId,
+      amount: amountInBaseUnits,
+      suggestedParams
+    });
+    
+    console.log('📝 Signing transfer transaction...');
+    const signedTxn = await signTransaction(transferTxn);
+    
+    console.log('📡 Sending transfer transaction...');
+    const response = await algodClient.sendRawTransaction(signedTxn).do();
+    const txId = response.txid;
+    
+    console.log('⏳ Waiting for transfer confirmation...');
+    await waitForConfirmationWithRetry(algodClient, txId, 20, network);
+    
+    console.log(`✅ Successfully transferred ${amount} units of asset ${assetId} to ${receiverAddress}`);
+    
+    return {
+      success: true,
+      transactionId: txId
+    };
+    
+  } catch (error) {
+    console.error(`❌ Error transferring Algorand assets on ${network}:`, error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to transfer assets'
+    };
+  }
+}
 // Update Algorand asset metadata
 export async function updateAlgorandAssetMetadata(
   address: string,

@@ -19,6 +19,11 @@ export interface AlgorandTokenInfo {
   verified: boolean;
   creator?: string;
   manager?: string;
+  freeze?: string;
+  clawback?: string;
+  reserve?: string;
+  defaultFrozen?: boolean;
+  isFrozen?: boolean;
   explorerUrl: string;
 }
 
@@ -78,6 +83,11 @@ export async function getAlgorandEnhancedTokenInfo(walletAddress: string, networ
               website: assetData.metadata?.external_url,
               creator: assetData.creator,
               manager: assetData.manager,
+              freeze: assetData.freeze,
+              clawback: assetData.clawback,
+              reserve: assetData.reserve,
+              defaultFrozen: assetData.defaultFrozen || false,
+              isFrozen: false, // This would need an account-specific check
               verified: true, // All found assets are considered verified
               explorerUrl: `${networkConfig.explorer}/asset/${asset['asset-id']}`,
               // Mock some additional data for demo purposes
