@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,7 +12,7 @@ import { BarChart, Bar, XAxis, YAxis, Cell, Tooltip, ResponsiveContainer, PieCha
 import { 
   Calculator, 
   Download, 
-  PieChart as PieChartIcon, 
+  PieChart as PieChartIcon,
   Clock, 
   Lock, 
   ChevronRight, 
@@ -28,6 +28,7 @@ import {
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { jsPDF } from 'jspdf';
 
 // Define distribution categories with default values
 const defaultDistribution = {
@@ -47,6 +48,67 @@ const defaultVesting = {
   advisors: { period: 18, initialRelease: 15 }
 };
 
+// Define template data
+const templates = {
+  defi: {
+    name: 'DeFi Protocol',
+    totalSupply: 100000000,
+    distribution: {
+      team: { label: 'Team', value: 15, color: '#FF6B6B' },
+      investors: { label: 'Investors', value: 15, color: '#4ECDC4' },
+      community: { label: 'Community', value: 40, color: '#FFD166' },
+      liquidity: { label: 'Liquidity', value: 20, color: '#6A0572' },
+      marketing: { label: 'Marketing', value: 10, color: '#1A535C' },
+      reserve: { label: 'Treasury', value: 0, color: '#3A86FF' }
+    },
+    vestingSchedule: {
+      enabled: true,
+      team: { period: 24, initialRelease: 10 },
+      investors: { period: 12, initialRelease: 20 },
+      advisors: { period: 18, initialRelease: 15 }
+    },
+    supplyType: 'fixed'
+  },
+  dao: {
+    name: 'DAO Governance',
+    totalSupply: 50000000,
+    distribution: {
+      team: { label: 'Team', value: 10, color: '#FF6B6B' },
+      investors: { label: 'Investors', value: 15, color: '#4ECDC4' },
+      community: { label: 'Community', value: 60, color: '#FFD166' },
+      liquidity: { label: 'Liquidity', value: 5, color: '#6A0572' },
+      marketing: { label: 'Marketing', value: 5, color: '#1A535C' },
+      reserve: { label: 'Treasury', value: 5, color: '#3A86FF' }
+    },
+    vestingSchedule: {
+      enabled: true,
+      team: { period: 36, initialRelease: 0 },
+      investors: { period: 24, initialRelease: 10 },
+      advisors: { period: 12, initialRelease: 20 }
+    },
+    supplyType: 'inflationary'
+  },
+  gamefi: {
+    name: 'GameFi Project',
+    totalSupply: 200000000,
+    distribution: {
+      team: { label: 'Team', value: 18, color: '#FF6B6B' },
+      investors: { label: 'Investors', value: 22, color: '#4ECDC4' },
+      community: { label: 'Players & Rewards', value: 35, color: '#FFD166' },
+      liquidity: { label: 'Liquidity', value: 0, color: '#6A0572' },
+      marketing: { label: 'Marketing', value: 25, color: '#1A535C' },
+      reserve: { label: 'Reserve', value: 0, color: '#3A86FF' }
+    },
+    vestingSchedule: {
+      enabled: true,
+      team: { period: 30, initialRelease: 5 },
+      investors: { period: 18, initialRelease: 15 },
+      advisors: { period: 12, initialRelease: 20 }
+    },
+    supplyType: 'deflationary'
+  }
+};
+
 export default function TokenomicsPage() {
   // State for token supply and distribution
   const [totalSupply, setTotalSupply] = useState(100000000);
@@ -61,6 +123,15 @@ export default function TokenomicsPage() {
   const { toast } = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
+  
+  // Debounce function
+  const debounce = (func, wait) => {
+    let timeout;
+    return (...args) => {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => func(...args), wait);
+    };
+  };
   
   // Check if we're applying tokenomics from saved config
   useEffect(() => {
@@ -114,8 +185,36 @@ export default function TokenomicsPage() {
   }, [distribution, vestingEnabled]);
   
   // Format large numbers with commas
-  const formatNumber = (num) => {
+  const formatNumber = (num: number) => {
     return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  };
+  
+  // Debounced set total supply
+  const debouncedSetTotalSupply = useCallback(
+    debounce((value) => {
+      setTotalSupply(value);
+    }, 300),
+    []
+  );
+  
+  // Handle total supply change with validation
+  const handleTotalSupplyChange = (e) => {
+    const value = e.target.value;
+    const parsedValue = parseInt(value);
+    
+    if (value === '' || isNaN(parsedValue)) {
+      e.target.value = '';
+      debouncedSetTotalSupply(0);
+      return;
+    }
+    
+    if (parsedValue < 0) {
+      e.target.value = '0';
+      debouncedSetTotalSupply(0);
+      return;
+    }
+    
+    debouncedSetTotalSupply(parsedValue);
   };
   
   // Update distribution and ensure total is 100%
@@ -223,18 +322,100 @@ export default function TokenomicsPage() {
   };
   
   // Export tokenomics as PDF
-  const exportTokenomics = () => {
+  const exportTokenomics = async () => {
     toast({
       title: "Export Started",
       description: "Preparing your tokenomics document..."
     });
     
-    setTimeout(() => {
+    try {
+      const doc = new jsPDF();
+      const distributionData = getDistributionData();
+      
+      // Title
+      doc.setFontSize(22);
+      doc.text("Tokenomics Report", 105, 20, { align: "center" });
+      
+      // Project info
+      doc.setFontSize(16);
+      doc.text("Token Supply & Distribution", 20, 40);
+      
+      // Token details
+      doc.setFontSize(12);
+      doc.text(`Total Supply: ${formatNumber(totalSupply)} tokens`, 20, 55);
+      doc.text(`Supply Type: ${supplyType.charAt(0).toUpperCase() + supplyType.slice(1)}`, 20, 65);
+      doc.text(`Health Score: ${healthScore}/100`, 20, 75);
+      doc.text(`Vesting Enabled: ${vestingEnabled ? 'Yes' : 'No'}`, 20, 85);
+      
+      // Distribution table
+      doc.setFontSize(16);
+      doc.text("Token Distribution", 20, 105);
+      
+      doc.setFontSize(12);
+      doc.text("Category", 20, 115);
+      doc.text("Percentage", 90, 115);
+      doc.text("Token Amount", 150, 115);
+      
+      doc.setLineWidth(0.1);
+      doc.line(20, 118, 190, 118);
+      
+      let yPosition = 128;
+      distributionData.forEach((item) => {
+        doc.text(item.name, 20, yPosition);
+        doc.text(`${item.value}%`, 90, yPosition);
+        doc.text(formatNumber(item.amount), 150, yPosition);
+        yPosition += 10;
+      });
+      
+      // Vesting details if enabled
+      if (vestingEnabled) {
+        doc.setFontSize(16);
+        doc.text("Vesting Schedule", 20, yPosition + 20);
+        
+        doc.setFontSize(12);
+        yPosition += 30;
+        doc.text("Team vesting period: " + vestingSchedule.team.period + " months", 20, yPosition);
+        yPosition += 10;
+        doc.text("Investors vesting period: " + vestingSchedule.investors.period + " months", 20, yPosition);
+      }
+      
+      // Health score analysis
+      doc.setFontSize(16);
+      yPosition += 30;
+      doc.text("Health Score Analysis", 20, yPosition);
+      
+      doc.setFontSize(12);
+      yPosition += 10;
+      if (healthScore >= 80) {
+        doc.text("Excellent: Your tokenomics design is well balanced and follows best practices.", 20, yPosition);
+      } else if (healthScore >= 60) {
+        doc.text("Good: Your tokenomics is solid with some room for improvement.", 20, yPosition);
+      } else if (healthScore >= 40) {
+        doc.text("Average: Consider adjusting your distribution for better balance.", 20, yPosition);
+      } else {
+        doc.text("Needs Improvement: Your current design may lead to centralization concerns.", 20, yPosition);
+      }
+      
+      // Footer with date
+      const date = new Date().toLocaleDateString();
+      doc.setFontSize(10);
+      doc.text(`Generated on ${date} · Snarbles Tokenomics Simulator`, 105, 280, { align: "center" });
+      
+      // Save the PDF
+      doc.save(`tokenomics_${supplyType}_${date.replace(/\//g, '-')}.pdf`);
+      
       toast({
         title: "Export Complete",
         description: "Your tokenomics document has been downloaded"
       });
-    }, 1500);
+    } catch (error) {
+      console.error("PDF generation error:", error);
+      toast({
+        title: "Export Failed",
+        description: "There was an error generating your PDF",
+        variant: "destructive"
+      });
+    }
   };
   
   // Get health score indicator
@@ -264,6 +445,23 @@ export default function TokenomicsPage() {
         color: 'text-red-500 bg-red-500/10 border-red-500/20'
       };
     }
+  };
+  
+  // Apply template
+  const applyTemplate = (templateKey) => {
+    const template = templates[templateKey];
+    if (!template) return;
+    
+    setTotalSupply(template.totalSupply);
+    setDistribution(template.distribution);
+    setVestingSchedule(template.vestingSchedule);
+    setVestingEnabled(template.vestingSchedule.enabled);
+    setSupplyType(template.supplyType);
+    
+    toast({
+      title: `${template.name} Template Applied`,
+      description: "Distribution and vesting schedule have been updated"
+    });
   };
   
   const healthIndicator = getHealthIndicator();
@@ -306,8 +504,9 @@ export default function TokenomicsPage() {
                     <Input
                       id="totalSupply"
                       type="number"
-                      value={totalSupply}
-                      onChange={(e) => setTotalSupply(parseInt(e.target.value) || 0)}
+                      defaultValue={totalSupply}
+                      onChange={handleTotalSupplyChange}
+                      min="0"
                       className="input-enhanced"
                     />
                     <p className="text-sm text-muted-foreground">
@@ -786,7 +985,7 @@ export default function TokenomicsPage() {
                   <span className="font-semibold">20%</span>
                 </div>
                 
-                <Button className="w-full">
+                <Button className="w-full" onClick={() => applyTemplate('defi')}>
                   <ChevronRight className="w-4 h-4 mr-2" />
                   Use Template
                 </Button>
@@ -816,7 +1015,7 @@ export default function TokenomicsPage() {
                   <span className="font-semibold">15%</span>
                 </div>
                 
-                <Button className="w-full">
+                <Button className="w-full" onClick={() => applyTemplate('dao')}>
                   <ChevronRight className="w-4 h-4 mr-2" />
                   Use Template
                 </Button>
@@ -846,7 +1045,7 @@ export default function TokenomicsPage() {
                   <span className="font-semibold">25%</span>
                 </div>
                 
-                <Button className="w-full">
+                <Button className="w-full" onClick={() => applyTemplate('gamefi')}>
                   <ChevronRight className="w-4 h-4 mr-2" />
                   Use Template
                 </Button>

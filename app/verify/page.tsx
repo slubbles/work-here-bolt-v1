@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tooltip } from '@/components/ui/tooltip';
 import { Callout } from '@/components/ui/callout';
 import { GuideBadge } from '@/components/GuideBadge';
+import { useToast } from '@/hooks/use-toast';
 import { 
   Search,
   ExternalLink,
@@ -55,12 +56,12 @@ export default function VerifyPage() {
   const [error, setError] = useState<string | null>(null);
   const [verificationProgress, setVerificationProgress] = useState(0);
   const [currentVerificationStep, setCurrentVerificationStep] = useState('');
-
-  const networks = [
-    { value: 'algorand-mainnet', label: 'Algorand Mainnet', available: true },
-    { value: 'algorand-testnet', label: 'Algorand Testnet', available: true },
-    { value: 'solana-devnet', label: 'Solana Devnet', available: true }
-  ];
+  const { toast } = useToast();
+  const [verificationResult, setVerificationResult] = useState<VerificationResult | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [verificationProgress, setVerificationProgress] = useState(0);
+  const [currentVerificationStep, setCurrentVerificationStep] = useState('');
 
   const handleVerify = async () => {
     if (!searchAddress.trim()) {
@@ -106,7 +107,7 @@ export default function VerifyPage() {
         setVerificationProgress(60);
         setCurrentVerificationStep('Fetching asset information...');
         
-        // Add timeout for verification
+        // Set up timeout for verification
         const timeoutPromise = new Promise((_, reject) => 
           setTimeout(() => reject(new Error('Verification timeout')), 45000)
         );
@@ -202,7 +203,7 @@ export default function VerifyPage() {
         
         const metadata = tokenMetadataResult.data;
         
-        // Try to get token supply info
+        // Try to get token supply info with robust error handling
         setVerificationProgress(80);
         setCurrentVerificationStep('Retrieving supply information...');
         
@@ -222,8 +223,8 @@ export default function VerifyPage() {
         
         setVerificationProgress(90);
         setCurrentVerificationStep('Generating verification results...');
-        
-        // Get enhanced market data and security analysis
+
+        // Get enhanced market data and security analysis with proper Promise handling
         let marketData, securityResult, metricsData;
         try {
           const [marketResult, securityRes, metricsRes] = await Promise.allSettled([
@@ -237,7 +238,7 @@ export default function VerifyPage() {
           }
           
           if (securityRes.status === 'fulfilled' && securityRes.value.success) {
-            securityResult = securityRes.value;
+            securityResult = securityRes.value.factors;
           }
           
           if (metricsRes.status === 'fulfilled' && metricsRes.value.success) {
@@ -253,7 +254,9 @@ export default function VerifyPage() {
           name: metadata.name || 'Unknown Token',
           symbol: metadata.symbol || 'UNK',
           verified: metadata.verified || (marketData?.isListed || false),
-          securityScore: securityResult?.score || (metadata.verified ? 95 : 70),
+          securityScore: securityResult ? 
+            Object.values(securityResult).reduce((sum: number, value: number) => sum + value, 0) / Object.values(securityResult).length : 
+            (metadata.verified ? 95 : 70),
           network: 'solana-devnet',
           totalSupply: totalSupply,
           holders: marketData?.holders || 0,
@@ -280,16 +283,40 @@ export default function VerifyPage() {
 
   const shareVerification = () => {
     if (verificationResult) {
-      const text = `Token ${verificationResult.name} (${verificationResult.symbol}) verification: ${verificationResult.verified ? 'Verified' : 'Unverified'} - Security Score: ${verificationResult.securityScore}/100 on ${verificationResult.network}`;
+      const networkName = verificationResult.network.split('-')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+      
+      const text = `Token ${verificationResult.name} (${verificationResult.symbol}) verification: ${verificationResult.verified ? 'Verified ✓' : 'Unverified ⚠️'} - Security Score: ${verificationResult.securityScore}/100 on ${networkName}`;
+      const url = `https://snarbles.xyz/verify?network=${verificationResult.network}&address=${verificationResult.mintAddress || verificationResult.assetId}`;
       
       if (navigator.share) {
-        navigator.share({
-          title: 'Token Verification Result',
-          text: text,
-          url: window.location.href
-        });
+        try {
+          await navigator.share({
+            title: 'Token Verification Result',
+            text: text,
+            url: url
+          });
+          toast({
+            title: "Shared Successfully",
+            description: "Verification result has been shared"
+          });
+        } catch (err) {
+          if (!(err instanceof DOMException && err.name === 'AbortError')) {
+            console.error('Share failed:', err);
+            navigator.clipboard.writeText(`${text}\n\nVerify at: ${url}`);
+            toast({
+              title: "Share Failed",
+              description: "Result copied to clipboard instead"
+            });
+          }
+        }
       } else {
-        navigator.clipboard.writeText(text);
+        navigator.clipboard.writeText(`${text}\n\nVerify at: ${url}`);
+        toast({
+          title: "Copied to Clipboard",
+          description: "Verification result has been copied"
+        });
       }
     }
   };
@@ -449,7 +476,7 @@ export default function VerifyPage() {
                 <div className="space-y-4">
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Verification Progress</span>
-                    <span className="text-foreground font-semibold">{verificationProgress}%</span>
+                      <div className="flex-shrink-0 min-w-6">
                   </div>
                   <div className="enhanced-progress-bar">
                     <div 
@@ -476,11 +503,16 @@ export default function VerifyPage() {
                   <CardTitle className="flex items-center space-x-2">
                     {verificationResult.verified ? (
                       <CheckCircle className="w-6 h-6 text-green-500" />
-                    ) : (
+                    <div className="flex items-center space-x-2">
+                      <CheckCircle className="w-6 h-6 text-green-500" />
+                      <span>Verified Token</span>
+                    </div>
                       <AlertTriangle className="w-6 h-6 text-yellow-500" />
-                    )}
+                    <div className="flex items-center space-x-2">
+                      <AlertTriangle className="w-6 h-6 text-yellow-500" />
+                      <span>Unverified Token</span>
+                    </div>
                     <span>Verification Results</span>
-                  </CardTitle>
                   <div className="flex space-x-2">
                     <Badge className={`${
                       verificationResult.securityScore >= 80 
@@ -493,7 +525,7 @@ export default function VerifyPage() {
                     </Badge>
                     <Button
                       variant="outline"
-                      size="sm"
+                      size="sm" 
                       onClick={() => window.open(verificationResult.explorerUrl, '_blank')}
                     >
                       <ExternalLink className="w-4 h-4 mr-2" />
@@ -515,15 +547,15 @@ export default function VerifyPage() {
                   {/* Basic Token Info */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <Label className="text-sm font-medium text-muted-foreground">Token Name</Label>
+                      <Label className="text-sm font-medium text-muted-foreground block mb-1">Token Name</Label>
                       <p className="text-foreground font-semibold text-lg">{verificationResult.name}</p>
                     </div>
                     <div>
-                      <Label className="text-sm font-medium text-muted-foreground">Symbol</Label>
+                      <Label className="text-sm font-medium text-muted-foreground block mb-1">Symbol</Label>
                       <p className="text-foreground font-semibold text-lg">{verificationResult.symbol}</p>
                     </div>
                     <div>
-                      <Label className="text-sm font-medium text-muted-foreground">Network</Label>
+                      <Label className="text-sm font-medium text-muted-foreground block mb-1">Network</Label>
                       <Badge className={
                         verificationResult.network === 'algorand-mainnet'
                           ? 'bg-[#00d4aa]/20 text-[#00d4aa] border-[#00d4aa]/30'
@@ -533,7 +565,7 @@ export default function VerifyPage() {
                       </Badge>
                     </div>
                     <div>
-                      <Label className="text-sm font-medium text-muted-foreground">
+                      <Label className="text-sm font-medium text-muted-foreground block mb-1">
                         {verificationResult.assetId ? 'Asset ID' : 'Mint Address'}
                       </Label>
                       <p className="text-foreground font-mono text-sm">
@@ -546,7 +578,7 @@ export default function VerifyPage() {
                   {verificationResult.marketData && (
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="text-center p-4 bg-muted/30 rounded-lg">
-                        <Label className="text-sm font-medium text-muted-foreground">Price</Label>
+                        <Label className="text-sm font-medium text-muted-foreground block mb-1">Price</Label>
                         <p className="text-foreground font-bold text-xl">
                           ${verificationResult.marketData.price > 0 
                             ? verificationResult.marketData.price.toFixed(6)
@@ -555,7 +587,7 @@ export default function VerifyPage() {
                         </p>
                       </div>
                       <div className="text-center p-4 bg-muted/30 rounded-lg">
-                        <Label className="text-sm font-medium text-muted-foreground">24h Change</Label>
+                        <Label className="text-sm font-medium text-muted-foreground block mb-1">24h Change</Label>
                         <p className={`font-bold text-xl ${
                           verificationResult.marketData.priceChange24h >= 0 ? 'text-green-500' : 'text-red-500'
                         }`}>
@@ -564,7 +596,7 @@ export default function VerifyPage() {
                         </p>
                       </div>
                       <div className="text-center p-4 bg-muted/30 rounded-lg">
-                        <Label className="text-sm font-medium text-muted-foreground">24h Volume</Label>
+                        <Label className="text-sm font-medium text-muted-foreground block mb-1">24h Volume</Label>
                         <p className="text-foreground font-bold text-xl">
                           ${verificationResult.marketData.volume24h.toLocaleString()}
                         </p>
@@ -574,15 +606,15 @@ export default function VerifyPage() {
                   
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="text-center p-4 bg-muted/30 rounded-lg">
-                      <Label className="text-sm font-medium text-muted-foreground">Total Supply</Label>
+                      <Label className="text-sm font-medium text-muted-foreground block mb-1">Total Supply</Label>
                       <p className="text-foreground font-bold text-xl">{verificationResult.totalSupply}</p>
                     </div>
                     <div className="text-center p-4 bg-muted/30 rounded-lg">
-                      <Label className="text-sm font-medium text-muted-foreground">Holders</Label>
+                      <Label className="text-sm font-medium text-muted-foreground block mb-1">Holders</Label>
                       <p className="text-foreground font-bold text-xl">{verificationResult.holders.toLocaleString()}</p>
                     </div>
                     <div className="text-center p-4 bg-muted/30 rounded-lg">
-                      <Label className="text-sm font-medium text-muted-foreground">Decimals</Label>
+                      <Label className="text-sm font-medium text-muted-foreground block mb-1">Decimals</Label>
                       <p className="text-foreground font-bold text-xl">{verificationResult.decimals}</p>
                     </div>
                   </div>
@@ -594,7 +626,7 @@ export default function VerifyPage() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="p-4 bg-muted/30 rounded-lg">
                           <div className="flex justify-between items-center mb-2">
-                            <Label className="text-sm font-medium text-muted-foreground">Liquidity Score</Label>
+                            <Label className="text-sm font-medium text-muted-foreground block">Liquidity Score</Label>
                             <span className="text-foreground font-bold">
                               {verificationResult.securityFactors.liquidityScore.toFixed(0)}/100
                             </span>
@@ -609,7 +641,7 @@ export default function VerifyPage() {
                         
                         <div className="p-4 bg-muted/30 rounded-lg">
                           <div className="flex justify-between items-center mb-2">
-                            <Label className="text-sm font-medium text-muted-foreground">Holder Distribution</Label>
+                            <Label className="text-sm font-medium text-muted-foreground block">Holder Distribution</Label>
                             <span className="text-foreground font-bold">
                               {verificationResult.securityFactors.holderDistribution.toFixed(0)}/100
                             </span>
@@ -624,7 +656,7 @@ export default function VerifyPage() {
                         
                         <div className="p-4 bg-muted/30 rounded-lg">
                           <div className="flex justify-between items-center mb-2">
-                            <Label className="text-sm font-medium text-muted-foreground">Trading Activity</Label>
+                            <Label className="text-sm font-medium text-muted-foreground block">Trading Activity</Label>
                             <span className="text-foreground font-bold">
                               {verificationResult.securityFactors.tradingActivity.toFixed(0)}/100
                             </span>
@@ -639,7 +671,7 @@ export default function VerifyPage() {
                         
                         <div className="p-4 bg-muted/30 rounded-lg">
                           <div className="flex justify-between items-center mb-2">
-                            <Label className="text-sm font-medium text-muted-foreground">Contract Verification</Label>
+                            <Label className="text-sm font-medium text-muted-foreground block">Contract Verification</Label>
                             <span className="text-foreground font-bold">
                               {verificationResult.securityFactors.contractVerification.toFixed(0)}/100
                             </span>
@@ -660,19 +692,19 @@ export default function VerifyPage() {
                     <div className="space-y-4">
                       <h4 className="text-lg font-semibold text-foreground">Trading Metrics (24h)</h4>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div className="text-center p-4 bg-muted/30 rounded-lg">
+                        <div className="text-center p-4 bg-muted/30 rounded-lg hover:bg-muted/40 transition-colors">
                           <p className="text-2xl font-bold text-foreground">{verificationResult.metrics.transactions24h}</p>
                           <p className="text-sm text-muted-foreground">Transactions</p>
                         </div>
-                        <div className="text-center p-4 bg-muted/30 rounded-lg">
+                        <div className="text-center p-4 bg-muted/30 rounded-lg hover:bg-muted/40 transition-colors">
                           <p className="text-2xl font-bold text-foreground">{verificationResult.metrics.activeTraders}</p>
                           <p className="text-sm text-muted-foreground">Active Traders</p>
                         </div>
-                        <div className="text-center p-4 bg-muted/30 rounded-lg">
+                        <div className="text-center p-4 bg-muted/30 rounded-lg hover:bg-muted/40 transition-colors">
                           <p className="text-2xl font-bold text-foreground">{verificationResult.metrics.volatility.toFixed(1)}%</p>
                           <p className="text-sm text-muted-foreground">Volatility</p>
                         </div>
-                        <div className="text-center p-4 bg-muted/30 rounded-lg">
+                        <div className="text-center p-4 bg-muted/30 rounded-lg hover:bg-muted/40 transition-colors">
                           <p className="text-2xl font-bold text-foreground">{verificationResult.metrics.liquidityScore.toFixed(0)}</p>
                           <p className="text-sm text-muted-foreground">Liquidity Score</p>
                         </div>
@@ -687,7 +719,7 @@ export default function VerifyPage() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {verificationResult.creator && (
                           <div>
-                            <Label className="text-sm font-medium text-muted-foreground">Creator</Label>
+                            <Label className="text-sm font-medium text-muted-foreground block mb-1">Creator</Label>
                             <p className="text-foreground font-mono text-sm break-all">
                               {verificationResult.creator}
                             </p>
@@ -695,7 +727,7 @@ export default function VerifyPage() {
                         )}
                         {verificationResult.manager && (
                           <div>
-                            <Label className="text-sm font-medium text-muted-foreground">Manager</Label>
+                            <Label className="text-sm font-medium text-muted-foreground block mb-1">Manager</Label>
                             <p className="text-foreground font-mono text-sm break-all">
                               {verificationResult.manager}
                             </p>
@@ -707,25 +739,63 @@ export default function VerifyPage() {
                   
                   {/* Verification Status */}
                   <div className="border-t border-border pt-4">
-                    <Label className="text-sm font-medium text-muted-foreground">Verification Status</Label>
+                    <Label className="text-sm font-medium text-muted-foreground block mb-2">Verification Status</Label>
                     <div className="flex items-center space-x-2 mt-2">
                       {verificationResult.verified ? (
                         <>
                           <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
-                          <span className="text-green-500 font-medium">Verified Token</span>
-                          <p className="text-muted-foreground text-sm ml-2 flex-1">
-                            This token was found on the blockchain and appears to be legitimate.
-                          </p>
+                          <div className="space-y-1">
+                            <span className="text-green-500 font-medium block">Verified Token</span>
+                            <p className="text-muted-foreground text-sm">
+                              This token was found on the blockchain and appears to be legitimate.
+                            </p>
+                          </div>
                         </>
                       ) : (
                         <>
                           <AlertTriangle className="w-5 h-5 text-yellow-500 flex-shrink-0" />
-                          <span className="text-yellow-500 font-medium">Unverified Token</span>
-                          <p className="text-muted-foreground text-sm ml-2 flex-1">
-                            This token could not be verified. Exercise caution.
-                          </p>
+                          <div className="space-y-1">
+                            <span className="text-yellow-500 font-medium block">Unverified Token</span>
+                            <p className="text-muted-foreground text-sm">
+                              This token exists but could not be verified. Exercise caution when interacting with it.
+                            </p>
+                          </div>
                         </>
                       )}
+                    </div>
+                    
+                    {!verificationResult.verified && (
+                      <div className="mt-4 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+                        <div className="flex items-start space-x-3">
+                          <AlertTriangle className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
+                          <div>
+                            <p className="font-medium text-yellow-600">Unverified Token Warning</p>
+                            <ul className="list-disc list-inside mt-2 text-sm text-yellow-600 space-y-1">
+                              <li>This token has not been verified by known sources</li>
+                              <li>Check contract source code for malicious code</li>
+                              <li>Research the project team and community</li>
+                              <li>Be cautious of similar names to popular tokens</li>
+                            </ul>
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Security recommendation section */}
+                    <div className="mt-6 p-4 bg-blue-500/5 border border-blue-500/20 rounded-lg">
+                      <div className="flex items-start space-x-3">
+                        <Shield className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="font-medium text-blue-600">Security Recommendation</p>
+                          <p className="text-sm text-blue-600 mt-1">
+                            {verificationResult.securityScore >= 80 
+                              ? "This token appears to be secure and follows best practices."
+                              : verificationResult.securityScore >= 60
+                              ? "This token has a moderate security profile. Always verify before large transactions."
+                              : "This token has security concerns. Proceed with extreme caution."}
+                          </p>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
