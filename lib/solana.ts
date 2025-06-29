@@ -8,7 +8,8 @@ export const PROGRAM_ID = new PublicKey('BKyaw9S5QkkSQ3dc3FdivbsYRWw2ADw9zN4bjnL
 // Network endpoint
 export const NETWORK_ENDPOINT = 'https://api.devnet.solana.com';
 
-// Admin wallet address - This is the authority from your deployed contract
+// Admin wallet address - This is the authority for your deployed contract
+// IMPORTANT: Replace this with your actual admin wallet address before production deployment
 export const ADMIN_WALLET = new PublicKey('352YpA1YVHmN9Jirf5cDZdELWvsrP3DJVL7svAHJtmUj');
 
 // IDL from your smart contract

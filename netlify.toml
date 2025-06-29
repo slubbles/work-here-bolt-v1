@@ -1,0 +1,43 @@
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NEXT_PUBLIC_SOLANA_NETWORK = "devnet"
+  NEXT_PUBLIC_RPC_ENDPOINT = "https://api.devnet.solana.com"
+  # Add Supabase variables in Netlify UI environment settings for security
+
+# Production context: all deploys from the Production branch set in your site's 
+# deploy contexts will inherit these settings.
+[context.production]
+  command = "npm run build:production"
+
+# Deploy Preview context: previews of the site from a pull request
+[context.deploy-preview]
+  command = "npm run build"
+  
+# Branch Deploy context: deploys from branches that aren't Production or Deploy Preview branches
+[context.branch-deploy]
+  command = "npm run build"
+
+# Specific branch context: Deploys from this branch will take these settings 
+# and override their current ones.
+[context.staging]
+  command = "npm run build"
+
+# Redirects and headers are GLOBAL for all builds – they don't get scoped to 
+# contexts no matter where you define them in the file.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[[headers]]
+  # Define which paths this specific [[headers]] block will cover.
+  for = "/*"
+    [headers.values]
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self' https://*.supabase.co https://*.solana.com https://api.devnet.solana.com; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; frame-ancestors 'none'"
