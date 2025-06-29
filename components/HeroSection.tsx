@@ -49,23 +49,17 @@ export default function HeroSection() {
               <Sparkles className="w-4 h-4" />
             </div>
             
-            {/* Main Headline */}
-            <div className="space-y-6">
-              <h1 className="text-5xl lg:text-7xl font-bold leading-tight tracking-tight">
-                <span className="block text-foreground">Transform Your Idea</span>
-                <span className="block">Into a{' '}
-                  <span className="gradient-text relative">
-                    Powerful Token
-                    <div className="absolute -inset-1 bg-gradient-to-r from-red-500/20 to-red-600/20 blur-lg -z-10"></div>
-                  </span>
-                </span>
-                <span className="block text-foreground">in 30 Seconds</span>
-              </h1>
+            {/* Header Image */}
+            <div className="mb-6">
+              <img 
+                src="/header.png" 
+                alt="Turn Your Idea Into a Real Token in 30 Seconds" 
+                className="max-w-full h-auto" 
+              />
             </div>
             
             {/* Subheadline */}
-            <p className="text-xl lg:text-2xl text-muted-foreground leading-relaxed max-w-3xl">
-              Join thousands of visionaries who've launched successful tokens and built thriving communities.
+            <p className="text-xl lg:text-2xl text-muted-foreground leading-relaxed max-w-3xl mt-4">
               <span className="text-foreground font-semibold"> Zero coding, zero complexity</span>—pure innovation unleashed.
             </p>
 
