@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  swcMinify: false,
+  swcMinify: true,
   poweredByHeader: false,
   reactStrictMode: true,
   compiler: {
@@ -23,22 +23,9 @@ const nextConfig = {
     optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
     optimizeCss: true,
     scrollRestoration: true,
-    forceSwcTransforms: false,
   },
   // Simplified webpack configuration
   webpack: (config, { webpack }) => {
-    // Fix for import.meta usage
-    config.module.rules.push({
-      test: /\.m?js$/,
-      type: 'javascript/auto',
-      resolve: {
-        fullySpecified: false,
-      },
-      parser: {
-        importMeta: true,
-      },
-    });
-
     // Add polyfills for Node.js modules
     config.resolve.fallback = {
       ...config.resolve.fallback,
@@ -50,7 +37,6 @@ const nextConfig = {
       net: false,
       tls: false,
       encoding: false,
-      querystring: require.resolve('querystring-es3'),
     };
 
     // Make Buffer and process globally available
