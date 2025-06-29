@@ -4,14 +4,21 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Progress } from '@/components/ui/progress';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { useToast } from '@/hooks/use-toast';
-import { initializePlatform, getPlatformState, ADMIN_WALLET } from '@/lib/solana';
-import { AlertTriangle, CheckCircle, Settings, Loader2, Shield, Wallet, ArrowLeft, Rocket, BarChart3 } from 'lucide-react';
+import { initializePlatform, getPlatformState, ADMIN_WALLET, PROGRAM_ID, getPlatformStatePDA, getPlatformStatePDAAlternative1 } from '@/lib/solana';
+import { getAlgorandPlatformStats } from '@/lib/algorand';
+import { 
+  AlertTriangle, CheckCircle, Settings, Loader2, Shield, 
+  Wallet, ArrowLeft, Rocket, BarChart3, Activity, 
+  PieChart, Info, FileText
+} from 'lucide-react';
 import Link from 'next/link';
+import { Cell, PieChart as RechartsPieChart, Pie, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
 export default function AdminPage() {
   const [creationFee, setCreationFee] = useState('0');
