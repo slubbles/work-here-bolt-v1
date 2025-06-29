@@ -69,8 +69,7 @@ const SOLANA_ERROR_PATTERNS = {
     userMessage: 'Transaction expired',
     action: 'Please try the transaction again',
     severity: 'medium' as const
-  }
-  ,
+  },
   PLATFORM_NOT_INITIALIZED: {
     patterns: ['not initialized', 'account not initialized', 'platform not initialized', 'state account does not exist'],
     code: 'PLATFORM_NOT_INITIALIZED',
