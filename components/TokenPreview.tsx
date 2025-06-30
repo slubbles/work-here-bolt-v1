@@ -76,7 +76,15 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
   } = tokenData;
 
   const formatSupply = (supply: string) => {
+    if (!supply) return '0';
     const num = parseFloat(supply) || 0;
+    if (num >= 1_000_000_000) {
+      return (num / 1_000_000_000).toFixed(1) + 'B';
+    } else if (num >= 1_000_000) {
+      return (num / 1_000_000).toFixed(1) + 'M';
+    } else if (num >= 1_000) {
+      return (num / 1_000).toFixed(1) + 'K';
+    }
     return num.toLocaleString();
   };
 
@@ -155,14 +163,14 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
   return (
     <div className="xl:sticky xl:top-24 space-y-6 pb-4">
       <div className="text-center space-y-4">
-        <div className="flex items-center justify-center space-x-3">
-          <div className="w-12 h-12 bg-red-500/10 rounded-full flex items-center justify-center">
-            <Sparkles className="w-7 h-7 text-red-500" />
+        <div className="flex items-center justify-center space-x-2">
+          <div className="w-10 h-10 bg-red-500/10 rounded-full flex items-center justify-center pulse-ring">
+            <Sparkles className="w-5 h-5 text-red-500" />
           </div>
-          <h2 className="text-3xl font-bold text-foreground">{getHeaderText()}</h2>
+          <h2 className="text-2xl font-bold text-foreground">{getHeaderText()}</h2>
         </div>
-        <p className="text-muted-foreground text-lg max-w-md mx-auto">
-          Your token will look exactly like this when deployed to the blockchain
+        <p className="text-muted-foreground text-base max-w-md mx-auto">
+          Live preview of how your token will appear on the blockchain
         </p>
       </div>
 
@@ -177,6 +185,20 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
           )}
         </Badge>
         <p className="text-sm text-muted-foreground mt-3">{networkInfo.description}</p>
+        <div className="flex items-center justify-center gap-2 mt-2">
+          <Badge 
+            variant="outline"
+            className="text-xs px-2 py-1 bg-green-500/10 text-green-500 border-green-500/30"
+          >
+            {decimals} Decimals
+          </Badge>
+          <Badge 
+            variant="outline"
+            className="text-xs px-2 py-1 bg-blue-500/10 text-blue-500 border-blue-500/30"
+          >
+            {formData.features?.mintable ? 'Mintable' : 'Fixed Supply'}
+          </Badge>
+        </div>
       </div>
 
       <div className="glass-card p-10 space-y-8 relative overflow-hidden border-2 border-red-500/30 shadow-xl">

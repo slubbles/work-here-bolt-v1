@@ -9,11 +9,12 @@ import {
   SolflareWalletAdapter,
   BackpackWalletAdapter,
   GlowWalletAdapter,
+  LedgerWalletAdapter,
+  TorusWalletAdapter
 } from '@solana/wallet-adapter-wallets';
 import { clusterApiUrl } from '@solana/web3.js';
 import { NETWORK_ENDPOINT } from '@/lib/solana';
 import { AlgorandWalletProvider } from './AlgorandWalletProvider';
-
 
 interface WalletContextProviderProps {
   children: React.ReactNode;
@@ -22,7 +23,7 @@ interface WalletContextProviderProps {
 export default function WalletContextProvider({ children }: WalletContextProviderProps) {
   const [mounted, setMounted] = useState(false);
   
-  // Handle hydration issues
+  // Handle hydration issues and enable autoconnect
   useEffect(() => {
     setMounted(true);
     
@@ -31,18 +32,39 @@ export default function WalletContextProvider({ children }: WalletContextProvide
     if (!hasAttemptedConnect) {
       localStorage.setItem('wallet-adapter-autoconnect', 'true');
     }
+    
+    // Set up wallet change listener
+    const handleWalletChange = () => {
+      // Flash a subtle indication that wallet state has changed
+      const walletButton = document.querySelector('.wallet-adapter-button-trigger');
+      if (walletButton) {
+        walletButton.classList.add('wallet-status-enhanced');
+        setTimeout(() => {
+          walletButton.classList.remove('wallet-status-enhanced');
+        }, 1000);
+      }
+    };
+    
+    window.addEventListener('walletChange', handleWalletChange);
+    
+    return () => {
+      window.removeEventListener('walletChange', handleWalletChange);
+    };
   }, []);
   
   // Use devnet for development, mainnet-beta for production
   const network = WalletAdapterNetwork.Devnet;
   const endpoint = useMemo(() => NETWORK_ENDPOINT, []);
 
+  // Enhanced wallet adapters with more wallet options
   const wallets = useMemo(
     () => [
       new PhantomWalletAdapter(),
       new SolflareWalletAdapter({ network }),
       new BackpackWalletAdapter(),
       new GlowWalletAdapter(),
+      new LedgerWalletAdapter(),
+      new TorusWalletAdapter()
     ],
     [network]
   );

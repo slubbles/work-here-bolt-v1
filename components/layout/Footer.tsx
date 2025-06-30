@@ -39,7 +39,11 @@ export default function Footer() {
           <div className="space-y-5">
             <div className="flex items-center">
               <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center mr-3">
-                <span className="text-white font-bold text-sm">S</span>
+                <span className="text-xl font-bold text-foreground">
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-red-600">
+                    Snarbles
+                  </span>
+                </span>
               </div>
               <span className="text-xl font-bold text-foreground">Snarbles</span>
             </div>
@@ -50,26 +54,32 @@ export default function Footer() {
               <a 
                 href="https://github.com/snarbles" 
                 target="_blank"
-                rel="noopener noreferrer"
-                className="text-muted-foreground hover:text-foreground transition-colors"
+                rel="noopener noreferrer" 
+                className="text-muted-foreground hover:text-foreground transition-all hover:scale-110"
               >
-                <Github className="w-5 h-5" />
+                <div className="w-8 h-8 bg-muted/50 rounded-full flex items-center justify-center hover:bg-muted/70 transition-colors">
+                  <Github className="w-4 h-4" />
+                </div>
               </a>
               <a 
                 href="https://twitter.com/StackBlitz" 
                 target="_blank"
-                rel="noopener noreferrer"
-                className="text-muted-foreground hover:text-foreground transition-colors"
+                rel="noopener noreferrer" 
+                className="text-muted-foreground hover:text-foreground transition-all hover:scale-110"
               >
-                <Twitter className="w-5 h-5" />
+                <div className="w-8 h-8 bg-muted/50 rounded-full flex items-center justify-center hover:bg-muted/70 transition-colors">
+                  <Twitter className="w-4 h-4" />
+                </div>
               </a>
               <a 
                 href="https://bolt.new" 
                 target="_blank"
-                rel="noopener noreferrer"
-                className="text-muted-foreground hover:text-foreground transition-colors"
+                rel="noopener noreferrer" 
+                className="text-muted-foreground hover:text-foreground transition-all hover:scale-110"
               >
-                <Globe className="w-5 h-5" />
+                <div className="w-8 h-8 bg-muted/50 rounded-full flex items-center justify-center hover:bg-muted/70 transition-colors">
+                  <Globe className="w-4 h-4" />
+                </div>
               </a>
             </div>
           </div>
