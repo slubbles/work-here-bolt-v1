@@ -304,7 +304,7 @@ export default function Navbar() {
                           )}
                           {(!solanaConnected || !solanaPublicKey) && (
                             <div className="flex flex-col items-center py-2">
-                              <WalletMultiButton className="w-full !bg-gradient-to-r !from-red-500 !to-black hover:!from-red-600 hover:!to-gray-900 !text-white !font-medium !rounded-lg !py-2 !px-4 !transition-colors" />
+                              <WalletMultiButton className="wallet-connect-custom w-full !bg-gradient-to-r !from-red-500 !to-black hover:!from-red-600 hover:!to-gray-900 !text-white !font-medium !rounded-lg !py-2 !px-4 !transition-colors" />
                             </div>
                           )}
                         </div>

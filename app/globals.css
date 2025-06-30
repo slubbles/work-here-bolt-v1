@@ -928,6 +928,25 @@
     display: flex;
     width: max-content;
   }
+  
+  /* Hide "Change Wallet" text in the wallet modal */
+  .wallet-adapter-dropdown-list-item[data-id="change-wallet"] {
+    visibility: hidden !important;
+    height: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: hidden !important;
+  }
+  
+  /* Or using the wallet-adapter-button-trigger selector */
+  .wallet-connect-custom button ul li:last-child {
+    display: none !important;
+  }
+  
+  /* Force wallet button style consistency */
+  .wallet-adapter-button.wallet-adapter-button-trigger {
+    background: linear-gradient(to right, #ef4444, #000000) !important;
+  }
 }
 
 /* Enhanced scrollbar */
