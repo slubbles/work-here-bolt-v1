@@ -4,7 +4,6 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import algosdk from 'algosdk';
 import { getAlgorandNetwork, ALGORAND_NETWORKS } from '@/lib/algorand';
 import { useToast } from '@/hooks/use-toast';
-import { useToast } from '@/hooks/use-toast';
 
 // Import the actual PeraWalletConnect type
 import type { PeraWalletConnect } from '@perawallet/connect';
