@@ -62,6 +62,7 @@ export function AlgorandWalletProvider({ children }: AlgorandWalletProviderProps
 
   // Initialize/reinitialize Pera Wallet when network changes
   useEffect(() => {
+    const initializeWallet = async () => {
       try {
         setIsPeraWalletReady(true); 
         setError(null);
