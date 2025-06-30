@@ -53,7 +53,7 @@ export default function AlgorandDashboard() {
   const { connected, address, selectedNetwork, signTransaction, balance: walletBalance } = useAlgorandWallet();
   const { toast } = useToast();
   
-  const [tokens, setTokens] = useState<TokenData[]>([]);
+  const [tokens, setTokens] = useState<TokenData[]>([]); 
   const [loading, setLoading] = useState(true);
   const [tokenLoading, setTokenLoading] = useState(false);
   const [walletSummary, setWalletSummary] = useState({
@@ -272,34 +272,67 @@ export default function AlgorandDashboard() {
 
   if (!connected || !address) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#76f935]/5 via-[#76f935]/2 to-[#76f935]/5 flex items-center justify-center">
-        <Card className="w-full max-w-md mx-4">
-          <CardHeader className="text-center">
-            <Wallet className="w-12 h-12 mx-auto mb-4 text-[#76f935]" />
-            <CardTitle>Connect Your Algorand Wallet</CardTitle>
-            <p className="text-muted-foreground mt-2">
-              Please connect your Algorand wallet to access the dashboard
+      <div className="min-h-screen bg-gradient-to-br from-[#76f935]/5 via-[#76f935]/2 to-[#76f935]/5 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md mx-4 border-[#A9DFBF]/30 bg-gradient-to-br from-[#A9DFBF]/10 to-[#22C55E]/5 shadow-2xl">
+          <CardHeader className="text-center pb-2">
+            <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-[#A9DFBF] to-[#22C55E] p-5 shadow-lg shadow-[#A9DFBF]/20">
+              <Wallet className="w-full h-full text-white" aria-hidden="true" />
+            </div>
+            <CardTitle className="text-2xl font-bold">Connect Your Algorand Wallet</CardTitle>
+            <p className="text-muted-foreground mt-4 mb-2">
+              Access your Algorand assets and transaction history
             </p>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex flex-col items-center">
-              <Network className="w-5 h-5 text-[#76f935] mb-2" />
-              <p className="text-sm text-[#76f935]">
-                {selectedNetwork.includes('testnet') ? 'Algorand Testnet' : 'Algorand Mainnet'}
+          <CardContent className="space-y-6 pt-4">
+            <div className="flex items-center justify-center space-x-2 p-3 bg-[#A9DFBF]/15 rounded-lg border border-[#A9DFBF]/20">
+              <Network className="w-5 h-5 text-[#22C55E]" aria-hidden="true" />
+              <p className="font-medium text-[#22C55E]">
+                {selectedNetwork.includes('testnet') ? 'Algorand Testnet Network' : 'Algorand Mainnet Network'}
               </p>
             </div>
-            <div className="bg-[#76f935]/10 rounded-lg p-4 text-center">
+            
+            <div className="bg-gradient-to-br from-[#22C55E]/10 to-[#A9DFBF]/5 rounded-xl p-6 text-center border border-[#A9DFBF]/20">
+              <h3 className="font-semibold text-lg mb-3 text-[#22C55E]">Wallet Features</h3>
+              <div className="grid grid-cols-2 gap-2 mb-4">
+                <div className="flex items-center space-x-2 p-2 bg-white/5 rounded-lg">
+                  <Coins className="w-4 h-4 text-[#22C55E]" aria-hidden="true" />
+                  <span className="text-sm">View Assets</span>
+                </div>
+                <div className="flex items-center space-x-2 p-2 bg-white/5 rounded-lg">
+                  <Send className="w-4 h-4 text-[#22C55E]" aria-hidden="true" />
+                  <span className="text-sm">Transfer Tokens</span>
+                </div>
+                <div className="flex items-center space-x-2 p-2 bg-white/5 rounded-lg">
+                  <TrendingUp className="w-4 h-4 text-[#22C55E]" aria-hidden="true" />
+                  <span className="text-sm">Track Values</span>
+                </div>
+                <div className="flex items-center space-x-2 p-2 bg-white/5 rounded-lg">
+                  <Plus className="w-4 h-4 text-[#22C55E]" aria-hidden="true" />
+                  <span className="text-sm">Opt-in to ASAs</span>
+                </div>
+              </div>
               <p className="text-sm text-muted-foreground">
-                After connecting, you'll be able to view your tokens and transaction history
+                Connect to access all these features
               </p>
             </div>
-            <Button 
-              onClick={() => window.location.reload()}
-              className="w-full bg-[#76f935] text-black hover:bg-[#76f935]/90"
-            >
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Refresh Connection
-            </Button>
+            
+            <div className="flex flex-col space-y-3">
+              <Button 
+                onClick={() => window.location.reload()}
+                className="w-full bg-gradient-to-r from-[#22C55E] to-[#A9DFBF] text-white hover:from-[#1EA750] hover:to-[#97CEAC] shadow-md shadow-[#A9DFBF]/20 py-6 font-medium text-base"
+              >
+                <RefreshCw className="w-4 h-4 mr-2.5" />
+                Connect Wallet
+              </Button>
+              
+              <Button 
+                variant="outline" 
+                onClick={() => window.history.back()}
+                className="border-[#A9DFBF]/30 text-[#22C55E] hover:bg-[#A9DFBF]/10"
+              >
+                Back to Platform
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>

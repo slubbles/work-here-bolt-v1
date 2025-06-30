@@ -64,42 +64,44 @@ export default function DashboardPage() {
   if (!solanaConnected && !algorandConnected) {
     return (
       <div className="min-h-screen app-background flex items-center justify-center">
-        <div className="max-w-md mx-auto text-center">
-          <Card className="glass-card border-orange-500/30 bg-orange-500/5">
-            <CardHeader className="text-center">
-              <div className="w-16 h-16 rounded-full bg-red-500/20 flex items-center justify-center mx-auto">
-                <Wallet className="w-8 h-8 text-red-500" aria-hidden="true" />
+        <div className="max-w-md mx-auto p-4 text-center">
+          <Card className="border-indigo-500/30 bg-gradient-to-br from-indigo-900/90 to-purple-900/90 shadow-2xl">
+            <CardHeader className="text-center pb-3">
+              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 mx-auto mb-6 flex items-center justify-center shadow-lg shadow-indigo-500/30">
+                <Wallet className="w-10 h-10 text-white" aria-hidden="true" />
               </div>
-              <div className="space-y-2">
-                <h2 className="text-2xl font-bold text-foreground">Wallet Required</h2>
-                <p className="text-muted-foreground">
-                  Connect a wallet to access your token dashboard
-                </p>
-              </div>
+              <h2 className="text-3xl font-bold text-white tracking-tight">Wallet Required</h2>
+              <p className="text-indigo-200 mt-3 mb-2 text-lg">
+                Connect your blockchain wallet to access the dashboard
+              </p>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
-                <div className="flex items-start space-x-2">
-                  <Network className="w-5 h-5 text-blue-500 mt-0.5" aria-hidden="true" />
-                  <div className="text-sm text-blue-600">
-                    <p className="font-semibold mb-1">Connect a blockchain wallet:</p>
-                    <ul className="list-disc list-inside space-y-1">
-                      <li>Connect Solana wallet for SPL tokens</li>
-                      <li>Connect Algorand wallet for ASA tokens</li>
-                    </ul>
+            <CardContent className="space-y-6 pt-2">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-4 bg-blue-500/20 border border-blue-500/30 rounded-xl text-center">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 mx-auto mb-2 flex items-center justify-center shadow-md">
+                    <span className="text-white font-bold text-lg">S</span>
                   </div>
+                  <h3 className="font-semibold text-white">Solana</h3>
+                  <p className="text-blue-200 text-xs mt-1">SPL Tokens</p>
+                </div>
+                <div className="p-4 bg-green-500/20 border border-green-500/30 rounded-xl text-center">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-green-500 to-green-600 mx-auto mb-2 flex items-center justify-center shadow-md">
+                    <span className="text-white font-bold text-lg">A</span>
+                  </div>
+                  <h3 className="font-semibold text-white">Algorand</h3>
+                  <p className="text-green-200 text-xs mt-1">ASA Tokens</p>
                 </div>
               </div>
+              
               <div className="text-center">
                 <div className="mb-4">
-                  <WalletMultiButton className="!bg-gradient-to-r !from-red-500 !to-red-600 hover:!from-red-600 hover:!to-red-700 !rounded-xl !shadow-lg !min-h-[48px] !px-6 !text-base !font-semibold" />
+                  <WalletMultiButton className="!bg-gradient-to-r !from-indigo-600 !to-purple-600 hover:!from-indigo-700 hover:!to-purple-700 !rounded-xl !shadow-xl !shadow-indigo-500/20 !min-h-[52px] !px-8 !py-3 !text-base !font-semibold !w-full !justify-center !transition-all !duration-300" />
                 </div>
                 <div className="mt-4">
                   <Button 
                     onClick={() => window.location.reload()} 
-                    variant="outline" 
-                    size="sm"
-                    className="text-sm"
+                    variant="outline"
+                    className="text-sm border-white/20 text-indigo-200 hover:bg-white/5 hover:text-white"
                   >
                     Refresh Connection Status
                   </Button>
@@ -108,15 +110,15 @@ export default function DashboardPage() {
               <div className="text-center">
                 <Link href="/" className="text-red-500 hover:text-red-600 text-sm inline-flex items-center">
                   Back to Home
-                  <ArrowRight className="w-4 h-4 ml-1" />
+                  <ArrowRight className="w-4 h-4 ml-1.5" />
                 </Link>
               </div>
             </CardContent>
           </Card>
           
           {/* Help prompt for new users */}
-          <div className="max-w-md mx-auto text-center mt-4">
-            <Callout variant="beginner" className="text-center">
+          <div className="max-w-md mx-auto text-center mt-6">
+            <Callout variant="beginner" className="text-center border-indigo-500/30 bg-indigo-500/10">
               <p>
                 First time using a blockchain wallet? <Link href="/support" className="text-blue-600 underline">Click here</Link> for our beginners guide to wallets.
               </p>
@@ -124,8 +126,10 @@ export default function DashboardPage() {
           </div>
           {/* Info about opting-in */}
           <div className="mt-4 text-center">
-            <p className="text-sm text-muted-foreground">New tokens need to be opted-in before they appear on your dashboard.</p>
-            <p className="text-xs text-muted-foreground mt-1">After creating a token, check the transaction in the explorer and opt-in.</p>
+            <div className="px-4 py-3 bg-purple-500/10 border border-purple-500/20 rounded-lg inline-block">
+              <p className="text-sm text-purple-200 font-medium">New tokens need to be opted-in before they appear on your dashboard</p>
+              <p className="text-xs text-purple-300/70 mt-1">After creating a token, check the transaction in the explorer and opt-in</p>
+            </div>
           </div>
         </div>
       </div>
