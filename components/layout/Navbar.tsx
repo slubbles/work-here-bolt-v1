@@ -2,13 +2,15 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Menu, X, Sun, Moon, Wallet, ChevronDown, Copy, Check, AlertTriangle } from 'lucide-react';
+import { Menu, X, Sun, Moon, Wallet, ChevronDown, Copy, Check, AlertTriangle, HelpCircle } from 'lucide-react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { useAlgorandWallet } from '@/components/providers/AlgorandWalletProvider';
 import { ADMIN_WALLET } from '@/lib/solana';
+import { useToast } from '@/hooks/use-toast';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -19,6 +21,8 @@ export default function Navbar() {
   const [copiedAddress, setCopiedAddress] = useState<string | null>(null);
   const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
   const pathname = usePathname();
+  const router = useRouter();
+  const { toast } = useToast();
   
   // Solana wallet
   const { connected: solanaConnected, publicKey: solanaPublicKey } = useWallet();
@@ -369,7 +373,8 @@ export default function Navbar() {
                         </div>
                         <div className="p-4 space-y-3">
                           {algorandConnected && algorandAddress && (
-                            <div className="space-y-2">
+                            <>
+                              <div className="space-y-2">
                               {/* Wallet Address Display */}
                               <div className="flex items-center justify-between p-2 pl-3 bg-[#22C55E]/5 border border-[#22C55E]/20 rounded-lg overflow-hidden">
                                 <p className="text-[#22C55E] text-sm font-mono break-all">{formatAddress(algorandAddress)}</p>
@@ -434,7 +439,8 @@ export default function Navbar() {
                               >
                                 Disconnect
                               </Button>
-                            </div>
+                              </div>
+                            </>
                           )}
                           
                           {!algorandConnected && (
@@ -452,9 +458,16 @@ export default function Navbar() {
                               <div className="p-3 bg-[#22C55E]/5 border border-[#22C55E]/20 rounded-lg mb-4">
                                 <div className="flex justify-between items-center mb-2">
                                   <p className="text-sm font-medium text-[#22C55E]">Select Network:</p>
-                                  <Tooltip content="Choose which Algorand network to connect to">
-                                    <HelpCircle className="w-4 h-4 text-[#22C55E]" />
-                                  </Tooltip>
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger>
+                                        <HelpCircle className="w-4 h-4 text-[#22C55E]" />
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        <p>Choose which Algorand network to connect to</p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
                                 </div>
                                 <div className="grid grid-cols-2 gap-2">
                                   <button
