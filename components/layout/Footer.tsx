@@ -127,28 +127,14 @@ export default function Footer() {
           
           <div className="mt-6 pt-6 border-t border-border">
             <div className="text-center">
-              <p className="text-muted-foreground text-sm">© 2025 Snarbles. All rights reserved. Built with ❤️ for the decentralized future.</p>
+              <p className="text-muted-foreground text-xs">
+                Snarbles is a token creation platform. Always do your own research before investing in any cryptocurrency or token.
+                Please ensure compliance with your local regulations.
+              </p>
             </div>
           </div>
         </div>
-      
-        <div className="text-center mt-4">
-          <a 
-            href="https://bolt.new/" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="inline-block transition-transform hover:scale-110"
-          >
-            <img 
-              src="/white_circle_360x360 copy.png" 
-              alt="Powered by Bolt.new" 
-              className="w-10 h-10"
-            />
-          </a>
-          <p className="text-xs text-muted-foreground mt-1">Powered by Bolt.new</p>
-        </div>
       </div>
-      
     </footer>
   );
 }
