@@ -103,3 +103,4 @@ export default function SponsorsSection() {
       </div>
     </section>
   );
+}
