@@ -3,6 +3,7 @@
 import { Coins, Settings, BarChart3, Shield, Wallet, Users, Headphones, Code, Zap, Globe, Lock, Rocket } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { Button } from '@/components/ui/button';
 
 export default function FeaturesSection() {
   const [hoveredFeature, setHoveredFeature] = useState<number | null>(null);
@@ -166,14 +167,14 @@ export default function FeaturesSection() {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link href="/create">
-                <button className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300 hover:scale-105">
+                <Button className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300 hover:scale-105">
                   Start Creating Now
-                </button>
+                </Button>
               </Link>
               <Link href="/dashboard">
-                <button className="border border-border text-foreground hover:bg-muted px-6 py-3 rounded-xl font-semibold transition-all duration-300">
+                <Button variant="outline" className="border border-border text-foreground hover:bg-muted px-6 py-3 rounded-xl font-semibold transition-all duration-300">
                   View Dashboard
-                </button>
+                </Button>
               </Link>
             </div>
           </div>

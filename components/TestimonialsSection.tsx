@@ -81,7 +81,9 @@ export default function TestimonialsSection() {
                 <button
                   key={index}
                   onClick={() => setCurrentTestimonial(index)}
-                  className={`w-2 h-2 rounded-full transition-colors ${
+                  type="button"
+                  aria-label={`View testimonial ${index + 1}`}
+                  className={`w-2 h-2 rounded-full transition-colors cursor-pointer ${
                     index === currentTestimonial ? 'bg-red-500' : 'bg-muted'
                   }`}
                 />

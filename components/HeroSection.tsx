@@ -85,6 +85,10 @@ export default function HeroSection() {
               <Link href="/create">
                 <Button 
                   size="lg" 
+                  as="a"
+                  href="https://youtu.be/dQw4w9WgXcQ"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-8 py-4 text-lg font-semibold w-full sm:w-auto shadow-xl hover:shadow-2xl group rounded-xl button-enhanced transform hover:scale-105 transition-all duration-300 relative z-10"
                   style={{
                     background: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
