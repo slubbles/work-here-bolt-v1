@@ -1,6 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  swcMinify: false,
   poweredByHeader: false,
   reactStrictMode: true,
   compiler: {
