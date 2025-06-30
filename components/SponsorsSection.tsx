@@ -35,6 +35,7 @@ export default function SponsorsSection() {
           <h2 className="text-3xl font-bold text-foreground">
             Built With
             <span className="uppercase tracking-wider">Technology Partners</span>
+          </h2>
           <p className="text-muted-foreground mt-3 max-w-2xl mx-auto">
             Powered by industry-leading technology partners
           </p>
