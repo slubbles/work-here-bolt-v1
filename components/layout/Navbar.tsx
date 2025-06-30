@@ -478,7 +478,7 @@ export default function Navbar() {
                                     onClick={() => setAlgorandSelectedNetwork('algorand-mainnet')}
                                   >
                                     Mainnet
-                                  </p>
+                                  </button>
                                 </div>
                               )}
                               
