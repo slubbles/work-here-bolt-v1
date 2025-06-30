@@ -17,6 +17,7 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.839.0",
     "@coral-xyz/anchor": "^0.28.0",
+    "@solana/wallet-adapter-backpack": "^0.1.14",
     "@perawallet/connect": "^1.4.2",
     "@radix-ui/react-accordion": "^1.1.2",
     "@radix-ui/react-dialog": "^1.0.5",
@@ -54,6 +55,7 @@
     "date-fns": "^3.6.0",
     "jspdf": "^2.5.1",
     "lucide-react": "0.263.1",
+    "mime-types": "^2.1.35",
     "next": "13.5.6",
     "postcss": "8.4.30",
     "process": "^0.11.10",

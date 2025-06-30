@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Send, Plus, Flame, BarChart3, Network, Sparkles, TrendingUp, Pause, Wallet, Check, HelpCircle, ExternalLink } from 'lucide-react';
+import { Send, Plus, Flame, BarChart3, Network, Sparkles, TrendingUp, Pause, Wallet, Check, HelpCircle, ExternalLink, Globe, Twitter, Github } from 'lucide-react';
 import { Tooltip } from '@/components/ui/tooltip';
 import { Callout } from '@/components/ui/callout';
 
@@ -69,6 +69,9 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
     totalSupply,
     decimals,
     logoUrl,
+    website,
+    github,
+    twitter,
     mintable,
     burnable,
     pausable,
@@ -181,7 +184,7 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
 
       <div className="glass-card p-10 space-y-8 relative overflow-hidden border-2 border-red-500/30 shadow-xl">
         {/* "Looking good" floating banner */}
-        <div className="absolute top-4 right-4 bg-green-500/90 text-white px-4 py-2 rounded-full text-sm font-bold flex items-center shadow-lg">
+        <div className="absolute top-4 right-4 bg-green-500/90 text-white px-4 py-2 rounded-full text-sm font-bold flex items-center shadow-lg z-10">
           <Check className="w-4 h-4 mr-2" /> 
           Ready to Deploy!
         </div>
@@ -208,11 +211,14 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
           <div className="flex justify-center relative">
             {logoUrl && !isImageLoading ? (
               <div className={`relative ${tokenGlowClass}`}>
-                <img
-                  src={logoUrl}
-                  alt={name}
-                  className="w-40 h-40 rounded-full object-cover border-4 border-red-500/50 shadow-2xl transition-all duration-500"
-                />
+                <div className="relative group">
+                  <img
+                    src={logoUrl}
+                    alt={name}
+                    className="w-40 h-40 rounded-full object-cover border-4 border-red-500/50 shadow-2xl transition-all duration-500 group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 rounded-full border-4 border-red-500/30 animate-ping opacity-60 pointer-events-none"></div>
+                </div>
                 <div className="absolute -inset-3 bg-gradient-to-r from-red-500/20 to-red-600/20 rounded-full blur-lg animate-pulse"></div>
               </div>
             ) : isImageLoading ? (
@@ -221,33 +227,64 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
               </div>
             ) : (
               <div className={`token-preview-circle w-40 h-40 text-3xl relative ${tokenGlowClass} transition-all duration-500`}>
-                {symbol.slice(0, 3).toUpperCase() || 'TKN'}
+                <div className="group">
+                  <div className="z-10 relative">
+                    {symbol.slice(0, 3).toUpperCase() || 'TKN'}
+                  </div>
+                  <div className="absolute -inset-6 bg-gradient-to-r from-red-600/20 to-purple-600/20 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                </div>
                 <div className="absolute inset-0 rounded-full border-2 border-current opacity-30 animate-ping"></div>
               </div>
             )}
           </div>
 
           <div className="space-y-2">
-            {name ? (
-              <h3 className="text-3xl font-bold text-foreground">{name}</h3>
-            ) : (
-              <div className="w-48 h-10 bg-muted animate-pulse rounded mx-auto"></div>
+            <h3 className="text-3xl font-bold text-foreground animate-in slide-in-from-bottom-2 duration-300 delay-150">
+              {name || 'Your Token Name'}
+            </h3>
+            <p className="text-muted-foreground text-2xl font-bold animate-in slide-in-from-bottom-2 duration-300 delay-200">
+              {symbol ? symbol.toUpperCase() : 'SYM'}
+            </p>
+            
+            {/* Description Preview */}
+            {description && (
+              <div className="glass-card p-4 bg-muted/20 rounded-xl mt-4 max-h-28 overflow-y-auto">
+                <p className="text-sm text-muted-foreground">
+                  {description}
+                </p>
+              </div>
             )}
-            {symbol ? (
-              <p className="text-muted-foreground text-2xl font-bold">{symbol.toUpperCase()}</p>
-            ) : (
-              <>
-                <div className="w-16 h-6 bg-muted animate-pulse rounded mx-auto"></div>
-                <div>
-                  <p className="text-base font-medium text-green-600">
-                    Ready to deploy on {networkInfo.name}
-                  </p>
-                  <Link href="/support" className="text-xs text-blue-500 hover:underline flex items-center mt-0.5">
-                    Need help? <ExternalLink className="w-3 h-3 ml-0.5" />
-                  </Link>
-                </div>
-              </>
+            
+            {/* Social Links Preview */}
+            {(website || twitter || github) && (
+              <div className="flex justify-center space-x-3 mt-2">
+                {website && (
+                  <Tooltip content="Website">
+                    <div className="w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center">
+                      <Globe className="w-3 h-3 text-blue-500" />
+                    </div>
+                  </Tooltip>
+                )}
+                {twitter && (
+                  <Tooltip content="Twitter">
+                    <div className="w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center">
+                      <Twitter className="w-3 h-3 text-blue-500" />
+                    </div>
+                  </Tooltip>
+                )}
+                {github && (
+                  <Tooltip content="GitHub">
+                    <div className="w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center">
+                      <Github className="w-3 h-3 text-blue-500" />
+                    </div>
+                  </Tooltip>
+                )}
+              </div>
             )}
+            
+            <Link href="/support" className="text-xs text-blue-500 hover:underline flex items-center justify-center mt-0.5">
+              Need help? <ExternalLink className="w-3 h-3 ml-0.5" />
+            </Link>
           </div>
         </div>
 
@@ -328,7 +365,7 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
       <div className="glass-card p-8 space-y-6 shadow-lg">
         <div className="flex items-center space-x-2">
           <div className="w-8 h-8 bg-red-500/10 rounded-full flex items-center justify-center">
-            <TrendingUp className="w-5 h-5 text-red-500" />
+            <TrendingUp className="w-5 h-5 text-red-500" aria-hidden="true" />
           </div>
           <h4 className="text-foreground font-bold text-xl">Token Summary</h4>
         </div>
@@ -370,21 +407,21 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
             <div className="flex flex-wrap gap-3">
               <Badge className={`text-base px-4 py-2 rounded-lg font-bold transition-all ${mintable 
                 ? 'bg-green-500/20 text-green-400 border-green-500/30 hover:bg-green-500/30' 
-                : 'bg-muted/50 text-muted-foreground border-muted/80'}`}>
+                : 'bg-muted/50 text-muted-foreground/50 border-muted/80'}`}>
                 <Plus className="w-3 h-3 mr-1" />
                 Mintable {mintable ? '✓' : '✗'}
               </Badge>
               
               <Badge className={`text-base px-4 py-2 rounded-lg font-bold transition-all ${burnable 
                 ? 'bg-red-500/20 text-red-400 border-red-500/30 hover:bg-red-500/30' 
-                : 'bg-muted/50 text-muted-foreground border-muted/80'}`}>
+                : 'bg-muted/50 text-muted-foreground/50 border-muted/80'}`}>
                 <Flame className="w-3 h-3 mr-1" />
                 Burnable {burnable ? '✓' : '✗'}
               </Badge>
               
               <Badge className={`text-base px-4 py-2 rounded-lg font-bold transition-all ${pausable 
                 ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30 hover:bg-yellow-500/30' 
-                : 'bg-muted/50 text-muted-foreground border-muted/80'}`}>
+                : 'bg-muted/50 text-muted-foreground/50 border-muted/80'}`}>
                 <Pause className="w-3 h-3 mr-1" />
                 Pausable {pausable ? '✓' : '✗'}
               </Badge>

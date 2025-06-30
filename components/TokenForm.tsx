@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
-import { Check, AlertCircle, Loader2, ExternalLink, Clipboard, CheckCircle, Calculator, Copy, HelpCircle } from 'lucide-react';
+import { Check, AlertCircle, Loader2, ExternalLink, Clipboard, CheckCircle, Calculator, Copy, HelpCircle, Info } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
@@ -22,22 +22,52 @@ import { SuccessConfetti } from '@/components/SuccessConfetti';
 import { TransactionTracker, createTokenCreationSteps, classifyError, formatErrorForUser } from '@/lib/error-handling';
 import Link from 'next/link';
 
+// Define allowed file types
+const ALLOWED_FILE_TYPES = ['image/jpeg', 'image/png', 'image/svg+xml', 'image/gif', 'image/webp'];
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+
 interface TokenFormProps {
   onTokenCreate?: (result: any) => void;
   defaultNetwork?: string;
+  tokenData: any;
+  setTokenData: (data: any) => void;
 }
 
-export default function TokenForm({ onTokenCreate, defaultNetwork = 'algorand-testnet' }: TokenFormProps) {
-  const [formData, setFormData] = useState({
-    name: '',
-    symbol: '', 
-    description: '',
-    totalSupply: '',
-    decimals: '6',
-    logoUrl: '',
+export default function TokenForm({ 
+  onTokenCreate, 
+  defaultNetwork = 'algorand-testnet',
+  tokenData,
+  setTokenData
+}: TokenFormProps) {
+  // File upload state
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
+  
+  // Advanced options state
+  const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
+  
+  // Form validation state
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  
+  // Network info state
+  const [networkInfo, setNetworkInfo] = useState<{
+    name: string;
+    description: string;
+    cost: string;
+    warning?: string;
+  }>({
+    name: 'Algorand Testnet',
+    description: 'For testing only - tokens have no value',
+    cost: 'Free'
   });
   
-  const [network, setNetwork] = useState<string>(defaultNetwork);
+  // Use the tokenData from props instead of local state
+  const formData = tokenData;
+  const setFormData = setTokenData;
+  
+  const [network, setNetwork] = useState<string>(tokenData.network || defaultNetwork);
   const [isDeploying, setIsDeploying] = useState(false);
   const [deploymentProgress, setDeploymentProgress] = useState(0);
   const [deploymentSteps, setDeploymentSteps] = useState<any[]>([]);
@@ -69,6 +99,41 @@ export default function TokenForm({ onTokenCreate, defaultNetwork = 'algorand-te
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
+  
+  // Update network info when network changes
+  useEffect(() => {
+    // Update network in tokenData
+    setFormData({...formData, network});
+    
+    // Update network info for display
+    if (network === 'algorand-testnet') {
+      setNetworkInfo({
+        name: 'Algorand Testnet',
+        description: 'For testing only - tokens have no value',
+        cost: 'Free'
+      });
+    } else if (network === 'algorand-mainnet') {
+      setNetworkInfo({
+        name: 'Algorand Mainnet',
+        description: 'Production network - tokens have real value',
+        cost: '~0.002 ALGO',
+        warning: 'This will create a real token with potential value'
+      });
+    } else if (network === 'solana-devnet') {
+      setNetworkInfo({
+        name: 'Solana Devnet',
+        description: 'For testing only - tokens have no value',
+        cost: 'Free'
+      });
+    } else if (network === 'solana-mainnet') {
+      setNetworkInfo({
+        name: 'Solana Mainnet',
+        description: 'Production network - tokens have real value',
+        cost: '~0.005 SOL',
+        warning: 'This will create a real token with potential value'
+      });
+    }
+  }, [network]);
   
   // Initialize transaction tracker
   useEffect(() => {
@@ -146,6 +211,46 @@ ${tokenomicsInfo.vestingSchedule?.enabled ? `- Vesting: Enabled (Team: ${tokenom
     toast({ title: "Copied to Clipboard", description: "Tokenomics details have been copied to your clipboard", variant: "default" });
   };
 
+  // Handle logo file upload
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    // Check file type
+    if (!ALLOWED_FILE_TYPES.includes(file.type)) {
+      setUploadError('Invalid file type. Only JPG, PNG, SVG, GIF, and WebP are allowed.');
+      return;
+    }
+    
+    // Check file size
+    if (file.size > MAX_FILE_SIZE) {
+      setUploadError('File size exceeds 5MB limit.');
+      return;
+    }
+    
+    setLogoFile(file);
+    setUploadError('');
+    
+    // Create a fake image URL for preview
+    const url = URL.createObjectURL(file);
+    setFormData({ ...formData, logoUrl: url });
+    
+    // Simulate upload progress
+    setIsUploading(true);
+    setUploadProgress(0);
+    
+    const interval = setInterval(() => {
+      setUploadProgress(prev => {
+        if (prev >= 100) {
+          clearInterval(interval);
+          setIsUploading(false);
+          return 100;
+        }
+        return prev + 10;
+      });
+    }, 200);
+  };
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -172,24 +277,75 @@ ${tokenomicsInfo.vestingSchedule?.enabled ? `- Vesting: Enabled (Team: ${tokenom
     }
   };
 
+  // Validate form
+  const validateForm = () => {
+    const errors: Record<string, string> = {};
+    
+    if (!formData.name) errors.name = 'Token name is required';
+    else if (formData.name.length > 32) errors.name = 'Token name must be 32 characters or less';
+    
+    if (!formData.symbol) errors.symbol = 'Token symbol is required';
+    else if (formData.symbol.length > 10) errors.symbol = 'Token symbol must be 10 characters or less';
+    
+    if (!formData.totalSupply) errors.totalSupply = 'Total supply is required';
+    else if (parseFloat(formData.totalSupply) <= 0) errors.totalSupply = 'Total supply must be greater than zero';
+    
+    if (!formData.decimals) errors.decimals = 'Decimals is required';
+    else {
+      const decimals = parseInt(formData.decimals);
+      if (isNaN(decimals)) errors.decimals = 'Decimals must be a number';
+      else if (decimals < 0) errors.decimals = 'Decimals must be non-negative';
+      else if (decimals > 18) errors.decimals = 'Decimals must be 18 or less';
+    }
+    
+    // Website validation
+    if (formData.website && !formData.website.startsWith('https://') && !formData.website.startsWith('http://')) {
+      errors.website = 'Website URL must start with http:// or https://';
+    }
+    
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  // Calculate gas fee
+  const calculateGasFee = () => {
+    if (network === 'algorand-testnet' || network === 'solana-devnet') {
+      return '0.001';
+    } else if (network === 'algorand-mainnet') {
+      return '0.002';
+    } else if (network === 'solana-mainnet') {
+      return '0.005';
+    }
+    return '0.001';
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Basic validation
-    if (!formData.name || !formData.symbol || !formData.totalSupply) {
-      setError('Please fill in all required fields');
-      return;
-    }
-    
-    const supply = parseFloat(formData.totalSupply);
-    if (isNaN(supply) || supply <= 0) {
-      setError('Total supply must be a positive number');
-      return;
-    }
-    
-    const decimals = parseInt(formData.decimals);
-    if (isNaN(decimals) || decimals < 0 || decimals > 18) {
-      setError('Decimals must be between 0 and 18');
+    // Form validation
+    if (!validateForm()) {
+      const firstErrorField = Object.keys(formErrors)[0];
+      const errorMessage = formErrors[firstErrorField];
+      setError(errorMessage);
+      
+      // Highlight the field with error
+      const errorElement = document.getElementById(firstErrorField);
+      if (errorElement) {
+        errorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        errorElement.focus();
+        errorElement.classList.add('border-red-500', 'ring-2', 'ring-red-500/50');
+        
+        // Remove highlight after 3 seconds
+        setTimeout(() => {
+          errorElement.classList.remove('border-red-500', 'ring-2', 'ring-red-500/50');
+        }, 3000);
+      }
+      
+      toast({
+        title: "Form Error",
+        description: errorMessage,
+        variant: "destructive"
+      });
       return;
     }
     
@@ -324,8 +480,8 @@ ${tokenomicsInfo.vestingSchedule?.enabled ? `- Vesting: Enabled (Team: ${tokenom
             decimals: parseInt(formData.decimals),
             totalSupply: parseFloat(formData.totalSupply),
             logoUrl: formData.logoUrl || '',
-            website: '',
-            github: '',
+            website: formData.website || '',
+            github: formData.github || '',
             twitter: '',
             mintable: true,
             burnable: false,
@@ -480,6 +636,26 @@ ${tokenomicsInfo.vestingSchedule?.enabled ? `- Vesting: Enabled (Team: ${tokenom
         return <div className="w-4 h-4 rounded-full border-2 border-gray-300" />;
     }
   };
+  
+  // Fee information component
+  const NetworkFeeInfo = () => (
+    <div className="mt-2 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+      <div className="flex items-start">
+        <Info className="w-4 h-4 text-blue-500 mt-0.5 mr-2 flex-shrink-0" />
+        <div className="space-y-2 text-sm">
+          <p className="text-blue-700 dark:text-blue-400 font-medium">Network Information:</p>
+          <div className="flex justify-between text-blue-600 dark:text-blue-300">
+            <span>Estimated Fee:</span>
+            <span className="font-mono">{calculateGasFee()} {network.includes('algorand') ? 'ALGO' : 'SOL'}</span>
+          </div>
+          <p className="text-xs text-blue-600/80 dark:text-blue-400/80">{networkInfo.description}</p>
+          {networkInfo.warning && (
+            <p className="text-xs font-medium text-yellow-600 dark:text-yellow-400">⚠️ {networkInfo.warning}</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <Card className="w-full max-w-2xl mx-auto">
@@ -534,7 +710,7 @@ ${tokenomicsInfo.vestingSchedule?.enabled ? `- Vesting: Enabled (Team: ${tokenom
               <Label htmlFor="network">Blockchain Network</Label>
               <select 
                 id="network"
-                className="w-full p-2 border rounded-md"
+                className="w-full p-2 border rounded-md bg-background text-foreground"
                 value={network}
                 onChange={(e) => setNetwork(e.target.value)}
               >
@@ -543,6 +719,8 @@ ${tokenomicsInfo.vestingSchedule?.enabled ? `- Vesting: Enabled (Team: ${tokenom
                 <option value="solana-devnet">Solana Devnet</option>
                 <option value="solana-mainnet">Solana Mainnet</option>
               </select>
+              
+              <NetworkFeeInfo />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -553,8 +731,9 @@ ${tokenomicsInfo.vestingSchedule?.enabled ? `- Vesting: Enabled (Team: ${tokenom
                   id="name"
                   name="name"
                   value={formData.name}
-                  onChange={handleInputChange}
+                  onChange={handleInputChange} 
                   placeholder="My Awesome Token"
+                  className={formErrors.name ? 'border-red-500' : ''}
                   required
                 />
               </div>
@@ -565,8 +744,9 @@ ${tokenomicsInfo.vestingSchedule?.enabled ? `- Vesting: Enabled (Team: ${tokenom
                   name="symbol"
                   value={formData.symbol}
                   onChange={handleInputChange}
-                  placeholder="MAT"
-                  required
+                  placeholder="MAT" 
+                  className={formErrors.symbol ? 'border-red-500' : ''}
+                  required 
                 />
               </div>
             </div>
@@ -576,11 +756,34 @@ ${tokenomicsInfo.vestingSchedule?.enabled ? `- Vesting: Enabled (Team: ${tokenom
               <Textarea
                 id="description"
                 name="description"
-                value={formData.description}
+                value={formData.description} 
                 onChange={handleInputChange}
                 placeholder="Describe your token's purpose and utility..."
+                className={formErrors.description ? 'border-red-500' : ''}
                 rows={3}
               />
+            </div>
+            
+            {/* Logo Upload */}
+            <div className="space-y-2">
+              <Label htmlFor="logo">Token Logo (Optional)</Label>
+              <div className="border-2 border-dashed rounded-md p-4 text-center hover:bg-muted/20 transition-colors cursor-pointer">
+                <input
+                  type="file"
+                  id="logo"
+                  accept="image/*"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                />
+                <label htmlFor="logo" className="cursor-pointer block">
+                  {formData.logoUrl ? (
+                    <img src={formData.logoUrl} alt="Preview" className="w-24 h-24 mx-auto rounded-full object-cover mb-2" />
+                  ) : (
+                    <div className="w-24 h-24 mx-auto rounded-full bg-muted flex items-center justify-center mb-2"><HelpCircle className="w-8 h-8 text-muted-foreground" /></div>
+                  )}
+                  <span className="text-sm text-muted-foreground">Click to upload a logo image (JPG, PNG, SVG)</span>
+                </label>
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -590,10 +793,11 @@ ${tokenomicsInfo.vestingSchedule?.enabled ? `- Vesting: Enabled (Team: ${tokenom
                   id="totalSupply"
                   name="totalSupply"
                   type="number"
-                  value={formData.totalSupply}
+                  value={formData.totalSupply} 
                   onChange={handleInputChange}
                   placeholder="1000000"
-                  required
+                  className={formErrors.totalSupply ? 'border-red-500' : ''}
+                  required 
                 />
               </div>
               <div className="space-y-2">
@@ -602,15 +806,115 @@ ${tokenomicsInfo.vestingSchedule?.enabled ? `- Vesting: Enabled (Team: ${tokenom
                   id="decimals"
                   name="decimals"
                   type="number"
-                  value={formData.decimals}
+                  value={formData.decimals} 
                   onChange={handleInputChange}
                   min="0"
                   max="18"
-                  required
+                  className={formErrors.decimals ? 'border-red-500' : ''}
+                  required 
                 />
+                <p className="text-xs text-muted-foreground">
+                  Recommended: 6 for standard tokens, 9 for high-precision
+                </p>
               </div>
             </div>
-
+            
+            {/* Advanced Options Toggle */}
+            <div className="mt-6">
+              <Button 
+                type="button"
+                variant="outline"
+                onClick={() => setShowAdvancedOptions(!showAdvancedOptions)}
+                className="w-full justify-between"
+              >
+                <span>Advanced Options</span>
+                <span className="text-xs">{showAdvancedOptions ? 'Hide' : 'Show'}</span>
+              </Button>
+            </div>
+            
+            {/* Advanced Options */}
+            {showAdvancedOptions && (
+              <div className="mt-4 p-4 border border-border rounded-lg space-y-4">
+                {/* Social Links */}
+                <div>
+                  <h3 className="text-sm font-medium mb-3">Social & Project Links</h3>
+                  <div className="space-y-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="website">Website URL (Optional)</Label>
+                      <Input
+                        id="website"
+                        name="website"
+                        value={formData.website}
+                        onChange={handleInputChange}
+                        placeholder="https://mytoken.com"
+                        className={formErrors.website ? 'border-red-500' : ''}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="twitter">Twitter URL (Optional)</Label>
+                      <Input
+                        id="twitter"
+                        name="twitter"
+                        value={formData.twitter}
+                        onChange={handleInputChange}
+                        placeholder="https://twitter.com/mytoken"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="github">GitHub URL (Optional)</Label>
+                      <Input
+                        id="github"
+                        name="github"
+                        value={formData.github}
+                        onChange={handleInputChange}
+                        placeholder="https://github.com/mytoken"
+                      />
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Token Features */}
+                <div>
+                  <h3 className="text-sm font-medium mb-3">Token Features</h3>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="mintable" className="cursor-pointer">Mintable (create more tokens later)</Label>
+                      <input
+                        type="checkbox"
+                        id="mintable"
+                        name="mintable"
+                        checked={formData.mintable}
+                        onChange={(e) => setFormData({...formData, mintable: e.target.checked})}
+                        className="h-4 w-4 rounded border-gray-300 text-red-600 focus:ring-red-500"
+                      />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="burnable" className="cursor-pointer">Burnable (destroy tokens)</Label>
+                      <input
+                        type="checkbox"
+                        id="burnable"
+                        name="burnable"
+                        checked={formData.burnable}
+                        onChange={(e) => setFormData({...formData, burnable: e.target.checked})}
+                        className="h-4 w-4 rounded border-gray-300 text-red-600 focus:ring-red-500"
+                      />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="pausable" className="cursor-pointer">Pausable (freeze transfers)</Label>
+                      <input
+                        type="checkbox"
+                        id="pausable"
+                        name="pausable"
+                        checked={formData.pausable}
+                        onChange={(e) => setFormData({...formData, pausable: e.target.checked})}
+                        className="h-4 w-4 rounded border-gray-300 text-red-600 focus:ring-red-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            
             {error && (
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4 flex-shrink-0" />
@@ -628,7 +932,22 @@ ${tokenomicsInfo.vestingSchedule?.enabled ? `- Vesting: Enabled (Team: ${tokenom
                 </AlertDescription>
               </Alert>
             )}
-
+            
+            {/* Estimated Cost */}
+            <div className="mt-6 p-4 bg-green-500/10 border border-green-500/30 rounded-lg">
+              <div className="flex items-start gap-3">
+                <Info className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+                <div className="space-y-2">
+                  <h3 className="font-semibold text-green-600">Deployment Information</h3>
+                  <div className="space-y-1 text-green-700">
+                    <p><span className="font-medium">Network:</span> {networkInfo.name}</p>
+                    <p><span className="font-medium">Estimated Cost:</span> {networkInfo.cost}</p>
+                    <p className="text-xs">{networkInfo.description}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
             {/* Go to Tokenomics Button */}
             {!hasAppliedTokenomics && !isDeploying && (
               <div className="mt-6 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
@@ -649,7 +968,11 @@ ${tokenomicsInfo.vestingSchedule?.enabled ? `- Vesting: Enabled (Team: ${tokenom
             )}
 
             <Button type="submit" className="w-full" size="lg">
-              Deploy Token on {network.replace('-', ' ')}
+              {network === 'algorand-mainnet' || network === 'solana-mainnet' ? (
+                <span>Deploy Token to {network.includes('algorand') ? 'Algorand' : 'Solana'} Mainnet</span>
+              ) : (
+                <span>Deploy Token on {network.replace('-', ' ')}</span>
+              )}
             </Button>
           </form>
         )}
@@ -726,7 +1049,7 @@ ${tokenomicsInfo.vestingSchedule?.enabled ? `- Vesting: Enabled (Team: ${tokenom
                     <div className="flex flex-col sm:flex-row sm:justify-between p-2 bg-green-500/10 rounded-md">
                       <span className="font-medium text-green-800">Asset ID:</span>
                       <div className="flex items-center mt-1 sm:mt-0">
-                        <span className="font-mono text-green-700">{result.assetId}</span>
+                        <span className="font-mono text-green-700 break-all">{result.assetId}</span>
                         <Button 
                           variant="ghost" 
                           size="sm"
@@ -749,7 +1072,7 @@ ${tokenomicsInfo.vestingSchedule?.enabled ? `- Vesting: Enabled (Team: ${tokenom
                     <div className="flex flex-col sm:flex-row sm:justify-between p-2 bg-blue-500/10 rounded-md">
                       <span className="font-medium text-blue-800">Mint Address:</span>
                       <div className="flex items-center mt-1 sm:mt-0">
-                        <span className="font-mono text-blue-700">{result.mintAddress.substring(0, 6)}...{result.mintAddress.substring(result.mintAddress.length - 4)}</span>
+                        <span className="font-mono text-blue-700 break-all">{result.mintAddress}</span>
                         <Button 
                           variant="ghost" 
                           size="sm"
@@ -772,7 +1095,7 @@ ${tokenomicsInfo.vestingSchedule?.enabled ? `- Vesting: Enabled (Team: ${tokenom
                     <div className="flex flex-col sm:flex-row sm:justify-between p-2 bg-purple-500/10 rounded-md">
                       <span className="font-medium text-purple-800">Token Address:</span>
                       <div className="flex items-center mt-1 sm:mt-0">
-                        <span className="font-mono text-purple-700">{result.tokenAddress.substring(0, 6)}...{result.tokenAddress.substring(result.tokenAddress.length - 4)}</span>
+                        <span className="font-mono text-purple-700 break-all">{result.tokenAddress}</span>
                         <Button 
                           variant="ghost" 
                           size="sm"
@@ -821,12 +1144,9 @@ ${tokenomicsInfo.vestingSchedule?.enabled ? `- Vesting: Enabled (Team: ${tokenom
               </div>
             )}
             
-            <div className="flex space-x-4 mt-4">
+            <div className="flex flex-col md:flex-row gap-4 mt-6">
               <Button
                 onClick={() => {
-                  // Navigate to dashboard
-                  router.push('/dashboard');
-                  
                   // Show success toast first
                   toast({
                     title: "Token Created Successfully!",
@@ -859,6 +1179,7 @@ ${tokenomicsInfo.vestingSchedule?.enabled ? `- Vesting: Enabled (Team: ${tokenom
                 }}
                 variant="outline"
                 className="flex-1 border-green-500/30 text-green-700 hover:bg-green-500/10"
+                size="lg"
               >
                 Create Another Token
               </Button>
@@ -867,19 +1188,33 @@ ${tokenomicsInfo.vestingSchedule?.enabled ? `- Vesting: Enabled (Team: ${tokenom
                 <Button
                   onClick={() => window.open(result.details.explorerUrl, '_blank')}
                   className="flex-1 bg-red-500 hover:bg-red-600 text-white flex items-center justify-center gap-2"
+                  size="lg"
                 >
                   <ExternalLink className="w-4 h-4" />
                   View on Explorer
                 </Button>
               )}
             </div>
+            
+            {/* Dashboard Link */}
+            <div className="text-center mt-6">
+              <Button 
+                variant="link"
+                asChild
+                className="text-blue-500"
+              >
+                <Link href="/dashboard">
+                  Go to Dashboard to Manage Your Tokens →
+                </Link>
+              </Button>
+            </div>
           </div>
         )}
         
         {/* Optional tracking information */}
         {supabaseTracking && (
-          <div className="text-center text-xs text-muted-foreground mt-3">
-            <p>Token creations are tracked for your convenience.</p>
+          <div className="text-center text-xs text-muted-foreground mt-6 p-2 border-t border-border">
+            <p>Token creations are securely tracked for your convenience. <Link href="/privacy" className="underline">Privacy Policy</Link></p>
           </div>
         )}
       </CardContent>
