@@ -125,11 +125,12 @@ export function AlgorandWalletProvider({ children }: AlgorandWalletProviderProps
           }
         } catch (reconnectError) {
           console.log(`ℹ️ No existing session found for ${selectedNetwork}`);
-      } catch (error) {
+              } catch (error) {
         console.error(`❌ Failed to initialize Pera Wallet for ${selectedNetwork}:`, error);
         setError(`Failed to initialize wallet for ${selectedNetwork}`);
       }
-    };
+          };
+    }
 
     initializeWallet();
   }, [selectedNetwork]); // React to network changes
