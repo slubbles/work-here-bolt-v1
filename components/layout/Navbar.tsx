@@ -69,8 +69,12 @@ export default function Navbar() {
   // Check if user is admin
   const isAdmin = solanaConnected && solanaPublicKey && solanaPublicKey.toString() === ADMIN_WALLET.toString();
 
-  // Handle navigation with loading state
-  const handleNavigation = (href: string) => {
+  // Enhanced navigation with loading state
+  const handleNavigation = (href: string, event?: React.MouseEvent) => {
+    if (event) {
+      event.preventDefault();
+    }
+    
     // Show loading indicator for dashboard
     if (href === '/dashboard') {
       setIsMenuOpen(false); // Close mobile menu immediately
@@ -80,6 +84,8 @@ export default function Navbar() {
         document.body.classList.remove('dashboard-loading');
       }, 3000);
     }
+    
+    router.push(href);
   };
   
   const handleAlgorandConnect = async () => {
@@ -162,8 +168,8 @@ export default function Navbar() {
               <Link
                 key={link.name}
                 href={link.href}
-                onClick={() => handleNavigation(link.href)}
-                className={`text-muted-foreground hover:text-foreground transition-all duration-200 font-medium relative group ${
+                onClick={(e) => {
+                  handleNavigation(link.href, e);
                   pathname === link.href ? 'text-red-500' : ''
                 }`}
               >

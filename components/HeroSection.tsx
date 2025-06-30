@@ -66,9 +66,9 @@ export default function HeroSection() {
             {/* Social Proof */}
             <div className="flex items-center space-x-6">
               <div className="flex -space-x-2">
-                {[1, 2, 3, 4, 5].map((i) => (
+                {['X', 'Y', 'Z', 'A', 'B'].map((letter, i) => (
                   <div key={i} className="w-10 h-10 rounded-full bg-gradient-to-br from-red-500 to-red-600 border-2 border-background flex items-center justify-center text-white text-xs font-bold">
-                    {String.fromCharCode(65 + Math.floor(Math.random() * 26))}
+                    {letter}
                   </div>
                 ))}
                 <div className="w-10 h-10 rounded-full bg-muted border-2 border-background flex items-center justify-center text-muted-foreground text-xs">

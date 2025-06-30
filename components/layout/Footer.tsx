@@ -130,7 +130,7 @@ export default function Footer() {
           <div className="mt-6 pt-6 border-t border-border">
             <div className="text-center">
               <p className="text-muted-foreground text-xs">
-                Snarbles is a token creation platform. Always do your own research before investing in any cryptocurrency or token. 
+                Snarbles is a token creation platform. Always do your own research before investing in any cryptocurrency or token.
                 Please ensure compliance with your local regulations. This platform is built with <a href="https://bolt.new/" target="_blank" rel="noopener noreferrer" className="text-red-500 hover:underline">Bolt.new</a>.
               </p>
             </div>

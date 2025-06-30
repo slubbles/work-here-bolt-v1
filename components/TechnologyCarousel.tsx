@@ -123,7 +123,7 @@ export default function TechnologyCarousel() {
                     className="flex-shrink-0 mx-12 flex items-center justify-center h-24 transition-all duration-300 filter grayscale hover:filter-none hover:scale-110"
                   >
                     <Image 
-                      src={partner.logo} 
+                  className="flex-shrink-0 mx-12 flex items-center justify-center h-24 transition-all duration-300 filter grayscale hover:filter-none hover:scale-110"
                       alt={partner.name}
                       width={140}
                       height={50}
@@ -142,7 +142,7 @@ export default function TechnologyCarousel() {
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex-shrink-0 mx-12 flex items-center justify-center h-24 transition-all duration-300 filter grayscale hover:filter-none hover:scale-110"
-                  >
+                  className="flex-shrink-0 mx-12 flex items-center justify-center h-24 transition-all duration-300 filter grayscale hover:filter-none hover:scale-110"
                     <Image 
                       src={partner.logo} 
                       alt={partner.name}

@@ -24,7 +24,7 @@ export default function SponsorsSection() {
     return () => observer.disconnect();
   }, []);
 
-  // Remove section from display
+    <section id="sponsors-section" className="py-16 app-background relative overflow-hidden">
   if (!showSection) return null;
   
   return (
@@ -34,7 +34,7 @@ export default function SponsorsSection() {
         <div className="text-center mb-8">
           <h2 className="text-3xl font-bold text-foreground">
             Built With
-          </h2>
+            <span className="uppercase tracking-wider">Technology Partners</span>
           <p className="text-muted-foreground mt-3 max-w-2xl mx-auto">
             Powered by industry-leading technology partners
           </p>

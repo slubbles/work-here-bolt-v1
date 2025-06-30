@@ -824,7 +824,7 @@
   }
   
   .animate-carousel {
-    animation: carousel 60s linear infinite;
+    animation: carousel 60s linear infinite forwards;
   }
 }
 
@@ -1370,7 +1370,7 @@ p {
 /* Infinite carousel animation fix */
 @keyframes carousel {
   0% { transform: translateX(0); }
-  100% { transform: translateX(-100%); }
+  100% { transform: translateX(calc(-236px * 6)); }
 }
 
 .animate-carousel {
