@@ -12,6 +12,7 @@ import { Check, AlertCircle, Loader2, ExternalLink, Clipboard, CheckCircle, Calc
 import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { isSupabaseAvailable } from '@/lib/supabase-client';
 import { trackTokenCreation } from '@/lib/token-tracking';
@@ -640,11 +641,18 @@ ${tokenomicsInfo.vestingSchedule?.enabled ? `- Vesting: Enabled (Team: ${tokenom
             <div className="space-y-3 p-4 border border-border/60 rounded-xl bg-muted/20">
               <div className="flex justify-between items-center">
                 <Label className="text-base font-medium">Token Features</Label>
-                <Tooltip content="Advanced features for your token">
-                  <div className="cursor-help">
-                    <HelpCircle className="h-4 w-4 text-muted-foreground" />
-                  </div>
-                </Tooltip>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="cursor-help">
+                        <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Advanced features for your token</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
               
               <div className="grid grid-cols-2 gap-3">
@@ -747,8 +755,16 @@ ${tokenomicsInfo.vestingSchedule?.enabled ? `- Vesting: Enabled (Team: ${tokenom
                         Design Token Distribution
                       </Button>
                       <p className="mt-2 text-xs text-blue-500">
-                        <Tooltip content="Design your token distribution with our visual simulator">
-                        <span>Learn more about token distribution strategies →</span></Tooltip>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span>Learn more about token distribution strategies →</span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Design your token distribution with our visual simulator</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       </p>
                     </Link>
                   </div>

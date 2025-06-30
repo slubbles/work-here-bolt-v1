@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { HelpCircle, ExternalLink } from 'lucide-react';
-import { Tooltip } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface GuideBadgeProps {
   text: string;
@@ -12,29 +12,31 @@ interface GuideBadgeProps {
 
 export function GuideBadge({ text, link, side = "top" }: GuideBadgeProps) {
   return (
-    <Tooltip 
-      content={
-        <div className="max-w-xs">
-          <p className="text-sm">{text}</p>
-          {link && (
-            <a 
-              href={link} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="mt-1 text-xs text-blue-500 flex items-center hover:underline"
-            >
-              Learn more
-              <ExternalLink className="ml-1 w-3 h-3" />
-            </a>
-          )}
-        </div>
-      }
-      side={side}
-    >
-      <span className="ml-1.5 inline-flex items-center justify-center">
-        <HelpCircle className="h-3.5 w-3.5 text-blue-500 hover:text-blue-600 transition-colors cursor-help" />
-      </span>
-    </Tooltip>
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span className="ml-1.5 inline-flex items-center justify-center">
+            <HelpCircle className="h-3.5 w-3.5 text-blue-500 hover:text-blue-600 transition-colors cursor-help" />
+          </span>
+        </TooltipTrigger>
+        <TooltipContent side={side}>
+          <div className="max-w-xs">
+            <p className="text-sm">{text}</p>
+            {link && (
+              <a 
+                href={link} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="mt-1 text-xs text-blue-500 flex items-center hover:underline"
+              >
+                Learn more
+                <ExternalLink className="ml-1 w-3 h-3" />
+              </a>
+            )}
+          </div>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }
 
@@ -87,11 +89,18 @@ export function NetworkBadge({ network, className }: { network: string, classNam
   }
   
   return (
-    <Tooltip content={tooltipText}>
-      <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${colors.bg} ${colors.text} ${colors.border} border ${className}`}>
-        <span className="w-2 h-2 rounded-full mr-1.5 animate-pulse" style={{ backgroundColor: 'currentColor' }}></span>
-        {networkName}
-      </div>
-    </Tooltip>
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${colors.bg} ${colors.text} ${colors.border} border ${className}`}>
+            <span className="w-2 h-2 rounded-full mr-1.5 animate-pulse" style={{ backgroundColor: 'currentColor' }}></span>
+            {networkName}
+          </div>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>{tooltipText}</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }
