@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils"
 
 const TooltipProvider = TooltipPrimitive.Provider
 
-const TooltipRoot = TooltipPrimitive.Root
+const Tooltip = TooltipPrimitive.Root
 
 const TooltipTrigger = TooltipPrimitive.Trigger
 
@@ -27,33 +27,4 @@ const TooltipContent = React.forwardRef<
 ))
 TooltipContent.displayName = TooltipPrimitive.Content.displayName
 
-export const Tooltip = ({ 
-  children, 
-  content, 
-  className,
-  side = "top", 
-  align = "center", 
-  delayDuration = 300
-}: { 
-  children: React.ReactNode, 
-  content: React.ReactNode,
-  className?: string,
-  side?: "top" | "bottom" | "left" | "right",
-  align?: "center" | "start" | "end",
-  delayDuration?: number
-}) => {
-  return (
-    <TooltipProvider>
-      <TooltipRoot delayDuration={delayDuration}>
-        <TooltipTrigger asChild>
-          {children}
-        </TooltipTrigger>
-        <TooltipContent side={side} align={align} className={cn("bg-background border-border shadow-lg", className)}>
-          {content}
-        </TooltipContent>
-      </TooltipRoot>
-    </TooltipProvider>
-  )
-}
-
-export { TooltipProvider, TooltipRoot, TooltipTrigger, TooltipContent }
+export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider }
