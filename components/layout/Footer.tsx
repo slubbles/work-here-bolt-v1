@@ -132,20 +132,22 @@ export default function Footer() {
               </p>
             </div>
           </div>
+        </div>
       
-      <div className="text-center mt-4">
-        <a 
-          href="https://bolt.new/" 
-          target="_blank" 
-          rel="noopener noreferrer"
-          className="inline-block"
-        >
-          <img 
-            src="/white_circle_360x360 copy.png" 
-            alt="Powered by Bolt.new" 
-            className="w-8 h-8"
-          />
-        </a>
+        <div className="text-center mt-4">
+          <a 
+            href="https://bolt.new/" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="inline-block"
+          >
+            <img 
+              src="/white_circle_360x360 copy.png" 
+              alt="Powered by Bolt.new" 
+              className="w-8 h-8"
+            />
+          </a>
+        </div>
       </div>
     </footer>
   );
