@@ -259,7 +259,7 @@ export default function AlgorandDashboard() {
   // Format token value for display
   const formatTokenValue = (token: TokenData) => {
     if (!token.value || token.value === 'N/A') return 'N/A';
-    
+
     // If value is already a formatted string like "$250.50"
     if (typeof token.value === 'string' && token.value.startsWith('$')) {
       return token.value;
@@ -273,7 +273,7 @@ export default function AlgorandDashboard() {
   if (!connected || !address) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#76f935]/5 via-[#76f935]/2 to-[#76f935]/5 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md mx-4 border-[#A9DFBF]/30 bg-gradient-to-br from-[#A9DFBF]/10 to-[#22C55E]/5 shadow-2xl">
+        <Card className="w-full max-w-md mx-4 border-red-500/30 bg-gradient-to-br from-black to-gray-900 shadow-2xl font-inter">
           <CardHeader className="text-center pb-2">
             <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-[#A9DFBF] to-[#22C55E] p-5 shadow-lg shadow-[#A9DFBF]/20">
               <Wallet className="w-full h-full text-white" aria-hidden="true" />
@@ -319,7 +319,7 @@ export default function AlgorandDashboard() {
             <div className="flex flex-col space-y-3">
               <Button 
                 onClick={() => window.location.reload()}
-                className="w-full bg-gradient-to-r from-[#22C55E] to-[#A9DFBF] text-white hover:from-[#1EA750] hover:to-[#97CEAC] shadow-md shadow-[#A9DFBF]/20 py-6 font-medium text-base"
+                className="w-full bg-gradient-to-r from-red-500 to-black hover:from-red-600 hover:to-gray-900 text-white hover:from-[#1EA750] hover:to-[#97CEAC] shadow-md shadow-[#A9DFBF]/20 py-6 font-medium text-base"
               >
                 <RefreshCw className="w-4 h-4 mr-2.5" />
                 Connect Wallet
@@ -385,7 +385,7 @@ export default function AlgorandDashboard() {
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card className="bg-white/90 dark:bg-black/80 shadow-md">
+          <Card className="bg-white/90 dark:bg-black/80 shadow-md font-inter">
             <CardContent className="pt-6">
               <div className="flex justify-between items-start">
                 <div>
@@ -500,7 +500,7 @@ export default function AlgorandDashboard() {
                         <div className="flex space-x-2 mt-3 md:mt-0 md:ml-4">
                           <Button 
                             variant="ghost" 
-                            size="sm" 
+                            size="sm"
                             className="h-8 w-8 p-0"
                             onClick={() => {
                               setSelectedToken(token);

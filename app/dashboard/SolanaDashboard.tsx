@@ -539,6 +539,9 @@ export default function SolanaDashboard() {
     return isNaN(value) ? 'N/A' : `$${value.toFixed(2)}`;
   };
 
+  // Font consistency fix for mobile
+  const fontClass = "font-inter";
+
   if (!connected) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 flex items-center justify-center">
@@ -703,7 +706,7 @@ export default function SolanaDashboard() {
                                 // Replace with div containing first letter
                                 (e.target as HTMLImageElement).style.display = 'none';
                                 (e.target as HTMLImageElement).parentElement!.innerHTML = `
-                                  <div class="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center">
+                                  <div class="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center ${fontClass}">
                                     <span class="text-white font-bold">${(token.symbol || '?')[0]}</span>
                                     <span class="sr-only">${token.symbol || 'Token'}</span>
                                   </div>
