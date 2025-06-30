@@ -412,7 +412,7 @@ export default function Navbar() {
                               </div>
                               
                               {/* Disconnect Button */}
-                              <p className="text-[#AB9FF2] text-sm font-mono break-all">{formatAddress(solanaPublicKey.toString())}</p>
+                              <Button
                                 onClick={async () => {
                                   try {
                                     // Show loading state
