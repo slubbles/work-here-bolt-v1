@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
 import { Check, AlertCircle, Loader2, ExternalLink, Clipboard, CheckCircle, Calculator, Copy, HelpCircle } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
@@ -29,12 +29,15 @@ interface TokenFormProps {
 
 export default function TokenForm({ onTokenCreate, defaultNetwork = 'algorand-testnet' }: TokenFormProps) {
   const [formData, setFormData] = useState({
-    name: '',
-    symbol: '',
-    description: '',
-    totalSupply: '',
-    decimals: '6',
+    name: 'My Custom Token',
+    symbol: 'MCT',
+    description: 'A custom token created with Snarbles token platform',
+    totalSupply: '1000000',
+    decimals: '9',
     logoUrl: '',
+    website: '',
+    twitter: '',
+    github: ''
   });
   
   const [network, setNetwork] = useState<string>(defaultNetwork);
@@ -544,7 +547,8 @@ ${tokenomicsInfo.vestingSchedule?.enabled ? `- Vesting: Enabled (Team: ${tokenom
                 <Input
                   id="totalSupply"
                   name="totalSupply"
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
                   value={formData.totalSupply}
                   onChange={handleInputChange}
                   placeholder="1000000"
@@ -556,12 +560,51 @@ ${tokenomicsInfo.vestingSchedule?.enabled ? `- Vesting: Enabled (Team: ${tokenom
                 <Input
                   id="decimals"
                   name="decimals"
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
                   value={formData.decimals}
                   onChange={handleInputChange}
                   min="0"
                   max="18"
                   required
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Recommended: 9 for Solana, 6 for Algorand
+                </p>
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="website">Website URL (Optional)</Label>
+              <Input
+                id="website"
+                name="website"
+                type="url"
+                value={formData.website}
+                onChange={handleInputChange}
+                placeholder="https://yourproject.com"
+              />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="twitter">Twitter Handle (Optional)</Label>
+                <Input
+                  id="twitter"
+                  name="twitter"
+                  value={formData.twitter}
+                  onChange={handleInputChange}
+                  placeholder="@yourproject"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="github">GitHub (Optional)</Label>
+                <Input
+                  id="github"
+                  name="github"
+                  value={formData.github}
+                  onChange={handleInputChange}
+                  placeholder="yourproject"
                 />
               </div>
             </div>
@@ -569,9 +612,9 @@ ${tokenomicsInfo.vestingSchedule?.enabled ? `- Vesting: Enabled (Team: ${tokenom
             {error && (
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4 flex-shrink-0" />
-                <AlertDescription className="whitespace-pre-line">
-                  <div className="space-y-2">
-                    <p className="font-semibold">Error Details:</p>
+                <div className="space-y-2">
+                  <h5 className="mb-1 font-medium leading-none tracking-tight">Error Details:</h5>
+                  <AlertDescription className="whitespace-pre-line">
                     <p>{error}</p>
                     {error.toLowerCase().includes('insufficient') && (
                       <div className="mt-3 p-3 bg-blue-500/10 border border-blue-500/30 rounded">
@@ -579,15 +622,15 @@ ${tokenomicsInfo.vestingSchedule?.enabled ? `- Vesting: Enabled (Team: ${tokenom
                         <p className="text-blue-600 text-sm">Make sure you have enough funds in your wallet to cover transaction fees.</p>
                       </div>
                     )}
-                  </div>
-                </AlertDescription>
+                  </AlertDescription>
+                </div>
               </Alert>
             )}
 
             {/* Go to Tokenomics Button */}
             {!hasAppliedTokenomics && !isDeploying && (
               <div className="mt-6 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
-                <div className="flex items-start gap-3">
+                <div className="flex items-start gap-3 relative overflow-hidden">
                   <Calculator className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
                   <div className="space-y-2">
                     <h3 className="font-semibold text-blue-600">Need help with token distribution?</h3>
@@ -595,16 +638,22 @@ ${tokenomicsInfo.vestingSchedule?.enabled ? `- Vesting: Enabled (Team: ${tokenom
                     <Link href="/tokenomics">
                       <Button variant="outline" className="mt-2 bg-blue-500/10 border-blue-500/30 hover:bg-blue-500/20 text-blue-600">
                         <Calculator className="w-4 h-4 mr-2" />
-                        Open Tokenomics Simulator
+                        Design Token Distribution
                       </Button>
                     </Link>
                   </div>
+                  <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-blue-500/5 rounded-full"></div>
                 </div>
               </div>
             )}
 
-            <Button type="submit" className="w-full" size="lg">
-              Deploy Token on {network.replace('-', ' ')}
+            <Button 
+              type="submit" 
+              className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white" 
+              size="lg"
+            >
+              <Rocket className="w-5 h-5 mr-2" />
+              Launch Token on {network.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
             </Button>
           </form>
         )}

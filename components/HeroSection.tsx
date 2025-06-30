@@ -68,7 +68,7 @@ export default function HeroSection() {
               <div className="flex -space-x-2">
                 {[1, 2, 3, 4, 5].map((i) => (
                   <div key={i} className="w-10 h-10 rounded-full bg-gradient-to-br from-red-500 to-red-600 border-2 border-background flex items-center justify-center text-white text-xs font-bold">
-                    {String.fromCharCode(64 + i)}
+                    {String.fromCharCode(65 + Math.floor(Math.random() * 26))}
                   </div>
                 ))}
                 <div className="w-10 h-10 rounded-full bg-muted border-2 border-background flex items-center justify-center text-muted-foreground text-xs">
@@ -146,9 +146,11 @@ export default function HeroSection() {
               <div className="text-center space-y-6 relative z-10 pt-8">
                 <div className="flex items-center justify-between">
                   <div className="text-sm text-muted-foreground uppercase tracking-wide font-semibold">Live Preview</div>
-                  <div className="flex items-center space-x-2 text-green-500">
-                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                    <span className="text-xs font-medium">Ready</span>
+                  <div className="px-2 py-1 rounded-full bg-green-500/10 border border-green-500/30">
+                    <div className="flex items-center space-x-2 text-green-500">
+                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                      <span className="text-xs font-medium">Wallet Ready</span>
+                    </div>
                   </div>
                 </div>
                 

@@ -44,10 +44,11 @@ export default function Navbar() {
     document.documentElement.setAttribute('data-theme', savedTheme);
     
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 20);
+      setIsScrolled(window.scrollY > 10);
     };
 
     window.addEventListener('scroll', handleScroll);
+    handleScroll();
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
@@ -204,41 +205,42 @@ export default function Navbar() {
             <div className="relative">
               {isAnyWalletConnected ? (
                 <div className="flex items-center space-x-2">
-                  {/* Wallet Connection Indicator Button */}
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => setShowWalletOptions(!showWalletOptions)}
-                    className="bg-background/80 border-border px-3 py-1.5 h-auto rounded-full hover:bg-muted/80 backdrop-blur-sm shadow-sm"
-                  >
-                    <div className="flex items-center space-x-2">
-                      {solanaConnected && (
-                        <div className="flex items-center">
-                          <div className="w-6 h-6 rounded-full flex items-center justify-center bg-[#AB9FF2]">
-                            <span className="text-white font-bold text-xs">S</span>
+                  <div className="wallet-status-connected rounded-full px-3 py-1.5">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => setShowWalletOptions(!showWalletOptions)}
+                      className="bg-transparent border-0 px-3 py-1.5 h-auto hover:bg-transparent"
+                    >
+                      <div className="flex items-center space-x-2">
+                        {solanaConnected && (
+                          <div className="flex items-center">
+                            <div className="w-6 h-6 rounded-full flex items-center justify-center bg-[#AB9FF2] wallet-pulse-indicator">
+                              <span className="text-white font-bold text-xs">S</span>
+                            </div>
                           </div>
-                        </div>
-                      )}
-                      
-                      {algorandConnected && (
-                        <div className="flex items-center">
-                          <div className="w-6 h-6 rounded-full flex items-center justify-center bg-[#22C55E]">
-                            <span className="text-white font-bold text-xs">A</span>
+                        )}
+                        
+                        {algorandConnected && (
+                          <div className="flex items-center">
+                            <div className="w-6 h-6 rounded-full flex items-center justify-center bg-[#22C55E] wallet-pulse-indicator">
+                              <span className="text-white font-bold text-xs">A</span>
+                            </div>
                           </div>
-                        </div>
-                      )}
-                      
-                      <span className="text-foreground font-medium text-sm">
-                        {solanaConnected && algorandConnected
-                          ? "2 Wallets"
-                          : solanaConnected
-                            ? formatAddress(solanaPublicKey!.toString())
-                            : formatAddress(algorandAddress!)}
-                      </span>
-                      
-                      <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-                    </div>
-                  </Button>
+                        )}
+                        
+                        <span className="text-foreground font-medium text-sm wallet-status-enhanced">
+                          {solanaConnected && algorandConnected
+                            ? "2 Wallets"
+                            : solanaConnected
+                              ? formatAddress(solanaPublicKey!.toString())
+                              : formatAddress(algorandAddress!)}
+                        </span>
+                        
+                        <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                      </div>
+                    </Button>
+                  </div>
                   
                   {/* Wallet Options Button */}
                   <Button
@@ -253,10 +255,10 @@ export default function Navbar() {
               ) : (
                 <Button
                   onClick={() => setShowWalletOptions(!showWalletOptions)}
-                  className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold rounded-xl px-4 py-2 h-9 shadow-lg hover:shadow-xl transition-all"
+                  className="wallet-connect-button bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold rounded-xl px-4 py-2 h-9 shadow-lg hover:shadow-xl transition-all"
                 >
                   <Wallet className="w-4 h-4 mr-2" />
-                  Connect Wallet
+                  <span className="relative z-10">Connect Wallet</span>
                 </Button>
               )}
 
@@ -265,7 +267,7 @@ export default function Navbar() {
                 <div className="absolute right-0 top-full mt-2 w-96 bg-background/95 backdrop-blur-xl border border-border rounded-xl shadow-2xl z-50 animate-in slide-in-from-top-2 duration-200 overflow-hidden">
                   <div className="p-6">
                     <div className="mb-6 text-center">
-                      <h3 className="text-foreground font-bold text-2xl mb-1">Wallet Management</h3>
+                      <h3 className="text-foreground font-bold text-2xl mb-1 gradient-text">Wallet Management</h3>
                       <p className="text-muted-foreground text-sm">Connect or manage your wallets</p>
                     </div>
                     

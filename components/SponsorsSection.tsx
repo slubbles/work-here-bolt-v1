@@ -6,6 +6,7 @@ import Image from 'next/image';
 
 export default function SponsorsSection() {
   const [isVisible, setIsVisible] = useState(false);
+  const [showSection, setShowSection] = useState(true); // Control section visibility
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -23,22 +24,19 @@ export default function SponsorsSection() {
     return () => observer.disconnect();
   }, []);
 
+  // Remove section from display
+  if (!showSection) return null;
+  
   return (
-    <section id="sponsors-section" className="py-16 app-background relative overflow-hidden">
+    <section id="sponsors-section" className="py-12 app-background relative overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         {/* Section Header */}
-        <div className="text-center mb-12">
-          <div className="inline-flex items-center space-x-2 bg-red-500/10 border border-red-500/20 rounded-full px-4 py-2 text-red-500 font-semibold text-sm">
-            <Shield className="w-4 h-4" />
-            <span className="uppercase tracking-wider">Trusted Partners</span>
-          </div>
-          
-          <h2 className="text-3xl lg:text-4xl font-bold text-foreground leading-tight mt-4 tracking-tight">
-            Built With Enterprise-Grade Technology
+        <div className="text-center mb-8">
+          <h2 className="text-3xl font-bold text-foreground">
+            Built With
           </h2>
-          
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto mt-4">
-            Empowering the next generation of token creators with industry-leading infrastructure
+          <p className="text-muted-foreground mt-3 max-w-2xl mx-auto">
+            Powered by industry-leading technology partners
           </p>
         </div>
 

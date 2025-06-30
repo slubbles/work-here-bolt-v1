@@ -5,6 +5,7 @@ import Image from 'next/image';
 
 export default function TechnologyCarousel() {
   const [isVisible, setIsVisible] = useState(false);
+  const carouselContainerRef = useRef<HTMLDivElement>(null);
   const carouselRef = useRef(null);
 
   useEffect(() => {
@@ -24,6 +25,13 @@ export default function TechnologyCarousel() {
       if (currentRef) observer.unobserve(currentRef);
     };
   }, []);
+  
+  // Update animation when component becomes visible
+  useEffect(() => {
+    if (isVisible && carouselContainerRef.current) {
+      carouselContainerRef.current.classList.add('animate-carousel');
+    }
+  }, [isVisible]);
 
   const techPartners = [
     {
@@ -78,45 +86,73 @@ export default function TechnologyCarousel() {
           </div>
           
           <div className="relative overflow-hidden mx-auto">
-            {/* Carousel Container */}
-            <div className="flex animate-carousel items-center justify-center">
-              {/* First set of logos */}
-              {techPartners.map((partner, index) => (
-                <a 
-                  key={`first-${index}`}
-                  href={partner.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex-shrink-0 mx-12 flex items-center justify-center h-24 transition-all duration-300 filter grayscale hover:filter-none hover:scale-110"
-                >
-                  <Image 
-                    src={partner.logo} 
-                    alt={partner.name}
-                    width={140}
-                    height={50}
-                    className="object-contain max-h-full"
-                  />
-                </a>
-              ))}
+            {/* Improved Carousel Container */}
+            <div 
+              ref={carouselContainerRef}
+              className="flex items-center justify-center whitespace-nowrap"
+            >
+              <div className="inline-flex items-center justify-center">
+                {/* First set of logos */}
+                {techPartners.map((partner, index) => (
+                  <a 
+                    key={`first-${index}`}
+                    href={partner.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-shrink-0 mx-12 flex items-center justify-center h-24 transition-all duration-300 filter grayscale hover:filter-none hover:scale-110"
+                  >
+                    <Image 
+                      src={partner.logo} 
+                      alt={partner.name}
+                      width={140}
+                      height={50}
+                      className="object-contain max-h-full"
+                    />
+                  </a>
+                ))}
+              </div>
               
-              {/* Duplicate set for smooth infinite scrolling */}
-              {techPartners.map((partner, index) => (
-                <a 
-                  key={`second-${index}`}
-                  href={partner.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex-shrink-0 mx-12 flex items-center justify-center h-24 transition-all duration-300 filter grayscale hover:filter-none hover:scale-110"
-                >
-                  <Image 
-                    src={partner.logo} 
-                    alt={partner.name}
-                    width={140}
-                    height={50}
-                    className="object-contain max-h-full"
-                  />
-                </a>
-              ))}
+              {/* Duplicate sets for true infinite scrolling */}
+              <div className="inline-flex items-center justify-center">
+                {techPartners.map((partner, index) => (
+                  <a 
+                    key={`second-${index}`}
+                    href={partner.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-shrink-0 mx-12 flex items-center justify-center h-24 transition-all duration-300 filter grayscale hover:filter-none hover:scale-110"
+                  >
+                    <Image 
+                      src={partner.logo} 
+                      alt={partner.name}
+                      width={140}
+                      height={50}
+                      className="object-contain max-h-full"
+                    />
+                  </a>
+                ))}
+              </div>
+              
+              {/* Third set for smoother looping */}
+              <div className="inline-flex items-center justify-center">
+                {techPartners.map((partner, index) => (
+                  <a 
+                    key={`third-${index}`}
+                    href={partner.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-shrink-0 mx-12 flex items-center justify-center h-24 transition-all duration-300 filter grayscale hover:filter-none hover:scale-110"
+                  >
+                    <Image 
+                      src={partner.logo} 
+                      alt={partner.name}
+                      width={140}
+                      height={50}
+                      className="object-contain max-h-full"
+                    />
+                  </a>
+                ))}
+              </div>
             </div>
             
             {/* Gradient overlays for fade effect */}
