@@ -66,7 +66,7 @@ export default function HeroSection() {
             {/* Social Proof */}
             <div className="flex items-center space-x-6">
               <div className="flex -space-x-2">
-                {['X', 'Y', 'Z', 'A', 'B'].map((letter, i) => (
+                {['K', 'R', 'T', 'M', 'J'].map((letter, i) => (
                   <div key={i} className="w-10 h-10 rounded-full bg-gradient-to-br from-red-500 to-red-600 border-2 border-background flex items-center justify-center text-white text-xs font-bold">
                     {letter}
                   </div>
@@ -77,6 +77,10 @@ export default function HeroSection() {
               </div>
               <div className="text-sm text-muted-foreground">
                 <span className="text-foreground font-semibold">8,392</span> innovators trust Snarbles
+                <div className="flex items-center space-x-1 text-xs text-green-500">
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block"></span>
+                  <span>Live platform</span>
+                </div>
               </div>
             </div>
 
@@ -186,9 +190,9 @@ export default function HeroSection() {
                   <div className="flex items-center justify-center space-x-3">
                     <div className="flex items-center space-x-2 text-green-500">
                       <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                      <p className="text-sm font-semibold">Ready to launch</p>
+                      <p className="text-sm font-semibold pulse-ring">Ready to launch</p>
                     </div>
-                    <div className="text-muted-foreground text-sm">• Live in seconds</div>
+                    <div className="text-muted-foreground text-sm">• Deploy in seconds</div>
                   </div>
                 </div>
               </div>
@@ -202,11 +206,11 @@ export default function HeroSection() {
             <div className="absolute -bottom-8 -left-8 glass-card p-4 max-w-xs hidden lg:block">
               <div className="flex items-center space-x-3">
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center text-white font-bold text-sm">
-                  A
+                  J
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">"Launched our community token in just 28 seconds!"</p>
-                  <p className="text-xs font-semibold text-foreground">- Alex, Community Lead</p>
+                  <p className="text-xs font-semibold text-foreground">- Jamie, Community Lead</p>
                 </div>
               </div>
             </div>

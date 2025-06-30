@@ -61,8 +61,8 @@ export default function Navbar() {
 
   const navLinks = [
     { name: 'Create Token', href: '/create' },
-    { name: 'Tokenomics Simulator', href: '/tokenomics' },
-    { name: 'Token Verification', href: '/verify' },
+    { name: 'Tokenomics', href: '/tokenomics' },
+    { name: 'Verify Token', href: '/verify' },
     { name: 'Dashboard', href: '/dashboard' },
   ];
 
@@ -254,8 +254,16 @@ export default function Navbar() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setShowWalletOptions(!showWalletOptions)}
-                    className="border-border text-muted-foreground hover:bg-muted rounded-lg p-1.5"
+                    onClick={() => {
+                      setShowWalletOptions(!showWalletOptions);
+                      // Play subtle wallet animation for feedback
+                      const walletBtns = document.querySelectorAll('.wallet-pulse-indicator');
+                      walletBtns.forEach(btn => {
+                        btn.classList.add('animate-pulse');
+                        setTimeout(() => btn.classList.remove('animate-pulse'), 800);
+                      });
+                    }}
+                    className="border-border/70 text-muted-foreground hover:bg-muted/70 rounded-lg p-1.5"
                   >
                     <ChevronDown className="w-3 h-3" />
                   </Button>
@@ -273,7 +281,11 @@ export default function Navbar() {
               {/* Enhanced Wallet Options Dropdown */}
               {showWalletOptions && (
                 <div className="absolute right-0 top-full mt-2 w-96 bg-background/95 backdrop-blur-xl border border-border rounded-xl shadow-2xl z-50 animate-in slide-in-from-top-2 duration-200 overflow-hidden">
-                  <div className="p-6">
+                  <div className="p-6 relative overflow-hidden">
+                    {/* Background decoration */}
+                    <div className="absolute -top-24 -right-24 w-48 h-48 bg-red-500/5 rounded-full blur-3xl"></div>
+                    <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-blue-500/5 rounded-full blur-3xl"></div>
+
                     <div className="mb-6 text-center">
                       <h3 className="text-foreground font-bold text-2xl mb-1 gradient-text">Wallet Management</h3>
                       <p className="text-muted-foreground text-sm">Connect or manage your wallets</p>

@@ -6,7 +6,6 @@ import Image from 'next/image';
 
 export default function SponsorsSection() {
   const [isVisible, setIsVisible] = useState(false);
-  const [showSection, setShowSection] = useState(true); // Control section visibility
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -24,18 +23,12 @@ export default function SponsorsSection() {
     return () => observer.disconnect();
   }, []);
 
-    <section id="sponsors-section" className="py-16 app-background relative overflow-hidden">
-  if (!showSection) return null;
-  
   return (
     <section id="sponsors-section" className="py-12 app-background relative overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         {/* Section Header */}
         <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold text-foreground">
-            Built With
-            <span className="uppercase tracking-wider">Technology Partners</span>
-          </h2>
+          <h2 className="text-3xl font-bold text-foreground">Built With</h2>
           <p className="text-muted-foreground mt-3 max-w-2xl mx-auto">
             Powered by industry-leading technology partners
           </p>
@@ -110,6 +103,4 @@ export default function SponsorsSection() {
       </div>
     </section>
   );
-}
-}
 }
