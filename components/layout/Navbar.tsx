@@ -274,7 +274,7 @@ export default function Navbar() {
               ) : (
                 <Button
                   onClick={() => setShowWalletOptions(!showWalletOptions)}
-                  className="wallet-connect-button bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold rounded-xl px-4 py-2 h-9 shadow-lg hover:shadow-xl"
+                  className="wallet-connect-button bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold rounded-xl px-4 py-2 h-9 shadow-lg hover:shadow-xl transition-all duration-200"
                 >
                   <Wallet className="w-4 h-4 mr-2" />
                   <span className="relative z-10">Connect Wallet</span>
@@ -375,71 +375,72 @@ export default function Navbar() {
                           {algorandConnected && algorandAddress && (
                             <>
                               <div className="space-y-2">
-                              {/* Wallet Address Display */}
-                              <div className="flex items-center justify-between p-2 pl-3 bg-[#22C55E]/5 border border-[#22C55E]/20 rounded-lg overflow-hidden">
-                                <p className="text-[#22C55E] text-sm font-mono break-all">{formatAddress(algorandAddress)}</p>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => copyToClipboard(algorandAddress, 'Algorand')}
-                                  className="h-7 w-7 p-0"
-                                  title="Copy full address"
-                                >
-                                  {copiedAddress === algorandAddress ? (
-                                    <Check className="w-3.5 h-3.5 text-green-500" />
-                                  ) : (
-                                    <Copy className="w-3.5 h-3.5 text-[#22C55E]" />
-                                  )}
-                                </Button>
-                              </div>
-                              
-                              {/* Network Display */}
-                              <div className="flex items-center justify-between p-2 pl-3 bg-[#22C55E]/5 border border-[#22C55E]/20 rounded-lg">
-                                <p className="text-[#22C55E] text-sm">Network:</p>
-                                <select 
-                                  value={algorandSelectedNetwork}
-                                  onChange={(e) => setAlgorandSelectedNetwork(e.target.value)}
-                                  className="bg-[#22C55E]/10 border border-[#22C55E]/20 rounded text-sm px-2 py-1 text-[#22C55E]"
-                                >
-                                  <option value="algorand-testnet">Algorand Testnet</option>
-                                  <option value="algorand-mainnet">Algorand Mainnet</option>
-                                </select>
-                              </div>
-                              
-                              <div className="mt-2 p-2 pl-3 bg-[#22C55E]/5 border border-[#22C55E]/20 rounded-lg">
-                                <div className="flex justify-between items-center">
-                                  <span className="text-sm text-[#22C55E]">Network Status:</span>
-                                  <div className="flex items-center">
-                                    <span className="h-2 w-2 rounded-full bg-green-500 mr-1.5"></span>
-                                    <span className="text-xs text-green-500">Connected</span>
+                                {/* Wallet Address Display */}
+                                <div className="flex items-center justify-between p-2 pl-3 bg-[#22C55E]/5 border border-[#22C55E]/20 rounded-lg overflow-hidden">
+                                  <p className="text-[#22C55E] text-sm font-mono break-all">{formatAddress(algorandAddress)}</p>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => copyToClipboard(algorandAddress, 'Algorand')}
+                                    className="h-7 w-7 p-0"
+                                    title="Copy full address"
+                                  >
+                                    {copiedAddress === algorandAddress ? (
+                                      <Check className="w-3.5 h-3.5 text-green-500" />
+                                    ) : (
+                                      <Copy className="w-3.5 h-3.5 text-[#22C55E]" />
+                                    )}
+                                  </Button>
+                                </div>
+                                
+                                {/* Network Display */}
+                                <div className="flex items-center justify-between p-2 pl-3 bg-[#22C55E]/5 border border-[#22C55E]/20 rounded-lg">
+                                  <p className="text-[#22C55E] text-sm">Network:</p>
+                                  <select 
+                                    value={algorandSelectedNetwork}
+                                    onChange={(e) => setAlgorandSelectedNetwork(e.target.value)}
+                                    className="bg-[#22C55E]/10 border border-[#22C55E]/20 rounded text-sm px-2 py-1 text-[#22C55E]"
+                                  >
+                                    <option value="algorand-testnet">Algorand Testnet</option>
+                                    <option value="algorand-mainnet">Algorand Mainnet</option>
+                                  </select>
+                                </div>
+                                
+                                <div className="mt-2 p-2 pl-3 bg-[#22C55E]/5 border border-[#22C55E]/20 rounded-lg">
+                                  <div className="flex justify-between items-center">
+                                    <span className="text-sm text-[#22C55E]">Network Status:</span>
+                                    <div className="flex items-center">
+                                      <span className="h-2 w-2 rounded-full bg-green-500 mr-1.5"></span>
+                                      <span className="text-xs text-green-500">Connected</span>
+                                    </div>
                                   </div>
                                 </div>
+                                
+                                {/* Disconnect Button */}
+                                <Button
+                                  onClick={async () => {
+                                    try {
+                                      // Show loading state
+                                      toast({
+                                        title: "Disconnecting wallet...",
+                                        duration: 1500
+                                      });
+                                      
+                                      // Perform disconnect
+                                      await handleAlgorandDisconnect();
+                                      setShowWalletOptions(false);
+                                    } catch (err) {
+                                      console.error("Disconnect error:", err);
+                                    }
+                                  }}
+                                  variant="outline"
+                                  size="sm"
+                                  className="w-full border-red-500/20 text-red-500 hover:bg-red-500/10 hover:border-red-500/40"
+                                >
+                                  Disconnect
+                                </Button>
                               </div>
-                              
-                              {/* Disconnect Button */}
-                              <Button
-                                onClick={async () => {
-                                  try {
-                                    // Show loading state
-                                    toast({
-                                      title: "Disconnecting wallet...",
-                                      duration: 1500
-                                    });
-                                    
-                                    // Perform disconnect
-                                    await handleAlgorandDisconnect();
-                                    setShowWalletOptions(false);
-                                  } catch (err) {
-                                    console.error("Disconnect error:", err);
-                                  }
-                                }}
-                                variant="outline"
-                                size="sm"
-                                className="w-full border-red-500/20 text-red-500 hover:bg-red-500/10 hover:border-red-500/40"
-                              >
-                                Disconnect
-                              </Button>
-                             </div>
+                            </>
                           )}
                           
                           {!algorandConnected && (
@@ -492,7 +493,7 @@ export default function Navbar() {
                                     Mainnet
                                   </button>
                                 </div>
-                              )}
+                              </div>
                               
                               <Button
                                 onClick={handleAlgorandConnect}
@@ -615,7 +616,7 @@ export default function Navbar() {
                       setShowWalletOptions(!showWalletOptions);
                       setIsMenuOpen(false);
                     }}
-                    className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold rounded-xl px-4 py-2 shadow-lg hover:shadow-xl transition-all"
+                    className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold rounded-xl px-4 py-2 shadow-lg hover:shadow-xl transition-all duration-200"
                   >
                     <Wallet className="w-4 h-4 mr-2" />
                     Connect Wallet
