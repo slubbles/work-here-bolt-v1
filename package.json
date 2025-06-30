@@ -10,8 +10,8 @@
     "lint": "next lint",
     "lint:fix": "next lint --fix",
     "analyze": "cross-env ANALYZE=true npm run build",
-    "clean": "rm -rf .next out && sleep 1",
-    "clean:all": "rm -rf .next out node_modules package-lock.json && sleep 1",
+    "clean": "rm -rf .next out",
+    "clean:all": "rm -rf .next out node_modules package-lock.json",
     "fresh": "npm run clean:all && npm install && npm run dev"
   },
   "dependencies": {
