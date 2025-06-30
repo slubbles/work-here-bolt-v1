@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
@@ -289,16 +290,22 @@ export default function VerifyPage() {
               <CardContent className="pt-6">
                 <div className="flex flex-wrap gap-4">
                   <Button variant="outline" className="flex items-center space-x-2">
-                    <ExternalLink className="w-4 h-4" />
-                    <span>View on Explorer</span>
+                    <Link href={`https://explorer.solana.com/address/${verificationResult?.metadata?.contractAddress || ''}?cluster=devnet`} target="_blank" rel="noopener noreferrer">
+                      <ExternalLink className="w-4 h-4" />
+                      <span>View on Explorer</span>
+                    </Link>
                   </Button>
                   <Button variant="outline" className="flex items-center space-x-2">
-                    <Users className="w-4 h-4" />
-                    <span>Community Analysis</span>
+                    <Link href={`/verify/community?address=${verificationResult?.metadata?.contractAddress || ''}`}>
+                      <Users className="w-4 h-4" />
+                      <span>Community Analysis</span>
+                    </Link>
                   </Button>
                   <Button variant="outline" className="flex items-center space-x-2">
-                    <Clock className="w-4 h-4" />
-                    <span>Price History</span>
+                    <Link href={`/verify/history?address=${verificationResult?.metadata?.contractAddress || ''}`}>
+                      <Clock className="w-4 h-4" />
+                      <span>Price History</span>
+                    </Link>
                   </Button>
                 </div>
               </CardContent>

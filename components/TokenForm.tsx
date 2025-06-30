@@ -587,7 +587,7 @@ ${tokenomicsInfo.vestingSchedule?.enabled ? `- Vesting: Enabled (Team: ${tokenom
             {/* Go to Tokenomics Button */}
             {!hasAppliedTokenomics && !isDeploying && (
               <div className="mt-6 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
-                <div className="flex items-start gap-3">
+                <div className="flex items-start gap-3 flex-wrap md:flex-nowrap">
                   <Calculator className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
                   <div className="space-y-2">
                     <h3 className="font-semibold text-blue-600">Need help with token distribution?</h3>
@@ -794,6 +794,12 @@ ${tokenomicsInfo.vestingSchedule?.enabled ? `- Vesting: Enabled (Team: ${tokenom
                       totalSupply: '',
                       decimals: '6',
                       logoUrl: '',
+                      website: '',
+                      github: '',
+                      twitter: '',
+                      mintable: true,
+                      burnable: false,
+                      pausable: false,
                     });
                   }, 500);
                 }}
