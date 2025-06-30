@@ -8,6 +8,13 @@ export const PROGRAM_ID = new PublicKey('BKyaw9S5QkkSQ3dc3FdivbsYRWw2ADw9zN4bjnL
 // Network endpoint
 export const NETWORK_ENDPOINT = 'https://api.devnet.solana.com';
 
+// Event dispatcher for wallet state changes
+export const dispatchWalletEvent = () => {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('walletChange'));
+  }
+};
+
 // Admin wallet address - This is the authority from your deployed contract
 export const ADMIN_WALLET = new PublicKey('352YpA1YVHmN9Jirf5cDZdELWvsrP3DJVL7svAHJtmUj');
 
@@ -578,6 +585,9 @@ export async function initializePlatform(wallet: any, creationFee: number = 0) {
     if (!wallet || !wallet.publicKey) {
       throw new Error('Invalid wallet provided');
     }
+    
+    // Track wallet connection with event
+    dispatchWalletEvent();
 
     // Check if wallet is the expected admin
     if (!wallet.publicKey.equals(ADMIN_WALLET)) {
@@ -749,6 +759,9 @@ export async function createTokenOnChain(
         error: 'Platform not initialized. Please contact the administrator to initialize the platform first.',
       };
     }
+    
+    // Dispatch wallet event for UI updates
+    dispatchWalletEvent();
     
     if (onStepUpdate) {
       onStepUpdate('platform-check', 'completed', { message: 'Platform state verified' });
