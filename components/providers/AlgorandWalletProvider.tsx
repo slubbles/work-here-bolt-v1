@@ -63,9 +63,10 @@ export function AlgorandWalletProvider({ children }: AlgorandWalletProviderProps
   // Initialize/reinitialize Pera Wallet when network changes
   useEffect(() => {
     const initializeWallet = async () => {
-      setIsPeraWalletReady(true); 
-      setError(null);
-      
+      try {
+        setIsPeraWalletReady(true); 
+        setError(null);
+        
         console.log(`🔧 Initializing Pera Wallet for ${selectedNetwork}`);
         
         // If there's an existing connection, disconnect first
@@ -290,7 +291,7 @@ export function AlgorandWalletProvider({ children }: AlgorandWalletProviderProps
       
       if (!reconnectAttempted) {
         try {
-          const accounts = await wallet.reconnectSession();
+          const accounts = await peraWallet.reconnectSession();
           if (accounts.length > 0) {
             console.log(`✅ Reconnected to existing session on ${selectedNetwork}:`, accounts[0]);
             setConnected(true);
@@ -306,14 +307,14 @@ export function AlgorandWalletProvider({ children }: AlgorandWalletProviderProps
           }
         } catch (reconnectError) {
           console.log(`ℹ️ No existing session found for ${selectedNetwork}`);
-      } else {
+        }
         
         setReconnectAttempted(true);
       }
 
       console.log(`✅ Transaction ready for submission to ${selectedNetwork}`);
       
-      return signedTxnBytes;
+      return firstSignedTxn;
     } catch (error) {
       console.error(`❌ Transaction signing failed on ${selectedNetwork}:`, error);
       
