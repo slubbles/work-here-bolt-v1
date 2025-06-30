@@ -742,7 +742,7 @@ export default function TokenomicsPage() {
                   Visual breakdown of your token allocation
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-4 sm:p-8">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {/* Pie Chart */}
                   <div className="h-[300px] flex items-center justify-center">
@@ -795,7 +795,7 @@ export default function TokenomicsPage() {
                 </div>
                 
                 {/* Distribution Table */}
-                <div className="mt-6 pt-6 border-t border-border">
+                <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-border">
                   <h3 className="font-semibold text-foreground mb-4">Token Allocation Breakdown</h3>
                   <div className="overflow-x-auto">
                     <table className="w-full">
@@ -809,7 +809,7 @@ export default function TokenomicsPage() {
                       </thead>
                       <tbody>
                         {Object.keys(distribution).map(key => {
-                          const tokenAmount = totalSupply * (distribution[key].value / 100);
+                          const tokenAmount = Math.round(totalSupply * (distribution[key].value / 100));
                           const hasVesting = vestingEnabled && 
                             (key === 'team' || key === 'investors' || key === 'advisors');
                           
