@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
 import { 
   Coins, 
   TrendingUp, 
@@ -42,7 +42,8 @@ import {
   Shield,
   Activity,
   Clock,
-  Globe
+  Globe,
+  CheckCircle
 } from 'lucide-react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { 
@@ -51,6 +52,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { 
   getEnhancedTokenInfo as fetchEnhancedTokenInfo,
   getWalletTransactionHistory as fetchWalletTransactionHistory, 
@@ -670,12 +672,9 @@ export default function SolanaDashboard() {
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle>
-                    Your Tokens
-                  </CardTitle>
-                  <div className="flex items-center space-x-3">
-                  Your Tokens
-                  <Badge variant="secondary">{tokens.length}</Badge>
+                  <CardTitle>Your Tokens</CardTitle>
+                  <div className="flex items-center space-x-2">
+                    <Badge variant="secondary">{tokens.length}</Badge>
                   </div>
                 </div>
               </CardHeader>
@@ -719,9 +718,16 @@ export default function SolanaDashboard() {
                             <div className="flex items-center gap-2">
                               <h3 className="font-semibold">{token.name}</h3>
                               {token.verified && (
-                                <Tooltip content="Verified Token">
-                                  <Shield className="w-4 h-4 text-green-600" />
-                                </Tooltip>
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger>
+                                      <Shield className="w-4 h-4 text-green-600" />
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Verified Token</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
                               )}
                             </div>
                             <p className="text-sm text-gray-600">{token.symbol}</p>
@@ -832,7 +838,7 @@ export default function SolanaDashboard() {
                           ][index % 6]} />
                         ))}
                       </Pie>
-                      <Tooltip />
+                      <RechartsTooltip />
                     </PieChart>
                   </ResponsiveContainer>
                 ) : (
@@ -1094,9 +1100,8 @@ export default function SolanaDashboard() {
               </Button>
               <Button 
                 onClick={handleTransferTokens} 
-                disable={!actionAmount || !transferRecipient || loading}
+                disabled={!actionAmount || !transferRecipient || loading}
               >
-                {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                 {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                 Transfer Tokens
               </Button>
