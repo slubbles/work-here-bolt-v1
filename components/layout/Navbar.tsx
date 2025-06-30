@@ -395,7 +395,7 @@ export default function Navbar() {
                                   ) : (
                                     <Wallet className="w-4 h-4 mr-2" />
                                   )}
-                                  <span>{algorandIsConnecting ? 'Connecting...' : 'Connect Pera Wallet'}</span>
+                                  <span>{algorandIsConnecting ? 'Connecting...' : 'Connect Wallet'}</span>
                                 </div>
                               </Button>
                             </div>
@@ -515,7 +515,7 @@ export default function Navbar() {
                         <div className="flex items-center space-x-2">
                           <div className="w-6 h-6 rounded-full bg-[#22C55E] flex items-center justify-center">
                             <span className="text-white font-bold text-xs">A</span>
-                          </div>
+                          </div> 
                           <span className="text-sm font-medium">{formatAddress(algorandAddress!)}</span>
                         </div>
                         <div className="w-2 h-2 bg-green-500 rounded-full"></div>

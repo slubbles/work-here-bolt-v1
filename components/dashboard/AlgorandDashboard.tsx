@@ -485,9 +485,9 @@ export default function AlgorandDashboard() {
                               <p className="text-sm text-muted-foreground">{token.symbol || 'ASA'}</p>
                               {token.verified && (
                                 <Badge variant="outline" className="ml-2 bg-green-500/10 text-green-500 border-green-500/30">
-                                  Verified
-                                </Badge>
-                              )}
+                            <div className="flex-1"> 
+                              <p className="text-white font-semibold">Algorand Wallet</p> 
+                              <p className="text-gray-300 text-xs">Pera Wallet</p>
                             </div>
                           </div>
                         </div>
