@@ -68,7 +68,7 @@ export default function HeroSection() {
               <div className="flex -space-x-2">
                 {[1, 2, 3, 4, 5].map((i) => (
                   <div key={i} className="w-10 h-10 rounded-full bg-gradient-to-br from-red-500 to-red-600 border-2 border-background flex items-center justify-center text-white text-xs font-bold">
-                    {String.fromCharCode(64 + i)}
+                    {String.fromCharCode(Math.floor(Math.random() * 26) + 65)}
                   </div>
                 ))}
                 <div className="w-10 h-10 rounded-full bg-muted border-2 border-background flex items-center justify-center text-muted-foreground text-xs">
