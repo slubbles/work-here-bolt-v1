@@ -77,9 +77,9 @@ export default function TechnologyCarousel() {
             </p>
           </div>
           
-          <div className="relative overflow-hidden mx-auto">
+          <div className="relative overflow-hidden mx-auto w-full">
             {/* Carousel Container */}
-            <div className="flex animate-carousel items-center justify-center">
+            <div className="animate-carousel items-center justify-center">
               {/* First set of logos */}
               {techPartners.map((partner, index) => (
                 <a 
@@ -120,8 +120,8 @@ export default function TechnologyCarousel() {
             </div>
             
             {/* Gradient overlays for fade effect */}
-            <div className="absolute top-0 left-0 bottom-0 w-32 bg-gradient-to-r from-background to-transparent z-10"></div>
-            <div className="absolute top-0 right-0 bottom-0 w-32 bg-gradient-to-l from-background to-transparent z-10"></div>
+            <div className="absolute top-0 left-0 bottom-0 w-32 bg-gradient-to-r from-background to-transparent z-10 pointer-events-none"></div>
+            <div className="absolute top-0 right-0 bottom-0 w-32 bg-gradient-to-l from-background to-transparent z-10 pointer-events-none"></div>
           </div>
           
           <div className="flex justify-center mt-8">
