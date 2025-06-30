@@ -491,8 +491,8 @@ export default function Navbar() {
                                   >
                                     Mainnet
                                   </button>
-                                </div>
-                              )}
+                                </button>
+                              </div>
                               
                               <Button
                                 onClick={handleAlgorandConnect}
