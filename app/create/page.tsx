@@ -6,6 +6,7 @@ import TokenPreview from '@/components/TokenPreview';
 import { CheckCircle, Zap, AlertTriangle } from 'lucide-react';
 import { NewUserGuide } from '@/components/NewUserGuide';
 import { Callout } from '@/components/ui/callout';
+import { Button } from '@/components/ui/button';
 import { NetworkBadge } from '@/components/GuideBadge';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useAlgorandWallet } from '@/components/providers/AlgorandWalletProvider';
