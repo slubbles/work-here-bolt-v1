@@ -83,8 +83,8 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" 
           rel="stylesheet" 
         />
-        <link rel="icon" href="/pSsNHPck_400x400.jpg" />
-        <link rel="apple-touch-icon" href="/pSsNHPck_400x400.jpg" />
+        <link rel="icon" href="/Untitled design (2).png" />
+        <link rel="apple-touch-icon" href="/Untitled design (2).png" />
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#EF4444" />
         <link rel="dns-prefetch" href="https://api.devnet.solana.com" />
