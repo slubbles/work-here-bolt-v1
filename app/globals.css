@@ -476,6 +476,105 @@
     line-height: 1.6;
   }
 
+/* Enhanced Wallet Management Styles */
+.wallet-connect-panel {
+  @apply bg-gradient-to-br from-blue-900/90 to-purple-900/90 backdrop-blur-xl;
+  box-shadow: 0 10px 40px rgba(59, 130, 246, 0.3);
+}
+
+.wallet-card {
+  @apply rounded-xl overflow-hidden border shadow-lg transition-all duration-300 transform;
+}
+
+.wallet-card:hover {
+  @apply shadow-xl;
+  transform: translateY(-2px) scale(1.01);
+}
+
+.solana-card {
+  @apply border-[#4A90E2]/30 bg-gradient-to-br from-[#4A90E2]/10 to-[#4A90E2]/20;
+}
+
+.solana-card:hover {
+  box-shadow: 0 0 20px rgba(74, 144, 226, 0.2);
+}
+
+.algorand-card {
+  @apply border-[#A9DFBF]/30 bg-gradient-to-br from-[#A9DFBF]/10 to-[#22C55E]/10;
+}
+
+.algorand-card:hover {
+  box-shadow: 0 0 20px rgba(169, 223, 191, 0.2);
+}
+
+.wallet-pulse-indicator {
+  @apply relative;
+}
+
+.wallet-pulse-indicator::before {
+  content: '';
+  @apply absolute -inset-0.5 rounded-full;
+  background: radial-gradient(circle, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 70%);
+  animation: pulse 2s infinite;
+}
+
+.wallet-icon {
+  @apply w-12 h-12 rounded-full flex items-center justify-center shadow-lg;
+}
+
+.solana-icon {
+  @apply bg-gradient-to-br from-[#4A90E2] to-[#3A7BC8] ring-2 ring-white/10;
+}
+
+.algorand-icon {
+  @apply bg-gradient-to-br from-[#A9DFBF] to-[#22C55E] ring-2 ring-white/10;
+}
+
+.wallet-status-indicator {
+  @apply ml-auto flex items-center text-emerald-400 text-xs font-medium bg-emerald-500/20 px-2.5 py-1 rounded-full border border-emerald-500/30;
+}
+
+.wallet-address-container {
+  @apply flex items-center justify-between p-3 pl-4 rounded-lg;
+}
+
+.solana-address {
+  @apply bg-gradient-to-r from-[#4A90E2]/10 to-[#4A90E2]/5 border border-[#4A90E2]/20;
+}
+
+.algorand-address {
+  @apply bg-gradient-to-r from-[#A9DFBF]/10 to-[#A9DFBF]/5 border border-[#A9DFBF]/20;
+}
+
+.wallet-address-text {
+  @apply text-sm font-mono font-medium;
+}
+
+.copy-button-solana {
+  @apply h-7 w-7 p-0 border-[#4A90E2]/20 bg-[#4A90E2]/10 hover:bg-[#4A90E2]/20;
+}
+
+.copy-button-algorand {
+  @apply h-7 w-7 p-0 border-[#A9DFBF]/20 bg-[#A9DFBF]/10 hover:bg-[#A9DFBF]/20;
+}
+
+/* Improved wallet button states */
+.connect-wallet-button {
+  @apply bg-gradient-to-r text-white font-medium rounded-lg py-3 px-4 transition-all shadow-md hover:shadow-lg;
+}
+
+.solana-connect-button {
+  @apply from-[#4A90E2] to-[#3A7BC8] hover:from-[#3A7BC8] hover:to-[#2A6BB8];
+}
+
+.algorand-connect-button {
+  @apply from-[#22C55E] to-[#A9DFBF] hover:from-[#1EA750] hover:to-[#97CEAC];
+}
+
+.wallet-status-enhanced {
+  @apply px-3 py-1.5 bg-gradient-to-r from-blue-600/90 to-purple-600/90 rounded-full hover:from-blue-700/90 hover:to-purple-700/90 cursor-pointer shadow-lg transition-all duration-300;
+}
+
   /* Enhanced wallet button animations */
   .wallet-connect-button {
     @apply relative overflow-hidden;
