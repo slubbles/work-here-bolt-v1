@@ -81,6 +81,7 @@
 @layer base {
   * {
     @apply border-border;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
   }
   
   html {
@@ -478,8 +479,8 @@
 
 /* Enhanced Wallet Management Styles */
 .wallet-connect-panel {
-  @apply bg-gradient-to-br from-blue-900/90 to-purple-900/90 backdrop-blur-xl;
-  box-shadow: 0 10px 40px rgba(59, 130, 246, 0.3);
+  @apply bg-gradient-to-br from-black to-gray-900 backdrop-blur-xl;
+  box-shadow: 0 10px 40px rgba(239, 68, 68, 0.3);
 }
 
 .wallet-card {
@@ -492,15 +493,15 @@
 }
 
 .solana-card {
-  @apply border-[#4A90E2]/30 bg-gradient-to-br from-[#4A90E2]/10 to-[#4A90E2]/20;
+  @apply border-red-500/30 bg-gradient-to-br from-black/80 to-gray-900/80;
 }
 
 .solana-card:hover {
-  box-shadow: 0 0 20px rgba(74, 144, 226, 0.2);
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.3);
 }
 
 .algorand-card {
-  @apply border-[#A9DFBF]/30 bg-gradient-to-br from-[#A9DFBF]/10 to-[#22C55E]/10;
+  @apply border-red-500/30 bg-gradient-to-br from-black/80 to-gray-900/80;
 }
 
 .algorand-card:hover {
@@ -523,11 +524,11 @@
 }
 
 .solana-icon {
-  @apply bg-gradient-to-br from-[#4A90E2] to-[#3A7BC8] ring-2 ring-white/10;
+  @apply bg-gradient-to-br from-red-500 to-black ring-1 ring-white/10;
 }
 
 .algorand-icon {
-  @apply bg-gradient-to-br from-[#A9DFBF] to-[#22C55E] ring-2 ring-white/10;
+  @apply bg-gradient-to-br from-red-500 to-black ring-1 ring-white/10;
 }
 
 .wallet-status-indicator {
@@ -539,11 +540,11 @@
 }
 
 .solana-address {
-  @apply bg-gradient-to-r from-[#4A90E2]/10 to-[#4A90E2]/5 border border-[#4A90E2]/20;
+  @apply bg-gradient-to-r from-black to-gray-900 border border-red-500/20;
 }
 
 .algorand-address {
-  @apply bg-gradient-to-r from-[#A9DFBF]/10 to-[#A9DFBF]/5 border border-[#A9DFBF]/20;
+  @apply bg-gradient-to-r from-black to-gray-900 border border-red-500/20;
 }
 
 .wallet-address-text {
@@ -551,11 +552,11 @@
 }
 
 .copy-button-solana {
-  @apply h-7 w-7 p-0 border-[#4A90E2]/20 bg-[#4A90E2]/10 hover:bg-[#4A90E2]/20;
+  @apply h-6 w-6 p-0 border-red-500/20 bg-black hover:bg-red-500/10;
 }
 
 .copy-button-algorand {
-  @apply h-7 w-7 p-0 border-[#A9DFBF]/20 bg-[#A9DFBF]/10 hover:bg-[#A9DFBF]/20;
+  @apply h-6 w-6 p-0 border-red-500/20 bg-black hover:bg-red-500/10;
 }
 
 /* Improved wallet button states */
@@ -564,11 +565,11 @@
 }
 
 .solana-connect-button {
-  @apply from-[#4A90E2] to-[#3A7BC8] hover:from-[#3A7BC8] hover:to-[#2A6BB8];
+  @apply from-red-500 to-black hover:from-red-600 hover:to-gray-900;
 }
 
 .algorand-connect-button {
-  @apply from-[#22C55E] to-[#A9DFBF] hover:from-[#1EA750] hover:to-[#97CEAC];
+  @apply from-red-500 to-black hover:from-red-600 hover:to-gray-900;
 }
 
 .wallet-status-enhanced {

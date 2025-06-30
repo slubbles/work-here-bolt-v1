@@ -207,12 +207,12 @@ export default function Navbar() {
                 <div className="flex items-center space-x-2">
                   <div 
                     onClick={() => setShowWalletOptions(!showWalletOptions)}
-                    className="flex items-center space-x-2 px-3 py-1.5 bg-gradient-to-r from-blue-600/90 to-purple-600/90 rounded-full hover:from-blue-700/90 hover:to-purple-700/90 cursor-pointer shadow-lg transition-all duration-300 wallet-status-enhanced"
+                    className="flex items-center space-x-2 px-3 py-1.5 bg-gradient-to-r from-red-600/90 to-black/90 rounded-full hover:from-red-700/90 hover:to-black/90 cursor-pointer shadow-lg transition-all duration-300 wallet-status-enhanced"
                   >
                     <div className="flex items-center space-x-1.5">
                       {solanaConnected && solanaPublicKey && (
                         <div className="wallet-pulse-indicator">
-                          <div className="w-6 h-6 rounded-full flex items-center justify-center bg-[#4A90E2] ring-2 ring-white/20 shadow-md">
+                          <div className="w-5 h-5 rounded-full flex items-center justify-center bg-black ring-1 ring-white/20 shadow-md">
                             <span className="text-white font-bold text-xs">S</span>
                           </div>
                         </div>
@@ -220,7 +220,7 @@ export default function Navbar() {
                       
                       {algorandConnected && algorandAddress && (
                         <div className="wallet-pulse-indicator">
-                          <div className="w-6 h-6 rounded-full flex items-center justify-center bg-[#A9DFBF] ring-2 ring-white/20 shadow-md">
+                          <div className="w-5 h-5 rounded-full flex items-center justify-center bg-black ring-1 ring-white/20 shadow-md">
                             <span className="text-white font-bold text-xs">A</span>
                             <span className="sr-only">Algorand wallet connected</span>
                           </div>
@@ -235,13 +235,13 @@ export default function Navbar() {
                             : formatAddress(algorandAddress!)}
                       </span>
                     </div>
-                    <ChevronDown className="w-3.5 h-3.5 text-white/80" />
+                    <ChevronDown className="w-3 h-3 text-white/80" />
                   </div>
                 </div>
               ) : (
                 <Button
                   onClick={() => setShowWalletOptions(!showWalletOptions)}
-                  className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold rounded-xl px-5 py-2.5 h-10 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+                  className="bg-gradient-to-r from-red-600 to-black hover:from-red-700 hover:to-black text-white font-semibold rounded-xl px-5 py-2 h-9 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
                 >
                   <Wallet className="w-4 h-4 mr-2.5" />
                   <span className="font-medium tracking-wide">Connect Wallet</span>
@@ -250,26 +250,26 @@ export default function Navbar() {
 
               {/* Enhanced Wallet Options Dropdown */}
               {showWalletOptions && (
-                <div className="absolute right-0 top-full mt-2 w-96 bg-gradient-to-br from-blue-900/95 via-indigo-900/95 to-purple-900/95 backdrop-blur-xl border border-indigo-500/30 rounded-xl shadow-[0_10px_40px_rgba(59,130,246,0.3)] z-50 animate-in slide-in-from-top-2 duration-200 overflow-hidden">
-                  <div className="p-8">
+                <div className="absolute right-0 top-full mt-2 w-80 bg-gradient-to-br from-black/95 via-gray-900/95 to-black/95 backdrop-blur-xl border border-red-500/30 rounded-xl shadow-[0_10px_40px_rgba(239,68,68,0.3)] z-50 animate-in slide-in-from-top-2 duration-200 overflow-hidden">
+                  <div className="p-6">
                     <div className="mb-8 text-center">
-                      <h3 className="text-white font-bold text-2xl mb-2 tracking-tight">Select Your Wallet</h3>
-                      <div className="h-1 w-16 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full mx-auto mb-3"></div>
+                      <h3 className="text-white font-bold text-xl mb-2 tracking-tight">Select Your Wallet</h3>
+                      <div className="h-1 w-16 bg-gradient-to-r from-red-500 to-red-600 rounded-full mx-auto mb-3"></div>
                       <p className="text-indigo-200 text-sm">Connect or manage blockchain wallets</p>
                     </div>
                     
                     {/* Wallet Cards Container */}
                     <div className="grid grid-cols-1 gap-8">
                       {/* Solana Wallet Card */}
-                      <div className="rounded-xl overflow-hidden border border-[#4A90E2]/30 bg-gradient-to-br from-[#4A90E2]/10 to-[#4A90E2]/20 shadow-lg transform transition-all hover:scale-102 hover:shadow-[0_0_15px_rgba(74,144,226,0.3)]">
-                        <div className="bg-[#4A90E2]/20 p-5">
+                      <div className="rounded-xl overflow-hidden border border-red-500/30 bg-gradient-to-br from-black to-gray-900 shadow-lg transform transition-all hover:shadow-[0_0_15px_rgba(239,68,68,0.3)]">
+                        <div className="bg-black p-4">
                           <div className="flex items-center space-x-3">
-                            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#4A90E2] to-[#3A7BC8] flex items-center justify-center shadow-lg ring-2 ring-white/10">
-                              <img src="/solana-logo.png" alt="Phantom" className="w-6 h-6" onError={(e) => (e.currentTarget.src = '')} />
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-red-500 to-black flex items-center justify-center shadow-lg ring-1 ring-white/10">
+                              <img src="/solana-logo.png" alt="Phantom" className="w-5 h-5" onError={(e) => (e.currentTarget.src = '')} />
                             </div>
                             <div className="flex-1">
-                              <p className="text-white font-semibold text-lg">Solana Wallet</p>
-                              <p className="text-blue-200 text-sm">Phantom, Solflare, Backpack</p>
+                              <p className="text-white font-semibold">Solana Wallet</p>
+                              <p className="text-gray-300 text-xs">Phantom, Solflare, Backpack</p>
                             </div>
                             
                             {solanaConnected && (
@@ -280,17 +280,17 @@ export default function Navbar() {
                             )}
                           </div>
                         </div>
-                        <div className="p-5 space-y-4">
+                        <div className="p-4 space-y-3">
                           {solanaConnected && solanaPublicKey && (
                             <div className="space-y-2">
                               {/* Wallet Address Display */}
-                              <div className="flex items-center justify-between p-3 pl-4 bg-gradient-to-r from-[#4A90E2]/10 to-[#4A90E2]/5 border border-[#4A90E2]/20 rounded-lg">
-                                <p className="text-[#4A90E2] text-sm font-mono font-medium">{formatAddress(solanaPublicKey.toString())}</p>
+                              <div className="flex items-center justify-between p-2 pl-3 bg-black border border-red-500/20 rounded-lg">
+                                <p className="text-white text-sm font-mono">{formatAddress(solanaPublicKey.toString())}</p>
                                 <Button
                                   variant="outline"
                                   size="sm"
                                   onClick={() => copyToClipboard(solanaPublicKey.toString(), 'Solana')}
-                                  className="h-7 w-7 p-0 border-[#4A90E2]/20 bg-[#4A90E2]/10 hover:bg-[#4A90E2]/20"
+                                  className="h-6 w-6 p-0 border-red-500/20 bg-black hover:bg-gray-900"
                                   title="Copy full address"
                                 >
                                   {copiedAddress === solanaPublicKey.toString() ? (
@@ -304,22 +304,22 @@ export default function Navbar() {
                           )}
                           {(!solanaConnected || !solanaPublicKey) && (
                             <div className="flex flex-col items-center py-2">
-                              <WalletMultiButton className="w-full bg-[#AB9FF2] hover:bg-[#AB9FF2]/90 text-white font-medium rounded-lg py-2 px-4 transition-colors" />
+                              <WalletMultiButton className="w-full !bg-gradient-to-r !from-red-500 !to-black hover:!from-red-600 hover:!to-gray-900 !text-white !font-medium !rounded-lg !py-2 !px-4 !transition-colors" />
                             </div>
                           )}
                         </div>
                       </div>
                       
                       {/* Algorand Wallet Card */}
-                      <div className="rounded-xl overflow-hidden border border-[#A9DFBF]/30 bg-gradient-to-br from-[#A9DFBF]/10 to-[#A9DFBF]/20 shadow-lg transform transition-all hover:scale-102 hover:shadow-[0_0_15px_rgba(169,223,191,0.3)]">
-                        <div className="bg-[#A9DFBF]/20 p-5">
+                      <div className="rounded-xl overflow-hidden border border-red-500/30 bg-gradient-to-br from-black to-gray-900 shadow-lg transform transition-all hover:shadow-[0_0_15px_rgba(239,68,68,0.3)]">
+                        <div className="bg-black p-4">
                           <div className="flex items-center space-x-3">
-                            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#A9DFBF] to-[#22C55E] flex items-center justify-center shadow-lg ring-2 ring-white/10">
-                              <img src="/pera.png" alt="Pera Wallet" className="w-6 h-6" onError={(e) => (e.currentTarget.src = '')} />
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-red-500 to-black flex items-center justify-center shadow-lg ring-1 ring-white/10">
+                              <img src="/pera.png" alt="Pera Wallet" className="w-5 h-5" onError={(e) => (e.currentTarget.src = '')} />
                             </div>
                             <div className="flex-1">
-                              <p className="text-white font-semibold text-lg">Algorand Wallet</p>
-                              <p className="text-green-200 text-sm">Pera Wallet, MyAlgo</p>
+                              <p className="text-white font-semibold">Algorand Wallet</p>
+                              <p className="text-gray-300 text-xs">Pera Wallet, MyAlgo</p>
                             </div>
                             
                             {algorandConnected && (
@@ -330,17 +330,17 @@ export default function Navbar() {
                             )}
                           </div>
                         </div>
-                        <div className="p-5 space-y-4">
+                        <div className="p-4 space-y-3">
                           {algorandConnected && algorandAddress && (
                             <div className="space-y-2">
                               {/* Wallet Address Display */}
-                              <div className="flex items-center justify-between p-3 pl-4 bg-gradient-to-r from-[#A9DFBF]/10 to-[#A9DFBF]/5 border border-[#A9DFBF]/20 rounded-lg">
-                                <p className="text-[#22C55E] text-sm font-mono font-medium">{formatAddress(algorandAddress)}</p>
+                              <div className="flex items-center justify-between p-2 pl-3 bg-black border border-red-500/20 rounded-lg">
+                                <p className="text-white text-sm font-mono">{formatAddress(algorandAddress)}</p>
                                 <Button
                                   variant="outline"
                                   size="sm"
                                   onClick={() => copyToClipboard(algorandAddress, 'Algorand')}
-                                  className="h-7 w-7 p-0 border-[#A9DFBF]/20 bg-[#A9DFBF]/10 hover:bg-[#A9DFBF]/20"
+                                  className="h-6 w-6 p-0 border-red-500/20 bg-black hover:bg-gray-900"
                                   title="Copy full address"
                                 >
                                   {copiedAddress === algorandAddress ? (
@@ -352,8 +352,8 @@ export default function Navbar() {
                               </div>
                               
                               {/* Network Display */}
-                              <div className="flex items-center justify-between p-3 pl-4 bg-gradient-to-r from-[#A9DFBF]/10 to-[#A9DFBF]/5 border border-[#A9DFBF]/20 rounded-lg">
-                                <p className="text-[#22C55E] text-sm font-medium">
+                              <div className="flex items-center justify-between p-2 pl-3 bg-black border border-red-500/20 rounded-lg">
+                                <p className="text-white text-sm">
                                   {algorandSelectedNetwork === 'algorand-testnet' ? 'Testnet' : 'Mainnet'}
                                 </p>
                                 <Badge className="bg-[#A9DFBF]/20 text-[#22C55E] border-[#A9DFBF]/30">
@@ -387,7 +387,7 @@ export default function Navbar() {
                               <Button
                                 onClick={handleAlgorandConnect}
                                 disabled={!isPeraWalletReady || algorandIsConnecting || algorandConnected}
-                                className="w-full bg-gradient-to-r from-[#22C55E] to-[#A9DFBF] hover:from-[#1EA750] hover:to-[#97CEAC] text-white font-medium rounded-lg py-3 px-4 transition-all shadow-md hover:shadow-lg disabled:opacity-50"
+                                className="w-full bg-gradient-to-r from-red-500 to-black hover:from-red-600 hover:to-gray-900 text-white font-medium rounded-lg py-2 px-4 transition-all shadow-md hover:shadow-lg disabled:opacity-50"
                               >
                                 <div className="flex items-center justify-center">
                                   {algorandIsConnecting ? (
@@ -405,11 +405,11 @@ export default function Navbar() {
                     </div>
                     
                     {/* Close Button */}
-                    <div className="mt-8 pt-4 border-t border-indigo-500/20">
+                    <div className="mt-6 pt-3 border-t border-red-500/20">
                       <Button
                         onClick={() => setShowWalletOptions(false)}
                         variant="outline"
-                        className="w-full bg-white/5 border-white/10 text-indigo-200 hover:bg-white/10"
+                        className="w-full bg-white/5 border-white/10 text-gray-300 hover:bg-white/10"
                       >
                         Close
                       </Button>

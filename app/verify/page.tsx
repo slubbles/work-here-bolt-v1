@@ -34,6 +34,7 @@ interface VerificationResult {
 export default function VerifyPage() {
   const searchParams = useSearchParams();
   const [tokenAddress, setTokenAddress] = useState(searchParams?.get('address') || '');
+  const [selectedNetwork, setSelectedNetwork] = useState('solana-devnet');
   const [isVerifying, setIsVerifying] = useState(false);
   const [verificationResult, setVerificationResult] = useState<VerificationResult | null>(null);
   const [progress, setProgress] = useState(0);
@@ -45,7 +46,7 @@ export default function VerifyPage() {
   }, [searchParams]);
 
   const handleVerification = async () => {
-    if (!tokenAddress) return;
+    if (!tokenAddress || !selectedNetwork) return;
 
     setIsVerifying(true);
     setProgress(0);
@@ -58,7 +59,7 @@ export default function VerifyPage() {
       'Analyzing liquidity locks...',
       'Verifying ownership status...',
       'Checking audit reports...',
-      'Calculating trust score...'
+      `Calculating trust score on ${selectedNetwork}...`
     ];
 
     for (let i = 0; i < steps.length; i++) {
@@ -113,13 +114,14 @@ export default function VerifyPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4">
+    <div className="min-h-screen bg-black text-white py-12 px-4">
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">Token Verification</h1>
-          <p className="text-lg text-gray-600">
+          <h1 className="text-4xl font-bold text-white mb-4">Token Verification</h1>
+          <p className="text-lg text-gray-300">
             Verify token safety and legitimacy before investing
           </p>
+          <p className="text-sm text-gray-400 mt-2">Select network and enter token address to begin verification</p>
         </div>
 
         {/* Search Form */}
@@ -129,30 +131,49 @@ export default function VerifyPage() {
               <Search className="w-5 h-5" />
               <span>Enter Token Address</span>
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-gray-400">
               Paste the token contract address to start verification
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex space-x-4">
-              <div className="flex-1">
-                <Label htmlFor="token-address">Token Address</Label>
-                <Input
-                  id="token-address"
-                  placeholder="0x..."
-                  value={tokenAddress}
-                  onChange={(e) => setTokenAddress(e.target.value)}
+            <div className="space-y-4">
+              <div className="flex flex-col space-y-2">
+                <Label htmlFor="network-select" className="text-gray-300">Network</Label>
+                <select
+                  id="network-select"
+                  value={selectedNetwork}
+                  onChange={(e) => setSelectedNetwork(e.target.value)}
                   disabled={isVerifying}
-                />
-              </div>
-              <div className="flex items-end">
-                <Button 
-                  onClick={handleVerification}
-                  disabled={!tokenAddress || isVerifying}
-                  className="px-8"
+                  className="w-full p-2 rounded-md border border-gray-700 bg-gray-900 text-white"
                 >
-                  {isVerifying ? 'Verifying...' : 'Verify'}
-                </Button>
+                  <option value="solana-devnet">Solana Devnet</option>
+                  <option value="solana-mainnet">Solana Mainnet</option>
+                  <option value="algorand-testnet">Algorand Testnet</option>
+                  <option value="algorand-mainnet">Algorand Mainnet</option>
+                </select>
+              </div>
+              
+              <div className="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4">
+                <div className="flex-1">
+                  <Label htmlFor="token-address" className="text-gray-300">Token Address</Label>
+                  <Input
+                    id="token-address"
+                    placeholder={selectedNetwork.includes('solana') ? 'Solana address...' : 'Algorand asset ID...'}
+                    value={tokenAddress}
+                    onChange={(e) => setTokenAddress(e.target.value)}
+                    disabled={isVerifying}
+                    className="bg-gray-900 border-gray-700 text-white"
+                  />
+                </div>
+                <div className="flex md:items-end">
+                  <Button 
+                    onClick={handleVerification}
+                    disabled={!tokenAddress || isVerifying}
+                    className="px-8 w-full md:w-auto bg-red-500 hover:bg-red-600 text-white"
+                  >
+                    {isVerifying ? 'Verifying...' : 'Verify'}
+                  </Button>
+                </div>
               </div>
             </div>
           </CardContent>
@@ -160,10 +181,10 @@ export default function VerifyPage() {
 
         {/* Verification Progress */}
         {isVerifying && (
-          <Card className="mb-8">
+          <Card className="mb-8 bg-gray-900 border-gray-800">
             <CardContent className="pt-6">
               <div className="space-y-4">
-                <div className="flex justify-between text-sm">
+                <div className="flex justify-between text-sm text-gray-300">
                   <span className="text-muted-foreground">Verification Progress</span>
                   <span className="font-medium">{Math.round(progress)}%</span>
                 </div>
@@ -177,12 +198,12 @@ export default function VerifyPage() {
         {verificationResult && (
           <div className="space-y-6">
             {/* Overall Status */}
-            <Card>
+            <Card className="bg-gray-900 border-gray-800">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="flex items-center space-x-2">
                     {verificationResult.verified ? (
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center space-x-2 text-green-400">
                         <CheckCircle className="w-6 h-6 text-green-500" />
                         <span>Verified Token</span>
                       </div>
@@ -193,14 +214,14 @@ export default function VerifyPage() {
                       </div>
                     )}
                   </CardTitle>
-                  <Badge variant={getScoreBadgeVariant(verificationResult.score)}>
+                  <Badge variant={getScoreBadgeVariant(verificationResult.score)} className="text-white">
                     Score: {verificationResult.score}/100
                   </Badge>
                 </div>
               </CardHeader>
               <CardContent>
                 {verificationResult.metadata && (
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-gray-300">
                     <div>
                       <span className="text-muted-foreground">Name:</span>
                       <p className="font-medium">{verificationResult.metadata.name}</p>
@@ -223,7 +244,7 @@ export default function VerifyPage() {
             </Card>
 
             {/* Security Checks */}
-            <Card>
+            <Card className="bg-gray-900 border-gray-800">
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <Shield className="w-5 h-5" />
@@ -232,15 +253,15 @@ export default function VerifyPage() {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center justify-between p-3 bg-gray-800 rounded-lg">
                     <span>Contract Verified</span>
                     {verificationResult.checks.contractVerified ? (
                       <CheckCircle className="w-5 h-5 text-green-500" />
                     ) : (
-                      <AlertTriangle className="w-5 h-5 text-red-500" />
+                      <AlertTriangle className="w-5 h-5 text-red-400" />
                     )}
                   </div>
-                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center justify-between p-3 bg-gray-800 rounded-lg">
                     <span>Liquidity Locked</span>
                     {verificationResult.checks.liquidityLocked ? (
                       <CheckCircle className="w-5 h-5 text-green-500" />
@@ -248,15 +269,15 @@ export default function VerifyPage() {
                       <AlertTriangle className="w-5 h-5 text-red-500" />
                     )}
                   </div>
-                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center justify-between p-3 bg-gray-800 rounded-lg">
                     <span>Ownership Renounced</span>
                     {verificationResult.checks.ownershipRenounced ? (
                       <CheckCircle className="w-5 h-5 text-green-500" />
                     ) : (
-                      <AlertTriangle className="w-5 h-5 text-red-500" />
+                      <AlertTriangle className="w-5 h-5 text-red-400" />
                     )}
                   </div>
-                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center justify-between p-3 bg-gray-800 rounded-lg">
                     <span>Audit Completed</span>
                     {verificationResult.checks.auditCompleted ? (
                       <CheckCircle className="w-5 h-5 text-green-500" />
@@ -286,7 +307,7 @@ export default function VerifyPage() {
             )}
 
             {/* Actions */}
-            <Card>
+            <Card className="bg-gray-900 border-gray-800">
               <CardContent className="pt-6">
                 <div className="flex flex-wrap gap-4">
                   <Button variant="outline" className="flex items-center space-x-2">
