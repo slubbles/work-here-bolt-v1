@@ -6,9 +6,9 @@ import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
 import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
 import {
   PhantomWalletAdapter, 
-  SolflareWalletAdapter,
-  BackpackWalletAdapter
+  SolflareWalletAdapter
 } from '@solana/wallet-adapter-wallets';
+import { BackpackWalletAdapter } from '@solana/wallet-adapter-backpack';
 import { NETWORK_ENDPOINT } from '@/lib/solana';
 import { AlgorandWalletProvider } from './AlgorandWalletProvider';
 
