@@ -170,6 +170,8 @@ export default function Navbar() {
                 href={link.href}
                 onClick={(e) => {
                   handleNavigation(link.href, e);
+                }}
+                className={`text-muted-foreground hover:text-foreground transition-all duration-200 font-medium relative group ${
                   pathname === link.href ? 'text-red-500' : ''
                 }`}
               >
