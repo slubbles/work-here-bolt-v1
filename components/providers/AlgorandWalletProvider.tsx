@@ -62,7 +62,6 @@ export function AlgorandWalletProvider({ children }: AlgorandWalletProviderProps
 
   // Initialize/reinitialize Pera Wallet when network changes
   useEffect(() => {
-    const initializeWallet = async () => {
       try {
         setIsPeraWalletReady(true); 
         setError(null);
@@ -125,8 +124,6 @@ export function AlgorandWalletProvider({ children }: AlgorandWalletProviderProps
           }
         } catch (reconnectError) {
           console.log(`ℹ️ No existing session found for ${selectedNetwork}`);
-        }
-
       } catch (error) {
         console.error(`❌ Failed to initialize Pera Wallet for ${selectedNetwork}:`, error);
         setError(`Failed to initialize wallet for ${selectedNetwork}`);
