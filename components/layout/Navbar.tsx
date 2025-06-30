@@ -439,7 +439,7 @@ export default function Navbar() {
                               >
                                 Disconnect
                               </Button>
-                            </>
+                             </div>
                           )}
                           
                           {!algorandConnected && (
