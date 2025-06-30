@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Copy, Mail, MessageSquare, HelpCircle, CheckCircle, AlertTriangle, Send, Phone, Clock, Info } from 'lucide-react';
+import { Copy, Mail, MessageSquare, HelpCircle, CheckCircle, AlertTriangle, Send, Phone, Clock, Info, Wallet } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function SupportPage() {
