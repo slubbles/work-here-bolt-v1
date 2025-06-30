@@ -142,6 +142,8 @@ export default function Footer() {
               <p className="text-muted-foreground text-xs">
                 Snarbles is a token creation platform. Always do your own research before investing in any cryptocurrency or token.
                 Please ensure compliance with your local regulations. This platform is built with <a href="https://bolt.new/" target="_blank" rel="noopener noreferrer" className="text-red-500 hover:underline">Bolt.new</a>.
+                <br/>
+                <span className="opacity-75">© {new Date().getFullYear()} Snarbles. All rights reserved.</span>
               </p>
             </div>
           </div>

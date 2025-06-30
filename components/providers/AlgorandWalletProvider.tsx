@@ -37,6 +37,7 @@ export function AlgorandWalletProvider({ children }: AlgorandWalletProviderProps
   const [isConnecting, setIsConnecting] = useState(false);
   const [isPeraWalletReady, setIsPeraWalletReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [networkSwitching, setNetworkSwitching] = useState(false);
   const [balance, setBalance] = useState<number | null>(null);
   const [networkConfig, setNetworkConfig] = useState(getAlgorandNetwork('algorand-testnet'));
 
@@ -44,7 +45,14 @@ export function AlgorandWalletProvider({ children }: AlgorandWalletProviderProps
   useEffect(() => {
     console.log(`🔄 Algorand network changed to: ${selectedNetwork}`);
     const config = getAlgorandNetwork(selectedNetwork);
+    
+    // Track network switching state
+    setNetworkSwitching(true);
+    
     setNetworkConfig(config);
+    
+    // Clear network switching state after a delay
+    setTimeout(() => setNetworkSwitching(false), 1000);
   }, [selectedNetwork]);
 
   // Initialize/reinitialize Pera Wallet when network changes
@@ -92,6 +100,10 @@ export function AlgorandWalletProvider({ children }: AlgorandWalletProviderProps
             setAddress(null);
             setBalance(null);
             setError(null);
+            
+            // Dispatch a custom event when wallet disconnects
+            const event = new CustomEvent('algorand-wallet-change', { detail: { connected: false } });
+            window.dispatchEvent(event);
           });
         }
 
@@ -108,6 +120,11 @@ export function AlgorandWalletProvider({ children }: AlgorandWalletProviderProps
             console.log(`✅ Reconnected to existing session on ${selectedNetwork}:`, accounts[0]);
             setConnected(true);
             setAddress(accounts[0]);
+            
+            // Dispatch a custom event when wallet connects
+            const event = new CustomEvent('algorand-wallet-change', { detail: { connected: true, address: accounts[0] } });
+            window.dispatchEvent(event);
+            
             await updateBalance(accounts[0]);
           }
         } catch (reconnectError) {
@@ -146,6 +163,7 @@ export function AlgorandWalletProvider({ children }: AlgorandWalletProviderProps
     }
 
     setIsConnecting(true);
+    setNetworkSwitching(false);
     setError(null);
 
     try {
@@ -155,6 +173,12 @@ export function AlgorandWalletProvider({ children }: AlgorandWalletProviderProps
       if (accounts.length > 0) {
         setConnected(true);
         setAddress(accounts[0]);
+        
+        // Dispatch a custom event when wallet connects
+        const event = new CustomEvent('algorand-wallet-change', {
+          detail: { connected: true, address: accounts[0], network: selectedNetwork }
+        });
+        window.dispatchEvent(event);
         await updateBalance(accounts[0]);
         
         console.log(`✅ Successfully connected to ${selectedNetwork}:`, accounts[0]);
@@ -292,11 +316,15 @@ export function AlgorandWalletProvider({ children }: AlgorandWalletProviderProps
   const switchNetwork = async (newNetwork: string) => {
     console.log(`🔄 Switching from ${selectedNetwork} to ${newNetwork}`);
     
+    // Don't do anything if network is the same
     if (newNetwork === selectedNetwork) {
       console.log('ℹ️ Already on the requested network');
       return;
     }
 
+    // Begin network switching
+    setNetworkSwitching(true);
+    
     // Validate network
     if (!ALGORAND_NETWORKS[newNetwork as keyof typeof ALGORAND_NETWORKS]) {
       throw new Error(`Unsupported network: ${newNetwork}`);
@@ -304,7 +332,21 @@ export function AlgorandWalletProvider({ children }: AlgorandWalletProviderProps
 
     // Set wallet as not ready during network switch
     setIsPeraWalletReady(false);
+    
+    // Notify user of network change
+    if (typeof window !== 'undefined') {
+      const event = new CustomEvent('algorand-network-change', {
+        detail: { network: newNetwork, previousNetwork: selectedNetwork }
+      });
+      window.dispatchEvent(event);
+    }
+    
     setSelectedNetwork(newNetwork);
+    
+    // Clear network switching state after a delay
+    setTimeout(() => {
+      setNetworkSwitching(false);
+    }, 1500);
     // The useEffect will handle the wallet reinitialization
   };
 

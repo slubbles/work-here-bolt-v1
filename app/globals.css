@@ -1294,15 +1294,38 @@ p {
 /* Wallet adapter modal styling with improved glass effect */
 .wallet-adapter-modal {
   @apply backdrop-blur-xl !important;
-  background-color: rgba(0, 0, 0, 0.5) !important;
+  background-color: rgba(0, 0, 0, 0.8) !important;
 }
 
 .wallet-adapter-modal .wallet-adapter-modal-container {
   @apply bg-background border border-border rounded-xl shadow-2xl !important;
-  background: rgba(10, 10, 10, 0.9) !important;
+  background: rgba(15, 15, 15, 0.95) !important;
   backdrop-filter: blur(12px) !important;
   border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3) !important;
+  box-shadow: 
+    0 25px 50px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(255, 255, 255, 0.1) !important;
+  border-radius: 1rem !important;
+  padding: 1.5rem !important;
+}
+
+/* Style the wallet adapter buttons */
+.wallet-adapter-modal-button-close {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.wallet-adapter-modal-title {
+  @apply !text-xl !font-bold !mb-4 text-center !text-white;
+}
+
+.wallet-adapter-modal-list {
+  @apply !space-y-3 !mt-6;
+}
+
+.wallet-adapter-modal-list .wallet-adapter-button {
+  @apply !rounded-xl !bg-muted/30 hover:!bg-red-500/20 transition-all !border !border-transparent hover:!border-red-500/30 !shadow-none !h-14;
+  color: white !important;
+  background: rgba(30, 30, 30, 0.5) !important;
 }
 
 .wallet-adapter-modal .wallet-adapter-modal-title {
@@ -1314,13 +1337,31 @@ p {
 }
 
 .wallet-adapter-modal .wallet-adapter-modal-list-item {
-  @apply bg-muted hover:bg-muted/80 rounded-lg transition-colors;
+  @apply !bg-muted/30 hover:!bg-muted/50 !rounded-xl transition-all !py-4 !px-5;
+  color: white !important;
 }
 
 .wallet-adapter-modal .wallet-adapter-modal-list-item:hover {
   @apply bg-red-500/10 border-red-500/30 !important;
   transform: translateY(-1px);
   transition: all 0.2s ease;
+}
+
+/* Fix wallet button reactivity */
+.wallet-adapter-button {
+  cursor: pointer !important;
+}
+
+.wallet-adapter-dropdown-list-active {
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+}
+
+/* Make sure wallet dropdown is visible */
+.wallet-adapter-dropdown-list {
+  top: 100% !important;
+  transform: translateY(10px) !important;
 }
 
 /* Wallet connection states */
