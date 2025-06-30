@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Send, Plus, Flame, BarChart3, Network, Sparkles, TrendingUp, Pause, Wallet, Check, HelpCircle, ExternalLink, Shield } from 'lucide-react';
-import { Tooltip } from '@/components/ui/tooltip';
 import { Callout } from '@/components/ui/callout';
 
 interface TokenPreviewProps {
@@ -178,10 +178,17 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
         <Badge className={`${networkInfo.color} text-base px-6 py-3 rounded-xl font-bold shadow-md`}>
           <Network className="w-4 h-4 mr-2" />
           {networkInfo.name}
-          {network.includes('testnet') && (
-            <Tooltip content={<p className="text-sm">Testnet tokens are for testing and have no real value</p>}>
-              <HelpCircle className="w-3 h-3 ml-2 text-white/80" />
-            </Tooltip>
+          {network.includes('testnet') && ( 
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <HelpCircle className="w-3 h-3 ml-2 text-white/80" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="text-sm">Testnet tokens are for testing and have no real value</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           )}
         </Badge>
         <p className="text-sm text-muted-foreground mt-3">{networkInfo.description}</p>
@@ -210,18 +217,21 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
         
         {/* First-time creator help */}
         <div className="absolute top-4 left-4">
-          <Tooltip 
-            content={
-              <div className="max-w-xs">
-                <p className="font-medium mb-1">Live Preview</p>
-                <p className="text-xs">This is how your token will look when deployed to the blockchain. All changes update in real-time.</p>
-              </div>
-            }
-          >
-            <div className="bg-blue-500/20 text-blue-500 border border-blue-500/20 rounded-full p-1 cursor-help">
-              <HelpCircle className="w-4 h-4" />
-            </div>
-          </Tooltip>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="bg-blue-500/20 text-blue-500 border border-blue-500/20 rounded-full p-1 cursor-help">
+                  <HelpCircle className="w-4 h-4" />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <div className="max-w-xs">
+                  <p className="font-medium mb-1">Live Preview</p>
+                  <p className="text-xs">This is how your token will look when deployed to the blockchain. All changes update in real-time.</p>
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
       
         <div className="text-center space-y-6 relative z-10">
