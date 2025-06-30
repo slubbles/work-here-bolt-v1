@@ -6,11 +6,7 @@ import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
 import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
 import {
   PhantomWalletAdapter,
-  SolflareWalletAdapter,
-  BackpackWalletAdapter,
-  GlowWalletAdapter,
-  LedgerWalletAdapter,
-  TorusWalletAdapter
+  SolflareWalletAdapter
 } from '@solana/wallet-adapter-wallets';
 import { clusterApiUrl } from '@solana/web3.js';
 import { NETWORK_ENDPOINT } from '@/lib/solana';
@@ -60,11 +56,7 @@ export default function WalletContextProvider({ children }: WalletContextProvide
   const wallets = useMemo(
     () => [
       new PhantomWalletAdapter(),
-      new SolflareWalletAdapter({ network }),
-      new BackpackWalletAdapter(),
-      new GlowWalletAdapter(),
-      new LedgerWalletAdapter(),
-      new TorusWalletAdapter()
+      new SolflareWalletAdapter({ network })
     ],
     [network]
   );
