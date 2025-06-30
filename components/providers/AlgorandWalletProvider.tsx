@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import algosdk from 'algosdk';
 import { getAlgorandNetwork, ALGORAND_NETWORKS } from '@/lib/algorand';
+import { useToast } from '@/hooks/use-toast';
 
 // Import the actual PeraWalletConnect type
 import type { PeraWalletConnect } from '@perawallet/connect';
@@ -32,19 +33,30 @@ interface AlgorandWalletProviderProps {
 export function AlgorandWalletProvider({ children }: AlgorandWalletProviderProps) {
   const [connected, setConnected] = useState(false);
   const [address, setAddress] = useState<string | null>(null);
-  const [selectedNetwork, setSelectedNetwork] = useState<string>('algorand-testnet');
+  const [selectedNetwork, setSelectedNetwork] = useState<string>(
+    typeof localStorage !== 'undefined' && localStorage.getItem('algorand-network') 
+      ? localStorage.getItem('algorand-network')! 
+      : 'algorand-testnet'
+  );
   const [peraWallet, setPeraWallet] = useState<PeraWalletConnect | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
   const [isPeraWalletReady, setIsPeraWalletReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [balance, setBalance] = useState<number | null>(null);
   const [networkConfig, setNetworkConfig] = useState(getAlgorandNetwork('algorand-testnet'));
+  
+  const { toast } = useToast();
 
   // Update network configuration when selected network changes
   useEffect(() => {
     console.log(`🔄 Algorand network changed to: ${selectedNetwork}`);
     const config = getAlgorandNetwork(selectedNetwork);
     setNetworkConfig(config);
+    
+    // Save to localStorage for persistence
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('algorand-network', selectedNetwork);
+    }
   }, [selectedNetwork]);
 
   // Initialize/reinitialize Pera Wallet when network changes
@@ -141,7 +153,15 @@ export function AlgorandWalletProvider({ children }: AlgorandWalletProviderProps
     if (!peraWallet || !isPeraWalletReady) {
       const errorMsg = !peraWallet 
         ? `Pera Wallet not initialized for ${selectedNetwork}`
-        : `Pera Wallet not ready for ${selectedNetwork}. Please wait a moment and try again.`;
+        : `Pera Wallet not ready for ${selectedNetwork}. Please refresh the page and try again.`;
+      
+      toast({
+        title: "Wallet Connection Error",
+        description: errorMsg,
+        variant: "destructive",
+        duration: 5000
+      });
+      
       throw new Error(errorMsg);
     }
 

@@ -3,221 +3,251 @@
 import { useState, useEffect } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
+import { Progress } from '@/components/ui/progress';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import { 
   Coins, 
   TrendingUp, 
-  Users,
-  Play,
-  Pause,
-  DollarSign, 
+  Users, 
   Plus, 
   Settings, 
-  ExternalLink,
-  Copy,
-  Send,
-  Flame,
-  BarChart3,
-  AlertCircle,
-  CheckCircle,
-  Wallet,
+  ExternalLink, 
+  Copy, 
+  Send, 
+  Flame, 
   RefreshCw,
-  Info,
   Loader2,
   AlertTriangle,
-  MessageSquare,
-  Clock
+  Wallet,
+  Network
 } from 'lucide-react';
-import { 
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { useToast } from '@/hooks/use-toast';
 import { useAlgorandWallet } from '@/components/providers/AlgorandWalletProvider';
+import { useToast } from '@/hooks/use-toast';
 import { 
-  getAlgorandEnhancedTokenInfo, 
-  getAlgorandTransactionHistory, 
+  getAlgorandEnhancedTokenInfo,
+  getAlgorandTransactionHistory,
   getAlgorandWalletSummary,
-  formatAlgorandTransactionForDisplay,
-  AlgorandTokenInfo,
-  AlgorandTransactionInfo
+  formatAlgorandTransactionForDisplay
 } from '@/lib/algorand-data';
-import { 
-  mintAlgorandAssets, 
-  burnAlgorandAssets, 
-  transferAlgorandAssets, 
-  optInToAsset,
-  freezeAlgorandAsset,
-  unfreezeAlgorandAsset,
-  getAlgorandNetwork
-} from '@/lib/algorand';
-import { TokenHistoryList } from '@/components/TokenHistoryList';
-import { SupabaseAuthModal } from '@/components/SupabaseAuthModal';
-import { isSupabaseAvailable } from '@/lib/supabase-client';
-import { trackPageView } from '@/lib/analytics';
+import { optInToAsset, transferAlgorandAssets } from '@/lib/algorand';
+import { DashboardSkeleton, TokenCardSkeleton } from '@/components/skeletons/DashboardSkeletons';
+
+interface TokenData {
+  assetId: number;
+  name?: string;
+  symbol?: string;
+  balance?: string;
+  uiBalance?: number;
+  decimals?: number;
+  value?: string;
+  change?: string;
+  holders?: number;
+  verified?: boolean;
+  image?: string;
+  description?: string;
+  explorerUrl?: string;
+}
 
 export default function AlgorandDashboard() {
+  const { connected, address, selectedNetwork, signTransaction, balance: walletBalance } = useAlgorandWallet();
   const { toast } = useToast();
-  const { 
-    connected, 
-    address: walletAddress, 
-    signTransaction, 
-    selectedNetwork,
-    networkConfig
-  } = useAlgorandWallet();
   
-  const [showAuthModal, setShowAuthModal] = useState(false);
-  const [supabaseConfigured, setSupabaseConfigured] = useState(false);
-  
-  // State for tokens, transactions, and wallet summary
-  const [tokens, setTokens] = useState<AlgorandTokenInfo[]>([]);
-  const [transactions, setTransactions] = useState<AlgorandTransactionInfo[]>([]);
-  const [walletSummary, setWalletSummary] = useState({
-    totalValue: 0,
-    totalTokens: 0,
-    recentTransactions: 0,
-    algoBalance: 0
-  });
-  
-  // UI state
+  const [tokens, setTokens] = useState<TokenData[]>([]);
   const [loading, setLoading] = useState(true);
   const [tokenLoading, setTokenLoading] = useState(false);
-  const [transactionLoading, setTransactionLoading] = useState(false);
+  const [walletSummary, setWalletSummary] = useState({
+    totalValue: 0,
+    tokenCount: 0,
+    algoBalance: 0,
+    recentTransactions: 0
+  });
+  const [transactions, setTransactions] = useState<any[]>([]);
   const [refreshing, setRefreshing] = useState(false);
-  const [actionError, setActionError] = useState('');
-  const [actionSuccess, setActionSuccess] = useState('');
-  
-  // Selected token and action state
-  const [selectedToken, setSelectedToken] = useState<AlgorandTokenInfo | null>(null);
-  const [showMintDialog, setShowMintDialog] = useState(false);
-  const [showBurnDialog, setShowBurnDialog] = useState(false);
-  const [showTransferDialog, setShowTransferDialog] = useState(false);
-  const [showFreezeDialog, setShowFreezeDialog] = useState(false);
   const [showOptInDialog, setShowOptInDialog] = useState(false);
-  const [actionAmount, setActionAmount] = useState('');
+  const [assetIdToOptIn, setAssetIdToOptIn] = useState('');
+  const [optInInProgress, setOptInInProgress] = useState(false);
+  const [selectedToken, setSelectedToken] = useState<TokenData | null>(null);
+  const [showTransferDialog, setShowTransferDialog] = useState(false);
   const [transferRecipient, setTransferRecipient] = useState('');
-  const [optInAssetId, setOptInAssetId] = useState('');
-  const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
+  const [transferAmount, setTransferAmount] = useState('');
+  const [transferInProgress, setTransferInProgress] = useState(false);
 
-  // Clean up polling on unmount
   useEffect(() => {
-    return () => {
-      if (pollingInterval) clearInterval(pollingInterval);
-    };
-  }, []);
-  
-  // Load data when wallet connects or network changes
-  useEffect(() => {
-    setSupabaseConfigured(isSupabaseAvailable());
-    
-    // Track page view
-    if (isSupabaseAvailable()) {
-      trackPageView('algorand_dashboard');
-    }
-    
-    if (connected && walletAddress) {
-      setLoading(true);
+    if (connected && address) {
       loadDashboardData();
-      
-      // Set up polling for real-time updates every 30 seconds
-      const interval = setInterval(() => {
-        if (!refreshing) {
-          loadDashboardData(false); // Silent refresh
-        }
-      }, 30000);
-      
-      setPollingInterval(interval);
-      
-      return () => clearInterval(interval);
     }
-  }, [connected, walletAddress, selectedNetwork]);
+  }, [connected, address, selectedNetwork]);
 
-  // Load all dashboard data
   const loadDashboardData = async (showLoadingState = true) => {
-    if (!connected || !walletAddress) return;
+    if (!connected || !address) return;
     
     if (showLoadingState) {
+      setLoading(true);
       setTokenLoading(true);
-      setTransactionLoading(true);
     }
     
-    // Load wallet summary
     try {
-      const summaryResult = await getAlgorandWalletSummary(walletAddress, selectedNetwork);
+      // Get wallet summary
+      const summaryResult = await getAlgorandWalletSummary(address, selectedNetwork);
       
       if (summaryResult.success && summaryResult.data) {
         setWalletSummary({
           totalValue: summaryResult.data.totalValue || 0,
-          totalTokens: summaryResult.data.totalTokens || 0,
-          recentTransactions: summaryResult.data.recentTransactions || 0,
-          algoBalance: summaryResult.data.algoBalance || 0
+          tokenCount: summaryResult.data.totalTokens || 0,
+          algoBalance: summaryResult.data.algoBalance || 0,
+          recentTransactions: summaryResult.data.recentTransactions || 0
         });
       }
-    } catch (error) {
-      console.error('Error loading wallet summary:', error);
-    }
-    
-    // Load token data
-    try {
-      const tokenResult = await getAlgorandEnhancedTokenInfo(walletAddress, selectedNetwork);
+      
+      // Get tokens
+      const tokenResult = await getAlgorandEnhancedTokenInfo(address, selectedNetwork);
       
       if (tokenResult.success && tokenResult.data) {
         setTokens(tokenResult.data);
-      } else {
-        // Set empty array if no tokens found or error
-        setTokens([]);
       }
+      
+      // Get transactions
+      const txResult = await getAlgorandTransactionHistory(address, 10, selectedNetwork);
+      
+      if (txResult.success && txResult.data) {
+        setTransactions(txResult.data);
+      }
+      
     } catch (error) {
-      console.error('Error loading token data:', error);
+      console.error('Error loading Algorand dashboard data:', error);
       toast({
         title: "Error",
-        description: "Failed to load token data",
+        description: "Failed to load dashboard data",
         variant: "destructive"
       });
-      setTokens([]);
     } finally {
+      setLoading(false);
       setTokenLoading(false);
     }
-    
-    // Load transaction history
-    try {
-      const transactionResult = await getAlgorandTransactionHistory(walletAddress, 20, selectedNetwork);
-      
-      if (transactionResult.success && transactionResult.data) {
-        setTransactions(transactionResult.data);
-      } else {
-        setTransactions([]);
-      }
-    } catch (error) {
-      console.error('Error loading transaction history:', error);
-      setTransactions([]);
-    } finally {
-      setTransactionLoading(false);
-    }
-    
-    setLoading(false);
   };
 
-  // Handle manual refresh
   const handleRefresh = async () => {
     setRefreshing(true);
     await loadDashboardData(true);
     setRefreshing(false);
     toast({
-      title: "Dashboard Updated",
-      description: "Latest data has been loaded"
+      title: "Dashboard Refreshed",
+      description: "Latest data loaded from the blockchain",
     });
   };
+
+  const handleOptIn = async () => {
+    if (!assetIdToOptIn) {
+      toast({
+        title: "Asset ID Required",
+        description: "Please enter a valid Asset ID",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setOptInInProgress(true);
+    
+    try {
+      const assetId = parseInt(assetIdToOptIn);
+      
+      const optInResult = await optInToAsset(
+        address!,
+        assetId,
+        signTransaction!,
+        selectedNetwork
+      );
+      
+      if (optInResult.success) {
+        toast({
+          title: "Success",
+          description: `Successfully opted in to asset ${assetId}`,
+        });
+        
+        // Reload tokens after a small delay
+        setTimeout(() => {
+          loadDashboardData();
+          setShowOptInDialog(false);
+          setAssetIdToOptIn('');
+        }, 2000);
+      } else {
+        toast({
+          title: "Error",
+          description: optInResult.error || "Failed to opt in",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Opt-in error:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive"
+      });
+    } finally {
+      setOptInInProgress(false);
+    }
+  };
   
-  // Copy to clipboard
+  const handleTransfer = async () => {
+    if (!selectedToken) return;
+    if (!transferRecipient || !transferAmount) {
+      toast({
+        title: "Missing Information",
+        description: "Please enter recipient address and amount",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setTransferInProgress(true);
+    
+    try {
+      const amount = parseFloat(transferAmount);
+      
+      const transferResult = await transferAlgorandAssets(
+        address!,
+        selectedToken.assetId,
+        transferRecipient,
+        amount,
+        signTransaction!,
+        selectedNetwork
+      );
+      
+      if (transferResult.success) {
+        toast({
+          title: "Success",
+          description: `Successfully transferred ${transferAmount} ${selectedToken.symbol || 'tokens'} to ${transferRecipient.slice(0, 6)}...${transferRecipient.slice(-4)}`,
+        });
+        
+        // Reload tokens after a small delay
+        setTimeout(() => {
+          loadDashboardData();
+          setShowTransferDialog(false);
+          setTransferRecipient('');
+          setTransferAmount('');
+          setSelectedToken(null);
+        }, 2000);
+      } else {
+        toast({
+          title: "Error",
+          description: transferResult.error || "Failed to transfer tokens",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Transfer error:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive"
+      });
+    } finally {
+      setTransferInProgress(false);
+    }
+  };
+
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     toast({
@@ -225,1231 +255,462 @@ export default function AlgorandDashboard() {
       description: "Address copied to clipboard"
     });
   };
-
-  // Handle token minting
-  const handleMintTokens = async () => {
-    if (!selectedToken || !actionAmount || !walletAddress || !signTransaction) {
-      return;
+  
+  // Format token value for display
+  const formatTokenValue = (token: TokenData) => {
+    if (!token.value || token.value === 'N/A') return 'N/A';
+    
+    // If value is already a formatted string like "$250.50"
+    if (typeof token.value === 'string' && token.value.startsWith('$')) {
+      return token.value;
     }
     
-    setActionError('');
-    setActionSuccess('');
-    
-    try {
-      // Validate amount
-      const amount = parseFloat(actionAmount);
-      if (isNaN(amount) || amount <= 0) {
-        setActionError('Please enter a valid positive amount');
-        return;
-      }
-      
-      setLoading(true);
-      
-      const mintResult = await mintAlgorandAssets(
-        walletAddress,
-        selectedToken.assetId,
-        amount,
-        signTransaction,
-        selectedNetwork
-      );
-      
-      if (mintResult.success) {
-        setActionSuccess(`Successfully minted ${amount} ${selectedToken.symbol} tokens`);
-        toast({
-          title: "Success",
-          description: `Minted ${amount} ${selectedToken.symbol} tokens`
-        });
-        
-        // Refresh data after successful mint
-        setTimeout(() => loadDashboardData(), 2000);
-        
-        setShowMintDialog(false);
-        setActionAmount('');
-      } else {
-        setActionError(mintResult.error || 'Failed to mint tokens');
-        toast({
-          title: "Error",
-          description: mintResult.error || 'Failed to mint tokens',
-          variant: "destructive"
-        });
-      }
-    } catch (error) {
-      console.error('Error minting tokens:', error);
-      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-      setActionError(errorMsg);
-      toast({
-        title: "Error",
-        description: errorMsg,
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
+    // If it's a number or numeric string
+    const value = typeof token.value === 'string' ? parseFloat(token.value) : token.value;
+    return isNaN(value) ? 'N/A' : `$${value.toFixed(2)}`;
   };
 
-  // Handle token burning
-  const handleBurnTokens = async () => {
-    if (!selectedToken || !actionAmount || !walletAddress || !signTransaction) {
-      return;
-    }
-    
-    setActionError('');
-    setActionSuccess('');
-    
-    try {
-      // Validate amount
-      const amount = parseFloat(actionAmount);
-      if (isNaN(amount) || amount <= 0) {
-        setActionError('Please enter a valid positive amount');
-        return;
-      }
-      
-      // Validate burn amount against balance
-      if (amount > selectedToken.uiBalance) {
-        setActionError(`Insufficient balance. You only have ${selectedToken.uiBalance} ${selectedToken.symbol}`);
-        return;
-      }
-      
-      setLoading(true);
-      
-      const burnResult = await burnAlgorandAssets(
-        walletAddress,
-        selectedToken.assetId,
-        amount,
-        signTransaction,
-        selectedNetwork
-      );
-      
-      if (burnResult.success) {
-        setActionSuccess(`Successfully burned ${amount} ${selectedToken.symbol} tokens`);
-        toast({
-          title: "Success",
-          description: `Burned ${amount} ${selectedToken.symbol} tokens`
-        });
-        
-        // Refresh data after successful burn
-        setTimeout(() => loadDashboardData(), 2000);
-        
-        setShowBurnDialog(false);
-        setActionAmount('');
-      } else {
-        setActionError(burnResult.error || 'Failed to burn tokens');
-        toast({
-          title: "Error",
-          description: burnResult.error || 'Failed to burn tokens',
-          variant: "destructive"
-        });
-      }
-    } catch (error) {
-      console.error('Error burning tokens:', error);
-      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-      setActionError(errorMsg);
-      toast({
-        title: "Error",
-        description: errorMsg,
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Handle token transfer
-  const handleTransferTokens = async () => {
-    if (!selectedToken || !actionAmount || !transferRecipient || !walletAddress || !signTransaction) {
-      return;
-    }
-    
-    setActionError('');
-    setActionSuccess('');
-    
-    try {
-      // Validate recipient
-      if (transferRecipient.trim() === '') {
-        setActionError('Recipient address is required');
-        return;
-      }
-      
-      // Validate amount
-      const amount = parseFloat(actionAmount);
-      if (isNaN(amount) || amount <= 0) {
-        setActionError('Please enter a valid positive amount');
-        return;
-      }
-      
-      // Validate transfer amount against balance
-      if (amount > selectedToken.uiBalance) {
-        setActionError(`Insufficient balance. You only have ${selectedToken.uiBalance} ${selectedToken.symbol}`);
-        return;
-      }
-      
-      setLoading(true);
-      
-      const transferResult = await transferAlgorandAssets(
-        walletAddress,
-        selectedToken.assetId,
-        transferRecipient,
-        amount,
-        signTransaction,
-        selectedNetwork
-      );
-      
-      if (transferResult.success) {
-        setActionSuccess(`Successfully transferred ${amount} ${selectedToken.symbol} tokens`);
-        toast({
-          title: "Success",
-          description: `Transferred ${amount} ${selectedToken.symbol} tokens to ${transferRecipient.slice(0, 8)}...`
-        });
-        
-        // Refresh data after successful transfer
-        setTimeout(() => loadDashboardData(), 2000);
-        
-        setShowTransferDialog(false);
-        setActionAmount('');
-        setTransferRecipient('');
-      } else {
-        setActionError(transferResult.error || 'Failed to transfer tokens');
-        toast({
-          title: "Error",
-          description: transferResult.error || 'Failed to transfer tokens',
-          variant: "destructive"
-        });
-      }
-    } catch (error) {
-      console.error('Error transferring tokens:', error);
-      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-      setActionError(errorMsg);
-      toast({
-        title: "Error",
-        description: errorMsg,
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Handle token freeze (pause)
-  const handleFreezeToken = async () => {
-    if (!selectedToken || !walletAddress || !signTransaction) {
-      return;
-    }
-    
-    setActionError('');
-    setActionSuccess('');
-    
-    try {
-      setLoading(true);
-      
-      // If token is already frozen, unfreeze it
-      const isFrozen = selectedToken.isFrozen;
-      
-      const freezeResult = isFrozen 
-        ? await unfreezeAlgorandAsset(
-            walletAddress,
-            selectedToken.assetId,
-            walletAddress, // Unfreeze own account
-            signTransaction,
-            selectedNetwork
-          )
-        : await freezeAlgorandAsset(
-            walletAddress,
-            selectedToken.assetId,
-            walletAddress, // Freeze own account
-            signTransaction,
-            selectedNetwork
-          );
-      
-      if (freezeResult.success) {
-        const action = isFrozen ? 'unfrozen' : 'frozen';
-        setActionSuccess(`Successfully ${action} ${selectedToken.symbol} token`);
-        toast({
-          title: "Success",
-          description: `${selectedToken.symbol} token has been ${action}`
-        });
-        
-        // Refresh data after successful freeze/unfreeze
-        setTimeout(() => loadDashboardData(), 2000);
-        
-        setShowFreezeDialog(false);
-      } else {
-        const action = isFrozen ? 'unfreeze' : 'freeze';
-        setActionError(freezeResult.error || `Failed to ${action} token`);
-        toast({
-          title: "Error",
-          description: freezeResult.error || `Failed to ${action} token`,
-          variant: "destructive"
-        });
-      }
-    } catch (error) {
-      console.error('Error freezing/unfreezing token:', error);
-      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-      setActionError(errorMsg);
-      toast({
-        title: "Error",
-        description: errorMsg,
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Handle asset opt-in
-  const handleOptIn = async () => {
-    if (!optInAssetId || !walletAddress || !signTransaction) {
-      setActionError('Please enter a valid asset ID');
-      return;
-    }
-    
-    setActionError('');
-    setActionSuccess('');
-    
-    try {
-      const assetId = parseInt(optInAssetId);
-      
-      if (isNaN(assetId) || assetId <= 0) {
-        setActionError('Please enter a valid asset ID');
-        return;
-      }
-      
-      setLoading(true);
-      
-      const optInResult = await optInToAsset(
-        walletAddress,
-        assetId,
-        signTransaction,
-        selectedNetwork
-      );
-      
-      if (optInResult.success) {
-        setActionSuccess(`Successfully opted in to asset ${assetId}`);
-        toast({
-          title: "Success",
-          description: `Opted in to asset ${assetId}`
-        });
-        
-        // Refresh data after successful opt-in
-        setTimeout(() => loadDashboardData(), 2000);
-        
-        setShowOptInDialog(false);
-        setOptInAssetId('');
-      } else {
-        setActionError(optInResult.error || 'Failed to opt in to asset');
-        toast({
-          title: "Error",
-          description: optInResult.error || 'Failed to opt in to asset',
-          variant: "destructive"
-        });
-      }
-    } catch (error) {
-      console.error('Error opting in to asset:', error);
-      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-      setActionError(errorMsg);
-      toast({
-        title: "Error",
-        description: errorMsg,
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // If not connected, show connection prompt
-  if (!connected || !walletAddress) {
+  if (!connected || !address) {
     return (
-      <div className="min-h-screen app-background flex items-center justify-center">
-        <div className="max-w-md mx-auto text-center">
-          <Card className="glass-card border-orange-500/30 bg-orange-500/5">
-            <CardHeader className="text-center">
-              <div className="w-16 h-16 rounded-full bg-[#76f935]/20 flex items-center justify-center mx-auto">
-                <Wallet className="w-8 h-8 text-[#76f935]" />
-              </div>
-              <div className="space-y-2">
-                <h2 className="text-2xl font-bold text-foreground">Connect Wallet</h2>
-                <p className="text-muted-foreground">
-                  Connect your Algorand wallet to access your token dashboard
-                </p>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
-                <div className="flex items-start space-x-2">
-                  <AlertCircle className="w-5 h-5 text-blue-500 mt-0.5" />
-                  <div className="text-sm text-blue-600">
-                    <p className="font-semibold mb-1">Connection required:</p>
-                    <p>Use the wallet button in the top navigation to connect your Algorand wallet.</p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+      <div className="min-h-screen bg-gradient-to-br from-[#76f935]/5 via-[#76f935]/2 to-[#76f935]/5 flex items-center justify-center">
+        <Card className="w-full max-w-md mx-4">
+          <CardHeader className="text-center">
+            <Wallet className="w-12 h-12 mx-auto mb-4 text-[#76f935]" />
+            <CardTitle>Connect Your Algorand Wallet</CardTitle>
+            <p className="text-muted-foreground mt-2">
+              Please connect your Algorand wallet to access the dashboard
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex flex-col items-center">
+              <Network className="w-5 h-5 text-[#76f935] mb-2" />
+              <p className="text-sm text-[#76f935]">
+                {selectedNetwork.includes('testnet') ? 'Algorand Testnet' : 'Algorand Mainnet'}
+              </p>
+            </div>
+            <div className="bg-[#76f935]/10 rounded-lg p-4 text-center">
+              <p className="text-sm text-muted-foreground">
+                After connecting, you'll be able to view your tokens and transaction history
+              </p>
+            </div>
+            <Button 
+              onClick={() => window.location.reload()}
+              className="w-full bg-[#76f935] text-black hover:bg-[#76f935]/90"
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Refresh Connection
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
-
-  // Display loading state while data is being fetched initially
-  if (loading && !tokens.length && !transactions.length) {
-    return (
-      <div className="min-h-screen app-background flex items-center justify-center">
-        <div className="glass-card p-8 text-center">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#76f935] mx-auto mb-4"></div>
-          <p className="text-foreground text-lg font-semibold">Loading Algorand Dashboard...</p>
-          <p className="text-muted-foreground mt-2">Fetching your assets and transactions</p>
-        </div>
-      </div>
-    );
+  
+  // Display loading state while data is being fetched
+  if (loading) {
+    return <DashboardSkeleton />;
   }
 
   return (
-    <div className="min-h-screen app-background">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <div className="min-h-screen bg-gradient-to-br from-[#76f935]/5 via-[#76f935]/2 to-[#76f935]/5">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8 space-y-4 md:space-y-0">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8 gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Algorand Dashboard</h1>
-            <p className="text-muted-foreground">
-              Wallet: {walletAddress.slice(0, 8)}...{walletAddress.slice(-8)}
+            <h1 className="text-3xl font-bold text-foreground mb-2">Algorand Dashboard</h1>
+            <p className="text-muted-foreground flex items-center">
+              <span className="font-mono">{address.slice(0, 8)}...{address.slice(-8)}</span>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => copyToClipboard(address)}
+                className="ml-2 h-8 w-8 p-0"
+              >
+                <Copy className="h-4 w-4" />
+                <span className="sr-only">Copy address</span>
+              </Button>
             </p>
           </div>
-          <div className="flex gap-3 flex-wrap">
+          <div className="flex flex-col sm:flex-row gap-3 mt-4 md:mt-0">
             <Button
-              variant="outline"
               onClick={handleRefresh}
+              variant="outline"
               disabled={refreshing}
-              className="h-9"
             >
               <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
               Refresh
             </Button>
-            <Button 
-              variant="outline" 
-              onClick={() => copyToClipboard(walletAddress)}
-              className="h-9"
-            >
-              <Copy className="w-4 h-4 mr-2" />
-              Copy Address
-            </Button>
             <Button
-              onClick={() => {
-                setActionError('');
-                setActionSuccess('');
-                setOptInAssetId('');
-                setShowOptInDialog(true);
-              }}
-              className="bg-[#76f935] hover:bg-[#68e029] text-black h-9"
+              onClick={() => setShowOptInDialog(true)}
+              className="bg-[#76f935] text-black hover:bg-[#76f935]/90"
             >
               <Plus className="w-4 h-4 mr-2" />
-              Opt-in to Asset
+              Opt-In to Asset
             </Button>
-          </div>
-        </div>
-        
-        {/* Network Badge */}
-        <div className="flex items-center justify-center mb-6">
-          <div className={`flex items-center px-4 py-2 rounded-full ${
-            networkConfig?.isMainnet
-              ? 'bg-[#00d4aa]/10 text-[#00d4aa] border border-[#00d4aa]/30'
-              : 'bg-[#76f935]/10 text-[#76f935] border border-[#76f935]/30'
-          }`}>
-            <span className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: 'currentColor' }}></span>
-            <span className="font-medium">
-              {networkConfig?.isMainnet ? 'Algorand MainNet' : 'Algorand TestNet'}
-            </span>
           </div>
         </div>
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card className="glass-card">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Value</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">${walletSummary.totalValue.toFixed(2)}</div>
-              <p className="text-xs text-muted-foreground">
-                Estimated portfolio value
-              </p>
+          <Card className="bg-white/90 dark:bg-black/80 shadow-md">
+            <CardContent className="pt-6">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">ALGO Balance</p>
+                  <p className="text-2xl font-bold">{walletSummary.algoBalance.toFixed(4)} ALGO</p>
+                  <p className="text-xs text-muted-foreground">Native currency</p>
+                </div>
+                <div className="bg-[#76f935]/20 p-2 rounded-full">
+                  <Coins className="h-5 w-5 text-[#76f935]" />
+                </div>
+              </div>
             </CardContent>
           </Card>
-
-          <Card className="glass-card">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Assets</CardTitle>
-              <Coins className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{walletSummary.totalTokens}</div>
-              <p className="text-xs text-muted-foreground">
-                Unique asset types
-              </p>
+          
+          <Card className="bg-white/90 dark:bg-black/80 shadow-md">
+            <CardContent className="pt-6">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">Assets</p>
+                  <p className="text-2xl font-bold">{walletSummary.tokenCount}</p>
+                  <p className="text-xs text-muted-foreground">Total tokens</p>
+                </div>
+                <div className="bg-purple-500/20 p-2 rounded-full">
+                  <Wallet className="h-5 w-5 text-purple-500" />
+                </div>
+              </div>
             </CardContent>
           </Card>
-
-          <Card className="glass-card">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">ALGO Balance</CardTitle>
-              <Wallet className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{walletSummary.algoBalance.toFixed(4)}</div>
-              <p className="text-xs text-muted-foreground">
-                Native Algorand balance
-              </p>
+          
+          <Card className="bg-white/90 dark:bg-black/80 shadow-md">
+            <CardContent className="pt-6">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">Estimated Value</p>
+                  <p className="text-2xl font-bold">${walletSummary.totalValue.toFixed(2)}</p>
+                  <p className="text-xs text-muted-foreground">All assets</p>
+                </div>
+                <div className="bg-blue-500/20 p-2 rounded-full">
+                  <TrendingUp className="h-5 w-5 text-blue-500" />
+                </div>
+              </div>
             </CardContent>
           </Card>
-
-          <Card className="glass-card">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Transactions</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{walletSummary.recentTransactions}</div>
-              <p className="text-xs text-muted-foreground">
-                Recent transactions
-              </p>
+          
+          <Card className="bg-white/90 dark:bg-black/80 shadow-md">
+            <CardContent className="pt-6">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">Network</p>
+                  <p className="text-2xl font-bold">
+                    {selectedNetwork.includes('testnet') ? 'Testnet' : 'Mainnet'}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    <span className="text-green-600">●</span> Connected
+                  </p>
+                </div>
+                <div className="bg-[#76f935]/20 p-2 rounded-full">
+                  <Network className="h-5 w-5 text-[#76f935]" />
+                </div>
+              </div>
             </CardContent>
           </Card>
         </div>
 
+        {/* Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Assets List */}
+          {/* Token List */}
           <div className="lg:col-span-2">
-            <Card className="glass-card">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center">
-                    Your Assets
-                    <Badge variant="secondary" className="ml-2">{tokens.length}</Badge>
-                  </CardTitle>
-                  {tokens.length > 0 && (
-                    <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
-                      <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-                      Refresh
-                    </Button>
-                  )}
-                </div>
+            <Card className="bg-white/90 dark:bg-black/80 shadow-md">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle>Your Assets</CardTitle>
+                <Badge variant="outline" className="ml-2">
+                  {tokens.length}
+                </Badge>
               </CardHeader>
               <CardContent>
                 {tokenLoading ? (
                   <div className="space-y-4">
-                    {[1, 2, 3].map((_, i) => (
-                      <div key={i} className="h-24 bg-muted/20 animate-pulse rounded-lg"></div>
+                    {[1, 2, 3].map((i) => (
+                      <TokenCardSkeleton key={i} />
                     ))}
                   </div>
                 ) : tokens.length > 0 ? (
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     {tokens.map((token) => (
-                      <div key={token.assetId} className="flex items-center justify-between p-4 glass-card hover:bg-muted/10 transition-colors cursor-pointer">
-                        <div className="flex items-center gap-4">
-                          <div className="flex-shrink-0">
-                            {token.image ? (
-                              <img 
-                                src={token.image} 
-                                alt={token.name} 
-                                className="w-12 h-12 rounded-full object-cover"
-                                onError={(e) => {
-                                  (e.target as HTMLImageElement).style.display = 'none';
-                                  (e.target as HTMLImageElement).parentElement!.innerHTML = `
-                                    <div class="w-12 h-12 algorand-card rounded-full flex items-center justify-center">
-                                      <span class="text-[#76f935] font-bold">${token.symbol?.[0] || 'A'}</span>
-                                    </div>
-                                  `;
-                                }}
-                              />
-                            ) : (
-                              <div className="w-12 h-12 algorand-card rounded-full flex items-center justify-center">
-                                <span className="text-[#76f935] font-bold">{token.symbol?.[0] || 'A'}</span>
-                              </div>
-                            )}
+                      <div 
+                        key={token.assetId} 
+                        className="flex flex-col md:flex-row md:items-center justify-between p-4 border border-border rounded-lg hover:bg-muted/30 transition-colors"
+                      >
+                        <div className="flex items-center mb-3 md:mb-0">
+                          <div className="w-10 h-10 bg-[#76f935]/10 rounded-full flex items-center justify-center text-[#76f935] font-bold mr-3">
+                            {token.symbol?.[0] || 'A'}
                           </div>
                           <div>
+                            <h3 className="font-semibold">{token.name || `Asset #${token.assetId}`}</h3>
                             <div className="flex items-center">
-                              <h3 className="font-semibold text-foreground">{token.name || `Asset #${token.assetId}`}</h3>
+                              <p className="text-sm text-muted-foreground">{token.symbol || 'ASA'}</p>
                               {token.verified && (
-                                <Badge className="ml-2 algorand-badge">Verified</Badge>
+                                <Badge variant="outline" className="ml-2 bg-green-500/10 text-green-500 border-green-500/30">
+                                  Verified
+                                </Badge>
                               )}
-                              {token.isFrozen && (
-                                <Badge className="ml-2 bg-yellow-500/20 text-yellow-500 border-yellow-500/30">Frozen</Badge>
-                              )}
-                            </div>
-                            <div className="flex items-center text-sm text-muted-foreground mt-1">
-                              <span>{token.symbol || 'ASA'}</span>
-                              <span className="mx-1">•</span>
-                              <span>ID: {token.assetId}</span>
                             </div>
                           </div>
                         </div>
                         
-                        <div className="text-right">
-                          <p className="font-semibold">{token.uiBalance.toLocaleString()} {token.symbol}</p>
-                          <p className="text-sm text-muted-foreground">{token.value || '$0.00'}</p>
+                        <div className="flex flex-col md:items-end">
+                          <p className="font-semibold">{token.uiBalance?.toLocaleString() || '0'}</p>
+                          <p className="text-sm text-muted-foreground">{formatTokenValue(token)}</p>
                         </div>
-
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm">
-                              <Settings className="w-4 h-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent>
-                            {token.manager === walletAddress && (
-                              <DropdownMenuItem onClick={() => {
-                                setSelectedToken(token);
-                                setShowMintDialog(true);
-                                setActionError('');
-                                setActionSuccess('');
-                              }}>
-                                <Plus className="w-4 h-4 mr-2" />
-                                Mint Tokens
-                              </DropdownMenuItem>
-                            )}
-                            
-                            {token.clawback === walletAddress && (
-                              <DropdownMenuItem onClick={() => {
-                                setSelectedToken(token);
-                                setShowBurnDialog(true);
-                                setActionError('');
-                                setActionSuccess('');
-                              }}>
-                                <Flame className="w-4 h-4 mr-2" />
-                                Burn Tokens
-                              </DropdownMenuItem>
-                            )}
-                            
-                            <DropdownMenuItem onClick={() => {
+                        
+                        <div className="flex space-x-2 mt-3 md:mt-0 md:ml-4">
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-8 w-8 p-0"
+                            onClick={() => {
                               setSelectedToken(token);
                               setShowTransferDialog(true);
-                              setActionError('');
-                              setActionSuccess('');
-                            }}>
-                              <Send className="w-4 h-4 mr-2" />
-                              Transfer
-                            </DropdownMenuItem>
-                            
-                            {token.freeze === walletAddress && (
-                              <DropdownMenuItem onClick={() => {
-                                setSelectedToken(token);
-                                setShowFreezeDialog(true);
-                                setActionError('');
-                                setActionSuccess('');
-                              }}>
-                                {token.isFrozen ? (
-                                  <>
-                                    <Play className="w-4 h-4 mr-2" />
-                                    Unfreeze Asset
-                                  </>
-                                ) : (
-                                  <>
-                                    <Pause className="w-4 h-4 mr-2" />
-                                    Freeze Asset
-                                  </>
-                                )}
-                              </DropdownMenuItem>
-                            )}
-                            
-                            <DropdownMenuItem onClick={() => copyToClipboard(token.assetId.toString())}>
-                              <Copy className="w-4 h-4 mr-2" />
-                              Copy Asset ID
-                            </DropdownMenuItem>
-                            
-                            <DropdownMenuItem onClick={() => window.open(token.explorerUrl, '_blank')}>
-                              <ExternalLink className="w-4 h-4 mr-2" />
-                              View on Explorer
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                            }}
+                          >
+                            <Send className="h-4 w-4" />
+                            <span className="sr-only">Transfer</span>
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-8 w-8 p-0"
+                            onClick={() => window.open(token.explorerUrl, '_blank')}
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                            <span className="sr-only">View on explorer</span>
+                          </Button>
+                        </div>
                       </div>
                     ))}
                   </div>
                 ) : (
                   <div className="text-center py-12">
-                    <div className="w-20 h-20 bg-[#76f935]/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <Coins className="w-10 h-10 text-[#76f935]/60" />
+                    <div className="w-16 h-16 mx-auto bg-muted/50 rounded-full flex items-center justify-center mb-4">
+                      <Coins className="h-8 w-8 text-muted-foreground" />
                     </div>
-                    <h3 className="text-xl font-semibold text-foreground mb-2">No Assets Found</h3>
-                    <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-                      You don't have any Algorand Standard Assets (ASAs) in this wallet or they haven't been opted into yet.
+                    <h3 className="text-lg font-medium mb-2">No Assets Found</h3>
+                    <p className="text-muted-foreground mb-6">
+                      You haven't opted into any Algorand Standard Assets yet
                     </p>
-                    <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                      <Button 
-                        onClick={() => {
-                          setActionError('');
-                          setActionSuccess('');
-                          setOptInAssetId('');
-                          setShowOptInDialog(true);
-                        }}
-                        className="bg-[#76f935] hover:bg-[#68e029] text-black"
-                      >
-                        <Plus className="w-4 h-4 mr-2" />
-                        Opt-in to Asset
-                      </Button>
-                      <Button 
-                        variant="outline"
-                        onClick={() => window.location.href = '/create?network=algorand'}
-                      >
-                        Create New Token
-                      </Button>
-                    </div>
+                    <Button 
+                      onClick={() => setShowOptInDialog(true)}
+                      className="bg-[#76f935] text-black hover:bg-[#76f935]/90"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Opt-In to Asset
+                    </Button>
                   </div>
                 )}
               </CardContent>
             </Card>
           </div>
 
-          {/* Side Panel */}
-          <div className="space-y-6">
-            {/* Asset Allocation */}
-            <Card className="glass-card">
+          {/* Recent Transactions */}
+          <div className="lg:col-span-1">
+            <Card className="bg-white/90 dark:bg-black/80 shadow-md">
               <CardHeader>
-                <CardTitle className="text-lg">Asset Allocation</CardTitle>
+                <CardTitle>Recent Transactions</CardTitle>
               </CardHeader>
               <CardContent>
-                {tokens.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={200}>
-                    <PieChart>
-                      <Pie
-                        data={tokens.map(token => ({
-                          name: token.symbol || `ASA ${token.assetId}`,
-                          value: token.uiBalance || 0
-                        }))}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                        outerRadius={80}
-                        fill="#8884d8"
-                        dataKey="value"
-                      >
-                        {tokens.map((_, index) => (
-                          <Cell key={`cell-${index}`} fill={[
-                            '#76f935', '#00d4aa', '#3498db', '#9b59b6', '#e67e22', '#f1c40f'
-                          ][index % 6]} />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                    </PieChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="flex items-center justify-center h-[200px] bg-muted/10 rounded-lg">
-                    <div className="text-center">
-                      <BarChart3 className="w-10 h-10 text-muted-foreground/50 mx-auto mb-3" />
-                      <p className="text-muted-foreground">No asset data available</p>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Recent Transactions */}
-            <Card className="glass-card">
-              <CardHeader>
-                <CardTitle className="text-lg">Recent Transactions</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {transactionLoading ? (
+                {transactions.length > 0 ? (
                   <div className="space-y-3">
-                    {[1, 2, 3].map((_, i) => (
-                      <div key={i} className="h-16 bg-muted/20 animate-pulse rounded-lg"></div>
-                    ))}
-                  </div>
-                ) : transactions.length > 0 ? (
-                  <div className="space-y-3">
-                    {transactions.slice(0, 5).map((tx) => {
-                      // Format for display
-                      const displayTx = formatAlgorandTransactionForDisplay(tx);
-                      return (
-                        <div key={tx.id} className="flex items-center justify-between p-3 glass-card hover:bg-muted/10 transition-colors">
-                          <div className="flex items-center gap-3">
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                              tx.type.includes('Asset') 
-                                ? 'bg-[#76f935]/20 text-[#76f935]' 
-                                : 'bg-blue-500/20 text-blue-500'
-                            }`}>
-                              {tx.type.includes('Transfer') ? (
-                                <Send className="w-4 h-4" />
-                              ) : tx.type.includes('Config') ? (
-                                <Settings className="w-4 h-4" />
-                              ) : (
-                                <MessageSquare className="w-4 h-4" />
-                              )}
-                            </div>
-                            <div>
-                              <p className="font-medium text-sm">{displayTx.type}</p>
-                              <p className="text-xs text-muted-foreground">{displayTx.time}</p>
-                            </div>
+                    {transactions.slice(0, 5).map((tx, idx) => (
+                      <div key={tx.id || idx} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/30 transition-all">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-8 h-8 rounded-full flex items-center justify-center bg-blue-500/10 text-blue-500">
+                            <Send className="w-4 h-4" />
                           </div>
-                          <div className="text-right">
-                            <p className="font-medium text-sm">{displayTx.amount}</p>
-                            <Badge className="text-xs px-2 py-0 h-5 algorand-badge">
-                              {displayTx.status}
-                            </Badge>
+                          <div>
+                            <p className="font-medium">{tx.type}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {tx.timestamp ? formatDistanceToNow(new Date(tx.timestamp), { addSuffix: true }) : 'Unknown time'}
+                            </p>
                           </div>
                         </div>
-                      );
-                    })}
-                    {transactions.length > 5 && (
-                      <div className="text-center pt-2">
-                        <Button variant="ghost" size="sm" className="text-xs text-[#76f935] hover:text-[#68e029]">
-                          View All Transactions
-                        </Button>
+                        <div>
+                          <p className="text-right font-medium">{tx.amount} {tx.token}</p>
+                          <Badge variant="outline" className="text-xs">
+                            {tx.status}
+                          </Badge>
+                        </div>
                       </div>
-                    )}
+                    ))}
                   </div>
                 ) : (
                   <div className="text-center py-8">
-                    <Clock className="w-12 h-12 text-muted-foreground/50 mx-auto mb-3" />
+                    <div className="w-12 h-12 mx-auto bg-muted/50 rounded-full flex items-center justify-center mb-3">
+                      <Settings className="w-6 h-6 text-muted-foreground" />
+                    </div>
                     <p className="text-muted-foreground">No recent transactions</p>
-                    <p className="text-xs text-muted-foreground mt-1">Transactions will appear here when you send or receive assets</p>
                   </div>
                 )}
               </CardContent>
             </Card>
-            
-            {/* Network Info */}
-            <Card className="glass-card">
+          </div>
+        </div>
+        
+        {/* Opt-In Dialog */}
+        {showOptInDialog && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <Card className="w-full max-w-md">
               <CardHeader>
-                <CardTitle className="text-sm">Algorand Network Info</CardTitle>
+                <CardTitle>Opt-In to Algorand Asset</CardTitle>
+                <p className="text-muted-foreground text-sm mt-1">
+                  Enter the Asset ID to opt-in and receive this asset
+                </p>
               </CardHeader>
               <CardContent>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">Network:</span>
-                    <Badge className={networkConfig?.isMainnet ? 'algorand-mainnet-badge' : 'algorand-badge'}>
-                      {networkConfig?.name || (networkConfig?.isMainnet ? 'MainNet' : 'TestNet')}
-                    </Badge>
+                <div className="space-y-4">
+                  <div>
+                    <label htmlFor="assetId" className="block text-sm font-medium mb-1">Asset ID</label>
+                    <input
+                      id="assetId"
+                      type="text"
+                      value={assetIdToOptIn}
+                      onChange={(e) => setAssetIdToOptIn(e.target.value)}
+                      placeholder="Enter Asset ID"
+                      className="w-full p-2 rounded-md border border-border bg-background"
+                    />
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">Status:</span>
-                    <span className="flex items-center">
-                      <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
-                      Active
-                    </span>
-                  </div>
-                  {networkConfig?.isMainnet ? (
-                    <div className="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg mt-2">
-                      <div className="flex items-start space-x-2">
-                        <AlertTriangle className="w-4 h-4 text-yellow-500 mt-0.5" />
-                        <p className="text-yellow-600 text-xs">
-                          You are connected to MainNet. All transactions use real ALGO and have real value.
-                        </p>
+                  
+                  <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 text-sm">
+                    <div className="flex items-start">
+                      <AlertTriangle className="w-4 h-4 text-yellow-500 mt-0.5 mr-2 flex-shrink-0" />
+                      <div className="text-yellow-700 dark:text-yellow-400">
+                        <p className="font-medium">Important:</p>
+                        <p>Opting in requires a minimum balance of 0.1 ALGO per asset. Your current balance: {walletSummary.algoBalance.toFixed(4)} ALGO</p>
                       </div>
                     </div>
-                  ) : (
-                    <div className="p-3 bg-[#76f935]/10 border border-[#76f935]/20 rounded-lg mt-2">
-                      <div className="flex items-start space-x-2">
-                        <Info className="w-4 h-4 text-[#76f935] mt-0.5" />
-                        <p className="text-[#68e029] text-xs">
-                          You are connected to TestNet. Perfect for testing - tokens have no real value.
-                        </p>
-                      </div>
-                    </div>
-                  )}
+                  </div>
+                  
+                  <div className="flex justify-end space-x-3 pt-2">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => {
+                        setShowOptInDialog(false);
+                        setAssetIdToOptIn('');
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                    <Button 
+                      onClick={handleOptIn}
+                      disabled={optInInProgress || !assetIdToOptIn}
+                      className="bg-[#76f935] text-black hover:bg-[#76f935]/90"
+                    >
+                      {optInInProgress ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Processing...
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="w-4 h-4 mr-2" />
+                          Opt-In
+                        </>
+                      )}
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
           </div>
-        </div>
-
-        {/* Mint Dialog */}
-        <Dialog open={showMintDialog} onOpenChange={setShowMintDialog}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Mint Tokens</DialogTitle>
-              <DialogDescription>
-                Mint new {selectedToken?.symbol} tokens (Asset ID: {selectedToken?.assetId})
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              {actionSuccess && (
-                <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
-                  <div className="flex items-start">
-                    <CheckCircle className="w-5 h-5 text-green-500 mr-2 flex-shrink-0" />
-                    <p className="text-green-600 text-sm">{actionSuccess}</p>
-                  </div>
-                </div>
-              )}
-              {actionError && (
-                <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
-                  <div className="flex items-start">
-                    <AlertTriangle className="w-5 h-5 text-red-500 mr-2 flex-shrink-0" />
-                    <p className="text-red-600 text-sm">{actionError}</p>
-                  </div>
-                </div>
-              )}
-              <div>
-                <Label htmlFor="mintAmount">Amount to Mint</Label>
-                <Input
-                  id="mintAmount"
-                  type="number"
-                  value={actionAmount}
-                  onChange={(e) => setActionAmount(e.target.value)}
-                  placeholder="Enter amount to mint"
-                />
-              </div>
-              {selectedToken && (
-                <div className="text-sm">
-                  <div className="flex justify-between mb-1">
-                    <Label>Current Supply</Label>
-                    <span className="text-sm text-muted-foreground">
-                      {selectedToken.uiBalance} {selectedToken.symbol}
-                    </span>
-                  </div>
-                </div>
-              )}
-              <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-                <div className="flex items-start">
-                  <Info className="w-4 h-4 text-blue-500 mr-2 mt-0.5" />
-                  <p className="text-blue-600 text-sm">
-                    Minting requires you to be the asset manager. Only the account that created the asset can mint more tokens.
-                  </p>
-                </div>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setShowMintDialog(false)}>
-                Cancel
-              </Button>
-              <Button 
-                onClick={handleMintTokens} 
-                disabled={!actionAmount || loading}
-                className="bg-[#76f935] hover:bg-[#68e029] text-black"
-              >
-                {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                Mint Tokens
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        {/* Burn Dialog */}
-        <Dialog open={showBurnDialog} onOpenChange={setShowBurnDialog}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Burn Tokens</DialogTitle>
-              <DialogDescription>
-                Burn {selectedToken?.symbol} tokens (Asset ID: {selectedToken?.assetId})
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              {actionSuccess && (
-                <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
-                  <div className="flex items-start">
-                    <CheckCircle className="w-5 h-5 text-green-500 mr-2 flex-shrink-0" />
-                    <p className="text-green-600 text-sm">{actionSuccess}</p>
-                  </div>
-                </div>
-              )}
-              {actionError && (
-                <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
-                  <div className="flex items-start">
-                    <AlertTriangle className="w-5 h-5 text-red-500 mr-2 flex-shrink-0" />
-                    <p className="text-red-600 text-sm">{actionError}</p>
-                  </div>
-                </div>
-              )}
-              <div>
-                <Label htmlFor="burnAmount">Amount to Burn</Label>
-                <Input
-                  id="burnAmount"
-                  type="number"
-                  value={actionAmount}
-                  onChange={(e) => setActionAmount(e.target.value)}
-                  placeholder="Enter amount to burn"
-                  max={selectedToken?.uiBalance.toString()}
-                />
-              </div>
-              {selectedToken && (
-                <div className="text-sm">
-                  <div className="flex justify-between mb-1">
-                    <Label>Available Balance</Label>
-                    <span className="text-sm text-muted-foreground">
-                      {selectedToken.uiBalance} {selectedToken.symbol}
-                    </span>
-                  </div>
-                </div>
-              )}
-              <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
-                <AlertTriangle className="w-4 h-4 text-red-600" />
-                <p className="text-sm text-red-700">
-                  Warning: Burned tokens cannot be recovered
-                </p>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setShowBurnDialog(false)}>
-                Cancel
-              </Button>
-              <Button 
-                variant="destructive" 
-                onClick={handleBurnTokens} 
-                disabled={!actionAmount || loading}
-              >
-                {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                Burn Tokens
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
+        )}
+        
         {/* Transfer Dialog */}
-        <Dialog open={showTransferDialog} onOpenChange={setShowTransferDialog}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Transfer Tokens</DialogTitle>
-              <DialogDescription>
-                Transfer {selectedToken?.symbol} tokens to another address
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              {actionSuccess && (
-                <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
-                  <div className="flex items-start">
-                    <CheckCircle className="w-5 h-5 text-green-500 mr-2 flex-shrink-0" />
-                    <p className="text-green-600 text-sm">{actionSuccess}</p>
+        {showTransferDialog && selectedToken && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <Card className="w-full max-w-md">
+              <CardHeader>
+                <CardTitle>Transfer {selectedToken.name || `Asset #${selectedToken.assetId}`}</CardTitle>
+                <p className="text-muted-foreground text-sm mt-1">
+                  Send {selectedToken.symbol || 'ASA'} tokens to another address
+                </p>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div>
+                    <label htmlFor="recipient" className="block text-sm font-medium mb-1">Recipient Address</label>
+                    <input
+                      id="recipient"
+                      type="text"
+                      value={transferRecipient}
+                      onChange={(e) => setTransferRecipient(e.target.value)}
+                      placeholder="Enter Algorand address"
+                      className="w-full p-2 rounded-md border border-border bg-background"
+                    />
                   </div>
-                </div>
-              )}
-              {actionError && (
-                <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
-                  <div className="flex items-start">
-                    <AlertTriangle className="w-5 h-5 text-red-500 mr-2 flex-shrink-0" />
-                    <p className="text-red-600 text-sm">{actionError}</p>
-                  </div>
-                </div>
-              )}
-              <div>
-                <Label htmlFor="transferAmount">Amount</Label>
-                <Input
-                  id="transferAmount"
-                  type="number"
-                  value={actionAmount}
-                  onChange={(e) => setActionAmount(e.target.value)}
-                  placeholder="Enter amount to transfer"
-                  max={selectedToken?.uiBalance.toString()}
-                />
-              </div>
-              <div>
-                <Label htmlFor="recipient">Recipient Address</Label>
-                <Input
-                  id="recipient"
-                  value={transferRecipient}
-                  onChange={(e) => setTransferRecipient(e.target.value)}
-                  placeholder="Enter recipient's Algorand address"
-                />
-              </div>
-              {selectedToken && (
-                <div className="text-sm">
-                  <div className="flex justify-between mb-1">
-                    <Label>Available Balance</Label>
-                    <span className="text-sm text-muted-foreground">
-                      {selectedToken.uiBalance} {selectedToken.symbol}
-                    </span>
-                  </div>
-                </div>
-              )}
-              <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-                <div className="flex items-start">
-                  <Info className="w-4 h-4 text-blue-500 mr-2 mt-0.5" />
-                  <p className="text-blue-600 text-sm">
-                    Important: The recipient must have opted into this asset (ASA #{selectedToken?.assetId}) to receive it.
-                  </p>
-                </div>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setShowTransferDialog(false)}>
-                Cancel
-              </Button>
-              <Button 
-                onClick={handleTransferTokens}
-                disabled={!actionAmount || !transferRecipient || loading}
-                className="bg-[#76f935] hover:bg-[#68e029] text-black"
-              >
-                {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                Transfer Tokens
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        {/* Freeze/Unfreeze Dialog */}
-        <Dialog open={showFreezeDialog} onOpenChange={setShowFreezeDialog}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>
-                {selectedToken?.isFrozen ? 'Unfreeze Asset' : 'Freeze Asset'}
-              </DialogTitle>
-              <DialogDescription>
-                {selectedToken?.isFrozen 
-                  ? `Unfreeze ${selectedToken?.symbol} tokens to allow transfers`
-                  : `Freeze ${selectedToken?.symbol} tokens to prevent transfers`
-                }
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              {actionSuccess && (
-                <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
-                  <div className="flex items-start">
-                    <CheckCircle className="w-5 h-5 text-green-500 mr-2 flex-shrink-0" />
-                    <p className="text-green-600 text-sm">{actionSuccess}</p>
-                  </div>
-                </div>
-              )}
-              {actionError && (
-                <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
-                  <div className="flex items-start">
-                    <AlertTriangle className="w-5 h-5 text-red-500 mr-2 flex-shrink-0" />
-                    <p className="text-red-600 text-sm">{actionError}</p>
-                  </div>
-                </div>
-              )}
-              <div className="p-4 bg-muted/10 rounded-lg">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="font-medium">Asset ID:</span>
-                  <span>{selectedToken?.assetId}</span>
-                </div>
-                <div className="flex items-center justify-between mb-3">
-                  <span className="font-medium">Token Name:</span>
-                  <span>{selectedToken?.name}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="font-medium">Current Status:</span>
-                  <Badge className={selectedToken?.isFrozen 
-                    ? "bg-yellow-500/20 text-yellow-500 border-yellow-500/30" 
-                    : "bg-green-500/20 text-green-500 border-green-500/30"
-                  }>
-                    {selectedToken?.isFrozen ? 'Frozen' : 'Active'}
-                  </Badge>
-                </div>
-              </div>
-              
-              <div className={`p-3 ${
-                selectedToken?.isFrozen 
-                  ? "bg-blue-500/10 border border-blue-500/20"
-                  : "bg-yellow-500/10 border border-yellow-500/20"
-                } rounded-lg`}
-              >
-                <div className="flex items-start">
-                  <Info className={`w-4 h-4 ${
-                    selectedToken?.isFrozen ? "text-blue-500" : "text-yellow-500"
-                  } mr-2 mt-0.5`} />
-                  <p className={`text-sm ${
-                    selectedToken?.isFrozen ? "text-blue-600" : "text-yellow-600"
-                  }`}>
-                    {selectedToken?.isFrozen 
-                      ? "Unfreezing will allow transfers of this asset again."
-                      : "Freezing will prevent all transfers of this asset until unfrozen."
-                    }
-                  </p>
-                </div>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setShowFreezeDialog(false)}>
-                Cancel
-              </Button>
-              <Button 
-                onClick={handleFreezeToken}
-                disabled={loading}
-                variant={selectedToken?.isFrozen ? "default" : "secondary"}
-                className={selectedToken?.isFrozen 
-                  ? "bg-[#76f935] hover:bg-[#68e029] text-black" 
-                  : ""
-                }
-              >
-                {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                {selectedToken?.isFrozen ? 'Unfreeze Asset' : 'Freeze Asset'}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        {/* Opt-In Dialog */}
-        <Dialog open={showOptInDialog} onOpenChange={setShowOptInDialog}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Opt-in to Asset</DialogTitle>
-              <DialogDescription>
-                Opt-in to an Algorand Standard Asset (ASA) to receive it
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              {actionSuccess && (
-                <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
-                  <div className="flex items-start">
-                    <CheckCircle className="w-5 h-5 text-green-500 mr-2 flex-shrink-0" />
-                    <p className="text-green-600 text-sm">{actionSuccess}</p>
-                  </div>
-                </div>
-              )}
-              {actionError && (
-                <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
-                  <div className="flex items-start">
-                    <AlertTriangle className="w-5 h-5 text-red-500 mr-2 flex-shrink-0" />
-                    <p className="text-red-600 text-sm">{actionError}</p>
-                  </div>
-                </div>
-              )}
-              <div>
-                <Label htmlFor="assetId">Asset ID</Label>
-                <Input
-                  id="assetId"
-                  type="number"
-                  value={optInAssetId}
-                  onChange={(e) => setOptInAssetId(e.target.value)}
-                  placeholder="Enter asset ID (e.g., 123456789)"
-                />
-              </div>
-              
-              <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-                <div className="flex items-start">
-                  <Info className="w-4 h-4 text-blue-500 mr-2 mt-0.5" />
-                  <div className="text-blue-600 text-sm">
-                    <p className="mb-1"><strong>What is opting in?</strong></p>
-                    <p>
-                      On Algorand, you must opt-in to each asset before you can receive it. 
-                      This requires a small amount of ALGO (~0.1) to be reserved.
+                  
+                  <div>
+                    <label htmlFor="amount" className="block text-sm font-medium mb-1">Amount</label>
+                    <input
+                      id="amount"
+                      type="number"
+                      value={transferAmount}
+                      onChange={(e) => setTransferAmount(e.target.value)}
+                      placeholder="Enter amount"
+                      min="0"
+                      step="0.000001"
+                      className="w-full p-2 rounded-md border border-border bg-background"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Available: {selectedToken.uiBalance?.toLocaleString() || '0'} {selectedToken.symbol || 'tokens'}
                     </p>
                   </div>
+                  
+                  <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 text-sm">
+                    <div className="flex items-start">
+                      <AlertTriangle className="w-4 h-4 text-yellow-500 mt-0.5 mr-2 flex-shrink-0" />
+                      <div className="text-yellow-700 dark:text-yellow-400">
+                        <p className="font-medium">Important:</p>
+                        <p>The recipient must have already opted-in to this asset ({selectedToken.assetId}).</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex justify-end space-x-3 pt-2">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => {
+                        setShowTransferDialog(false);
+                        setTransferRecipient('');
+                        setTransferAmount('');
+                        setSelectedToken(null);
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                    <Button 
+                      onClick={handleTransfer}
+                      disabled={transferInProgress || !transferRecipient || !transferAmount}
+                      className="bg-[#76f935] text-black hover:bg-[#76f935]/90"
+                    >
+                      {transferInProgress ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Processing...
+                        </>
+                      ) : (
+                        <>
+                          <Send className="w-4 h-4 mr-2" />
+                          Transfer
+                        </>
+                      )}
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setShowOptInDialog(false)}>
-                Cancel
-              </Button>
-              <Button 
-                onClick={handleOptIn}
-                disabled={!optInAssetId || loading}
-                className="bg-[#76f935] hover:bg-[#68e029] text-black"
-              >
-                {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                Opt-in to Asset
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
-      
-      {/* Token History Section */}
-      {supabaseConfigured && walletAddress && (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <TokenHistoryList walletAddress={walletAddress} limit={5} />
-        </div>
-      )}
-      
-      {/* Supabase Auth Modal */}
-      {showAuthModal && (
-        <SupabaseAuthModal
-          isOpen={showAuthModal}
-          onClose={() => setShowAuthModal(false)}
-        />
-      )}
     </div>
   );
 }

@@ -21,7 +21,7 @@ export default function Navbar() {
   const pathname = usePathname();
   
   // Solana wallet
-  const { connected: solanaConnected, publicKey: solanaPublicKey } = useWallet();
+  const { connected: solanaConnected, publicKey: solanaPublicKey, wallet: solanaWallet } = useWallet();
   
   // Algorand wallet
   const { 
@@ -39,7 +39,7 @@ export default function Navbar() {
   useEffect(() => {
     setMounted(true);
     // Initialize theme from localStorage or default to dark
-    const savedTheme = localStorage.getItem('theme') || 'dark';
+    const savedTheme = typeof localStorage !== 'undefined' ? (localStorage.getItem('theme') || 'dark') : 'dark';
     setTheme(savedTheme);
     document.documentElement.setAttribute('data-theme', savedTheme);
     
@@ -54,7 +54,9 @@ export default function Navbar() {
   const toggleTheme = () => {
     const newTheme = theme === 'dark' ? 'light' : 'dark';
     setTheme(newTheme);
-    localStorage.setItem('theme', newTheme);
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('theme', newTheme);
+    }
     document.documentElement.setAttribute('data-theme', newTheme);
   };
 
@@ -62,7 +64,7 @@ export default function Navbar() {
     { name: 'Create Token', href: '/create' },
     { name: 'Tokenomics Simulator', href: '/tokenomics' },
     { name: 'Token Verification', href: '/verify' },
-    { name: 'Dashboard', href: '/dashboard' },
+    { name: 'Dashboard', href: '/dashboard' }
   ];
 
   // Check if user is admin
@@ -163,6 +165,7 @@ export default function Navbar() {
                 className={`text-muted-foreground hover:text-foreground transition-all duration-200 font-medium relative group ${
                   pathname === link.href ? 'text-red-500' : ''
                 }`}
+                aria-current={pathname === link.href ? 'page' : undefined}
               >
                 {link.name}
                 <div className={`absolute -bottom-1 left-0 h-0.5 bg-red-500 transition-all duration-300 ${
@@ -222,6 +225,7 @@ export default function Navbar() {
                         <div className="flex items-center">
                           <div className="w-6 h-6 rounded-full flex items-center justify-center bg-[#22C55E]">
                             <span className="text-white font-bold text-xs">A</span>
+                            <span className="sr-only">Algorand wallet connected</span>
                           </div>
                         </div>
                       )}
@@ -394,10 +398,10 @@ export default function Navbar() {
                               
                               <Button
                                 onClick={handleAlgorandConnect}
-                                disabled={!isPeraWalletReady || algorandIsConnecting}
+                                disabled={!isPeraWalletReady || algorandIsConnecting || algorandConnected}
                                 className="w-full bg-[#22C55E] hover:bg-[#22C55E]/90 text-white font-medium rounded-lg py-2 px-4 transition-colors disabled:opacity-50"
                               >
-                                {algorandIsConnecting ? 'Connecting...' : 'Connect Pera Wallet'}
+                                {algorandIsConnecting ? 'Connecting...' : algorandConnected ? 'Connected' : 'Connect Pera Wallet'}
                               </Button>
                             </div>
                           )}
@@ -434,6 +438,9 @@ export default function Navbar() {
             
             <Button
               variant="ghost"
+              aria-label={isMenuOpen ? "Close menu" : "Open menu"}
+              aria-expanded={isMenuOpen}
+              aria-controls="mobile-menu"
               size="sm"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               className="text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-xl p-2"
@@ -445,7 +452,7 @@ export default function Navbar() {
 
         {/* Mobile Navigation */}
         {isMenuOpen && (
-          <div className="md:hidden">
+          <div id="mobile-menu" className="md:hidden">
             <div className="px-2 pt-2 pb-3 space-y-1 border-t border-border mt-4">
               {navLinks.map((link) => (
                 <Link
@@ -504,6 +511,7 @@ export default function Navbar() {
                           <span className="text-sm font-medium">{formatAddress(solanaPublicKey!.toString())}</span>
                         </div>
                         <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                        <span className="sr-only">Solana wallet connected</span>
                       </div>
                     )}
                     
