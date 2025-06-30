@@ -674,7 +674,6 @@ export default function SolanaDashboard() {
                     Your Tokens
                   </CardTitle>
                   <div className="flex items-center space-x-3">
-                  Your Tokens
                   <Badge variant="secondary">{tokens.length}</Badge>
                   </div>
                 </div>
@@ -706,6 +705,7 @@ export default function SolanaDashboard() {
                                 (e.target as HTMLImageElement).parentElement!.innerHTML = `
                                   <div class="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center">
                                     <span class="text-white font-bold">${(token.symbol || '?')[0]}</span>
+                                    <span class="sr-only">${token.symbol || 'Token'}</span>
                                   </div>
                                 `;
                               }}
@@ -713,6 +713,7 @@ export default function SolanaDashboard() {
                           ) : (
                             <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center">
                               <span className="text-white font-bold">{(token.symbol || '?')[0]}</span>
+                              <span className="sr-only">{token.symbol || 'Token'}</span>
                             </div>
                           )}
                           <div>
@@ -1094,9 +1095,8 @@ export default function SolanaDashboard() {
               </Button>
               <Button 
                 onClick={handleTransferTokens} 
-                disable={!actionAmount || !transferRecipient || loading}
+                disabled={!actionAmount || !transferRecipient || loading}
               >
-                {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                 {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                 Transfer Tokens
               </Button>
