@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import TokenForm from '@/components/TokenForm';
 import TokenPreview from '@/components/TokenPreview';
 import { CheckCircle, Zap, AlertTriangle } from 'lucide-react';
