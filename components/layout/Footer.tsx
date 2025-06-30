@@ -131,6 +131,7 @@ export default function Footer() {
               © 2025 Snarbles. All rights reserved. Built with ❤️ for the decentralized future. <a href="https://bolt.new/" target="_blank" rel="noopener noreferrer" className="text-red-500 hover:underline">This platform is built with Bolt.new</a>
               © 2025 Snarbles. All rights reserved. Built with ❤️ for the decentralized future. <a href="https://bolt.new/" target="_blank" rel="noopener noreferrer" className="text-red-500 hover:underline">This platform is built with Bolt.new</a>
               Please ensure compliance with your local regulations.
+              </p>
             </div>
           </div>
         </div>
