@@ -5,11 +5,11 @@ import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react
 import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
 import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
 import {
-  PhantomWalletAdapter,
-  SolflareWalletAdapter
+  PhantomWalletAdapter, 
+  SolflareWalletAdapter,
 } from '@solana/wallet-adapter-wallets';
 import { clusterApiUrl } from '@solana/web3.js';
-import { NETWORK_ENDPOINT } from '@/lib/solana';
+import { NETWORK_ENDPOINT, dispatchWalletEvent } from '@/lib/solana';
 import { AlgorandWalletProvider } from './AlgorandWalletProvider';
 
 interface WalletContextProviderProps {
@@ -18,6 +18,21 @@ interface WalletContextProviderProps {
 
 export default function WalletContextProvider({ children }: WalletContextProviderProps) {
   const [mounted, setMounted] = useState(false);
+  
+  useEffect(() => {
+    setMounted(true);
+    
+    // Ensure wallet adapter autoconnect is enabled
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('wallet-adapter-autoconnect', 'true');
+      
+      // Add a window-level event listener for wallet connection changes
+      const handleWalletConnect = () => dispatchWalletEvent();
+      
+      window.addEventListener('wallet-connect', handleWalletConnect);
+      return () => window.removeEventListener('wallet-connect', handleWalletConnect);
+    }
+  }, []);
   
   // Handle hydration issues and enable autoconnect
   useEffect(() => {
@@ -53,6 +68,7 @@ export default function WalletContextProvider({ children }: WalletContextProvide
   const endpoint = useMemo(() => NETWORK_ENDPOINT, []);
 
   // Enhanced wallet adapters with more wallet options
+  // Define wallet adapters
   const wallets = useMemo(
     () => [
       new PhantomWalletAdapter(),
@@ -64,9 +80,20 @@ export default function WalletContextProvider({ children }: WalletContextProvide
   // Don't render until client-side to prevent hydration issues
   if (!mounted) return null;
 
+  // Don't render until mounted to prevent hydration issues
+  if (!mounted) {
+    return null;
+  }
+
   return (
     <ConnectionProvider endpoint={endpoint}>
-      <WalletProvider wallets={wallets} autoConnect={true}>
+      <WalletProvider 
+        wallets={wallets} 
+        autoConnect={true}
+        onError={(error) => {
+          console.error('Wallet error:', error);
+        }}
+      >
         <WalletModalProvider>
           <AlgorandWalletProvider>
             {children}
