@@ -17,7 +17,7 @@ import { isSupabaseAvailable } from '@/lib/supabase-client';
 import { trackTokenCreation } from '@/lib/token-tracking';
 import { useAlgorandWallet } from '@/components/providers/AlgorandWalletProvider';
 import { createTokenOnChain } from '@/lib/solana';
-import { createAlgorandToken, supabaseHelpers } from '@/lib/algorand';
+import { createAlgorandToken, supabaseHelpers, checkWalletConnection } from '@/lib/algorand';
 import { SuccessConfetti } from '@/components/SuccessConfetti';
 import { TransactionTracker, createTokenCreationSteps, classifyError, formatErrorForUser } from '@/lib/error-handling';
 import Link from 'next/link';
@@ -30,7 +30,7 @@ interface TokenFormProps {
 export default function TokenForm({ onTokenCreate, defaultNetwork = 'algorand-testnet' }: TokenFormProps) {
   const [formData, setFormData] = useState({
     name: '',
-    symbol: '',
+    symbol: '', 
     description: '',
     totalSupply: '',
     decimals: '6',
@@ -66,8 +66,8 @@ export default function TokenForm({ onTokenCreate, defaultNetwork = 'algorand-te
   const [supabaseTracking, setSupabaseTracking] = useState(false);
 
   // Router and search params
-  const searchParams = useSearchParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
   
   // Initialize transaction tracker
@@ -152,6 +152,24 @@ ${tokenomicsInfo.vestingSchedule?.enabled ? `- Vesting: Enabled (Team: ${tokenom
       ...prev,
       [name]: value
     }));
+    
+    // Auto-generate symbol from name if symbol is empty
+    if (name === 'name' && !formData.symbol && value) {
+      // Extract first letter of each word for the symbol
+      const symbol = value
+        .split(/\s+/)
+        .filter(word => word.length > 0)
+        .map(word => word[0])
+        .join('')
+        .toUpperCase();
+      
+      if (symbol) {
+        setFormData(prev => ({
+          ...prev,
+          symbol: symbol
+        }));
+      }
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -178,7 +196,32 @@ ${tokenomicsInfo.vestingSchedule?.enabled ? `- Vesting: Enabled (Team: ${tokenom
     // Check wallet connection based on selected network
     const isAlgorand = network.startsWith('algorand');
     if ((isAlgorand && !algorandConnected) || (!isAlgorand && !solanaConnected)) {
+      toast({
+        title: "Wallet Not Connected",
+        description: `Please connect your ${isAlgorand ? 'Algorand' : 'Solana'} wallet first`,
+        variant: "destructive"
+      });
       setError(`Please connect your ${isAlgorand ? 'Algorand' : 'Solana'} wallet first`);
+      return;
+    }
+    
+    // Check if wallet has enough balance
+    if (isAlgorand && algorandAddress) {
+      const balanceCheck = await checkWalletConnection(algorandAddress, network);
+      if (!balanceCheck.success || !balanceCheck.canCreateToken) {
+        toast({
+          title: "Insufficient Balance",
+          description: `You need at least ${balanceCheck.recommendedBalance} ALGO to create a token`,
+          variant: "destructive"
+        });
+        setError(`Insufficient balance: You need at least ${balanceCheck.recommendedBalance} ALGO to create a token`);
+        return;
+      }
+    }
+    
+    // Network validation
+    if (network !== 'algorand-testnet' && network !== 'algorand-mainnet' && network !== 'solana-devnet') {
+      setError('Invalid network selection');
       return;
     }
     
@@ -498,6 +541,7 @@ ${tokenomicsInfo.vestingSchedule?.enabled ? `- Vesting: Enabled (Team: ${tokenom
                 <option value="algorand-testnet">Algorand Testnet</option>
                 <option value="algorand-mainnet">Algorand Mainnet</option>
                 <option value="solana-devnet">Solana Devnet</option>
+                <option value="solana-mainnet">Solana Mainnet</option>
               </select>
             </div>
 
@@ -505,6 +549,7 @@ ${tokenomicsInfo.vestingSchedule?.enabled ? `- Vesting: Enabled (Team: ${tokenom
               <div className="space-y-2">
                 <Label htmlFor="name">Token Name</Label>
                 <Input
+                  autoFocus
                   id="name"
                   name="name"
                   value={formData.name}
@@ -663,6 +708,12 @@ ${tokenomicsInfo.vestingSchedule?.enabled ? `- Vesting: Enabled (Team: ${tokenom
               <p className="text-muted-foreground mt-1">Your token is now live on the blockchain</p>
             </div>
             
+            <div className="flex justify-center mb-4">
+              <div className="px-3 py-1.5 bg-green-500/20 border border-green-500/30 rounded-full text-xs text-green-700 dark:text-green-400">
+                Success! Your token is ready to use
+              </div>
+            </div>
+            
             {/* Result details */}
             {result && (
               <div className="border border-green-500/30 bg-green-500/5 rounded-md p-4 mt-4 text-left shadow-sm">
@@ -773,6 +824,9 @@ ${tokenomicsInfo.vestingSchedule?.enabled ? `- Vesting: Enabled (Team: ${tokenom
             <div className="flex space-x-4 mt-4">
               <Button
                 onClick={() => {
+                  // Navigate to dashboard
+                  router.push('/dashboard');
+                  
                   // Show success toast first
                   toast({
                     title: "Token Created Successfully!",

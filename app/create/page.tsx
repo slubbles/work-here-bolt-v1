@@ -13,17 +13,17 @@ export default function CreateTokenPage() {
   const [tokenData, setTokenData] = useState({
     name: 'My Awesome Token',
     symbol: 'MAT',
-    description: '',
+    description: 'A versatile utility token for my community',
     totalSupply: '1000000',
     decimals: '9', // Smart default: 9 decimals (recommended)
     logoUrl: '',
-    website: '',
-    github: '',
-    twitter: '',
+    website: 'https://mytoken.xyz',
+    github: 'https://github.com/mytoken',
+    twitter: 'https://twitter.com/mytoken',
     mintable: true,
     burnable: false, 
     pausable: false,
-    network: 'algorand-testnet', 
+    network: 'solana-devnet', 
   });
   
   const [showTips, setShowTips] = useState(false);
@@ -35,6 +35,13 @@ export default function CreateTokenPage() {
   // Check if a wallet is needed for the current network
   const needsWalletConnection = (tokenData.network.includes('algorand') && !algorandConnected) ||
                                (tokenData.network.includes('solana') && !solanaConnected);
+  
+  // Auto-show wallet requirement notice if no wallet is connected                           
+  useEffect(() => {
+    if (needsWalletConnection && !showTips) {
+      setShowTips(true);
+    }
+  }, [needsWalletConnection]);
   
   return (
     <div className="min-h-screen app-background pb-20">
