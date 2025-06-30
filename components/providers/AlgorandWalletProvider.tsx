@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import algosdk from 'algosdk';
 import { getAlgorandNetwork, ALGORAND_NETWORKS } from '@/lib/algorand';
 import { useToast } from '@/hooks/use-toast';
+import { useToast } from '@/hooks/use-toast';
 
 // Import the actual PeraWalletConnect type
 import type { PeraWalletConnect } from '@perawallet/connect';
@@ -38,12 +39,19 @@ export function AlgorandWalletProvider({ children }: AlgorandWalletProviderProps
       ? localStorage.getItem('algorand-network')! 
       : 'algorand-testnet'
   );
+    typeof localStorage !== 'undefined' && localStorage.getItem('algorand-network') 
+      ? localStorage.getItem('algorand-network')! 
+      : 'algorand-testnet'
+  );
   const [peraWallet, setPeraWallet] = useState<PeraWalletConnect | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
   const [isPeraWalletReady, setIsPeraWalletReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [balance, setBalance] = useState<number | null>(null);
   const [networkConfig, setNetworkConfig] = useState(getAlgorandNetwork('algorand-testnet'));
+  const [reconnectAttempted, setReconnectAttempted] = useState<boolean>(false);
+  
+  const { toast } = useToast();
   const [reconnectAttempted, setReconnectAttempted] = useState<boolean>(false);
   
   const { toast } = useToast();
@@ -58,11 +66,16 @@ export function AlgorandWalletProvider({ children }: AlgorandWalletProviderProps
     if (typeof localStorage !== 'undefined') {
       localStorage.setItem('algorand-network', selectedNetwork);
     }
+    
+    // Save to localStorage for persistence
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('algorand-network', selectedNetwork);
+    }
   }, [selectedNetwork]);
 
   // Initialize/reinitialize Pera Wallet when network changes
   useEffect(() => {
-    const initializeWallet = async () => {
+    async function initializeWallet() {
       try {
         setIsPeraWalletReady(true); 
         setError(null);
@@ -162,6 +175,14 @@ export function AlgorandWalletProvider({ children }: AlgorandWalletProviderProps
         duration: 5000
       });
       
+      
+      toast({
+        title: "Wallet Connection Error",
+        description: errorMsg,
+        variant: "destructive",
+        duration: 5000
+      });
+      
       throw new Error(errorMsg);
     }
 
@@ -179,6 +200,13 @@ export function AlgorandWalletProvider({ children }: AlgorandWalletProviderProps
         
         console.log(`✅ Successfully connected to ${selectedNetwork}:`, accounts[0]);
       }
+      
+      // Show success toast
+      toast({
+        title: "Wallet Connected",
+        description: `Connected to Algorand ${selectedNetwork.includes("mainnet") ? "Mainnet" : "Testnet"}`,
+        variant: "default",
+      });
       
       // Show success toast
       toast({
@@ -220,6 +248,12 @@ export function AlgorandWalletProvider({ children }: AlgorandWalletProviderProps
       setBalance(null); 
       setError(null);
       console.log(`✅ Successfully disconnected from ${selectedNetwork}`);
+      
+      toast({
+        title: "Wallet Disconnected",
+        description: "You've been disconnected from your Algorand wallet",
+        variant: "default",
+      });
       
       toast({
         title: "Wallet Disconnected",
@@ -309,6 +343,18 @@ export function AlgorandWalletProvider({ children }: AlgorandWalletProviderProps
         }
         
         setReconnectAttempted(true);
+            // Show success toast for better UX
+            toast({
+              title: "Wallet Connected",
+              description: `Connected to Algorand ${selectedNetwork.includes("mainnet") ? "Mainnet" : "Testnet"}`,
+              variant: "default",
+            });
+          }
+        } catch (reconnectError) {
+          console.log(`ℹ️ No existing session found for ${selectedNetwork}`);
+        }
+        
+        setReconnectAttempted(true);
       }
 
       console.log(`✅ Transaction ready for submission to ${selectedNetwork}`);
@@ -355,10 +401,20 @@ export function AlgorandWalletProvider({ children }: AlgorandWalletProviderProps
         variant: "default",
       });
     }
+    
+    // Show network switch notification
+    if (newNetwork !== selectedNetwork) {
+      toast({
+        title: "Network Changed",
+        description: `Switched to ${newNetwork.includes('mainnet') ? 'Algorand Mainnet' : 'Algorand Testnet'}`,
+        variant: "default",
+      });
+    }
 
     // Set wallet as not ready during network switch
     setIsPeraWalletReady(false);
     setSelectedNetwork(newNetwork);
+    setReconnectAttempted(false);
     setReconnectAttempted(false);
     // The useEffect will handle the wallet reinitialization
   };
