@@ -1,6 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  swcMinify: false,
   poweredByHeader: false,
   reactStrictMode: true,
   compiler: {
@@ -23,7 +22,6 @@ const nextConfig = {
     optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
     optimizeCss: true,
     scrollRestoration: true,
-    forceSwcTransforms: false,
   },
   // Simplified webpack configuration
   webpack: (config, { webpack }) => {
