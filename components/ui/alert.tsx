@@ -3,6 +3,8 @@ import { cn } from "@/lib/utils";
 
 export interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {}
 
+export interface AlertTitleProps extends React.HTMLAttributes<HTMLHeadingElement> {}
+
 export interface AlertDescriptionProps extends React.HTMLAttributes<HTMLParagraphElement> {}
 
 const Alert = React.forwardRef<HTMLDivElement, AlertProps>(
@@ -20,6 +22,17 @@ const Alert = React.forwardRef<HTMLDivElement, AlertProps>(
 );
 Alert.displayName = "Alert";
 
+const AlertTitle = React.forwardRef<HTMLParagraphElement, AlertTitleProps>(
+  ({ className, ...props }, ref) => (
+    <h5
+      ref={ref}
+      className={cn("mb-1 font-medium leading-none tracking-tight", className)}
+      {...props}
+    />
+  )
+);
+AlertTitle.displayName = "AlertTitle";
+
 const AlertDescription = React.forwardRef<HTMLParagraphElement, AlertDescriptionProps>(
   ({ className, ...props }, ref) => (
     <div
@@ -31,4 +44,4 @@ const AlertDescription = React.forwardRef<HTMLParagraphElement, AlertDescription
 );
 AlertDescription.displayName = "AlertDescription";
 
-export { Alert, AlertDescription };
+export { Alert, AlertTitle, AlertDescription };
