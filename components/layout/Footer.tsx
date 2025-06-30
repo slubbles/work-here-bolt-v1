@@ -127,9 +127,7 @@ export default function Footer() {
           
           <div className="mt-6 pt-6 border-t border-border">
             <div className="text-center">
-              <p className="text-muted-foreground text-xs">
-                © 2025 Snarbles. All rights reserved. Built with ❤️ for the decentralized future. 
-              </p>
+              © 2025 Snarbles. All rights reserved. Built with ❤️ for the decentralized future.
             </div>
           </div>
         </div>
@@ -148,6 +146,21 @@ export default function Footer() {
             />
           </a>
         </div>
+      </div>
+      
+      <div className="text-center mt-4">
+        <a 
+          href="https://bolt.new/" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="inline-block"
+        >
+          <img 
+            src="/white_circle_360x360 copy.png" 
+            alt="Powered by Bolt.new" 
+            className="w-8 h-8"
+          />
+        </a>
       </div>
     </footer>
   );
