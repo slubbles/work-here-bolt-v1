@@ -9,7 +9,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Wallet, Network, ArrowRight, AlertCircle, Loader2, HelpCircle } from 'lucide-react';
 import Link from 'next/link';
 import SolanaDashboard from './SolanaDashboard';
-import { NewUserGuide } from '@/components/NewUserGuide';
 import { TokenHistory } from '@/components/dashboard/TokenHistory'; 
 import { SupabaseStatus } from '@/components/SupabaseStatus';
 import { isSupabaseAvailable } from '@/lib/supabase-client';
@@ -134,8 +133,13 @@ export default function DashboardPage() {
     return (
       <div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2">
-          {/* New User Guide */}
-          <NewUserGuide type="dashboard" />
+          {/* Subtle visual cue for dashboard */}
+          <div className="mb-4 flex justify-center">
+            <div className="inline-flex items-center space-x-2 text-sm bg-blue-500/10 border border-blue-500/20 rounded-full px-4 py-1.5 text-blue-600">
+              <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></span>
+              <span>View and manage your tokens below</span>
+            </div>
+          </div>
           
           {selectedNetwork === 'algorand-mainnet' ? (
             <div className="flex items-center justify-center mb-4 bg-yellow-500/10 border border-yellow-500/20 p-2 rounded-lg">

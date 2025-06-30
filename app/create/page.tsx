@@ -4,7 +4,6 @@ import { useState } from 'react';
 import TokenForm from '@/components/TokenForm';
 import TokenPreview from '@/components/TokenPreview';
 import { CheckCircle, Zap, AlertTriangle } from 'lucide-react';
-import { NewUserGuide } from '@/components/NewUserGuide';
 import { Callout } from '@/components/ui/callout';
 import { NetworkBadge } from '@/components/GuideBadge';
 import { useWallet } from '@solana/wallet-adapter-react';
@@ -57,8 +56,13 @@ export default function CreateTokenPage() {
           </div>
         </div>
         
-        {/* New User Guide */}
-        <NewUserGuide type="token-creation" />
+        {/* Subtle visual cue for new users */}
+        <div className="mb-8 text-center">
+          <div className="inline-flex items-center space-x-2 text-sm bg-blue-500/10 border border-blue-500/20 rounded-full px-4 py-1.5 text-blue-600">
+            <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></span>
+            <span>First time? Fill in details below and connect wallet before creating</span>
+          </div>
+        </div>
         
         {/* Wallet Connection Notice */}
         {needsWalletConnection && (

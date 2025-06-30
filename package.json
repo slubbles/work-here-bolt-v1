@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "rm -rf .next && next dev",
-    "build": "rm -rf .next && sleep 1 && next build",
+    "build": "rm -rf .next && next build",
     "build:production": "npm run lint:fix && npm run build",
     "start": "next start",
     "lint": "next lint",
