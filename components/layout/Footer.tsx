@@ -94,9 +94,6 @@ export default function Footer() {
 
         <div className="border-t border-border mt-12 pt-8">
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-            <p className="text-muted-foreground text-sm">
-              © 2025 Snarbles. All rights reserved. Built with ❤️ for the decentralized future. <a href="https://bolt.new/" target="_blank" rel="noopener noreferrer" className="text-red-500 hover:underline">Powered by Bolt.new</a>
-            </p>
             <div className="flex items-center space-x-6">
               <Link 
                 href="/about" 
@@ -125,29 +122,29 @@ export default function Footer() {
             </div>
           </div>
           
-          <div className="mt-6 pt-6 border-t border-border">
-            <div className="text-center">
-              © 2025 Snarbles. All rights reserved. Built with ❤️ for the decentralized future.
+          <div className="mt-4 text-center">
+            <div>
+              <p className="text-sm text-muted-foreground">
+                © 2025 Snarbles. All rights reserved. Built with ❤️ for the decentralized future.
+              </p>
+            </div>
+            <div className="mt-3">
+              <a 
+                href="https://bolt.new/" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="inline-block"
+              >
+                <img 
+                  src="/white_circle_360x360 copy.png" 
+                  alt="Powered by Bolt.new" 
+                  className="w-8 h-8"
+                />
+              </a>
             </div>
           </div>
         </div>
-      
-        <div className="text-center mt-4">
-          <a 
-            href="https://bolt.new/" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="inline-block"
-          >
-            <img 
-              src="/white_circle_360x360 copy.png" 
-              alt="Powered by Bolt.new" 
-              className="w-8 h-8"
-            />
-          </a>
-        </div>
       </div>
-      
     </footer>
   );
 }
