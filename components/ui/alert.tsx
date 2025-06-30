@@ -5,6 +5,7 @@ export interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {}
 
 export interface AlertDescriptionProps extends React.HTMLAttributes<HTMLParagraphElement> {}
 
+export interface AlertTitleProps extends React.HTMLAttributes<HTMLHeadingElement> {}
 const Alert = React.forwardRef<HTMLDivElement, AlertProps>(
   ({ className, ...props }, ref) => (
     <div
@@ -20,6 +21,16 @@ const Alert = React.forwardRef<HTMLDivElement, AlertProps>(
 );
 Alert.displayName = "Alert";
 
+const AlertTitle = React.forwardRef<HTMLParagraphElement, AlertTitleProps>(
+  ({ className, ...props }, ref) => (
+    <h5
+      ref={ref}
+      className={cn("mb-1 font-medium leading-none tracking-tight", className)}
+      {...props}
+    />
+  )
+);
+AlertTitle.displayName = "AlertTitle";
 const AlertDescription = React.forwardRef<HTMLParagraphElement, AlertDescriptionProps>(
   ({ className, ...props }, ref) => (
     <div
@@ -31,4 +42,4 @@ const AlertDescription = React.forwardRef<HTMLParagraphElement, AlertDescription
 );
 AlertDescription.displayName = "AlertDescription";
 
-export { Alert, AlertDescription };
+export { Alert, AlertTitle, AlertDescription };

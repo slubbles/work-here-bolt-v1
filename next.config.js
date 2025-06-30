@@ -61,6 +61,13 @@ const nextConfig = {
       })
     );
 
+    // Ignore dynamic imports that cause critical dependency warnings
+    config.plugins.push(
+      new webpack.IgnorePlugin({
+        resourceRegExp: /^ws$/,
+        contextRegExp: /supabase/,
+      })
+    );
     return config;
   },
 };
