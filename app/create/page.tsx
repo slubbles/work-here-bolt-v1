@@ -14,7 +14,7 @@ export default function CreateTokenPage() {
   const [tokenData, setTokenData] = useState({
     name: 'My Awesome Token',
     symbol: 'MAT',
-    description: '',
+    description: 'A versatile token for my community and ecosystem',
     totalSupply: '1000000',
     decimals: '9', // Smart default: 9 decimals (recommended)
     logoUrl: '',
@@ -33,6 +33,7 @@ export default function CreateTokenPage() {
   
   // Check if any wallet is connected
   const isAnyWalletConnected = solanaConnected || algorandConnected;
+
   // Check if a wallet is needed for the current network
   const needsWalletConnection = (tokenData.network.includes('algorand') && !algorandConnected) ||
                                (tokenData.network.includes('solana') && !solanaConnected);
@@ -70,6 +71,13 @@ export default function CreateTokenPage() {
             >
               <div className="flex items-center">
                 <AlertTriangle className="h-4 w-4 text-yellow-500 mr-2" />
+              <Button 
+                variant="outline" 
+                className="ml-4 h-8 text-xs border-yellow-500/30 text-yellow-600 hover:bg-yellow-500/10" 
+                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+              >
+                Connect Wallet
+              </Button>
                 <p>Connect your {tokenData.network.includes('algorand') ? 'Algorand' : 'Solana'} wallet from the top navigation bar before deploying your token.</p>
               </div>
             </Callout>

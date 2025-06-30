@@ -1282,15 +1282,27 @@ p {
 
 /* Custom wallet button overrides */
 .wallet-adapter-button-trigger .wallet-adapter-button {
-  @apply h-12 px-6 text-base;
+  @apply h-12 px-6 text-base !bg-gradient-to-r !from-red-500 !to-red-600 hover:!from-red-600 hover:!to-red-700 !border-0 !text-white !font-semibold !rounded-xl transition-all;
+  box-shadow: 0 10px 25px rgba(239, 68, 68, 0.3) !important;
 }
-/* Wallet adapter modal styling */
+
+.wallet-adapter-button-trigger .wallet-adapter-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 15px 30px rgba(239, 68, 68, 0.4) !important;
+}
+
+/* Wallet adapter modal styling with improved glass effect */
 .wallet-adapter-modal {
-  @apply backdrop-blur-xl;
+  @apply backdrop-blur-xl !important;
+  background-color: rgba(0, 0, 0, 0.5) !important;
 }
 
 .wallet-adapter-modal .wallet-adapter-modal-container {
-  @apply bg-background border border-border rounded-xl shadow-2xl;
+  @apply bg-background border border-border rounded-xl shadow-2xl !important;
+  background: rgba(10, 10, 10, 0.9) !important;
+  backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3) !important;
 }
 
 .wallet-adapter-modal .wallet-adapter-modal-title {
@@ -1306,18 +1318,82 @@ p {
 }
 
 .wallet-adapter-modal .wallet-adapter-modal-list-item:hover {
-  @apply bg-red-500/10 border-red-500/30;
+  @apply bg-red-500/10 border-red-500/30 !important;
+  transform: translateY(-1px);
+  transition: all 0.2s ease;
 }
 
 /* Wallet connection states */
 .wallet-adapter-button[data-state="connected"] {
-  @apply bg-green-500 hover:bg-green-600;
+  @apply !bg-green-500 hover:!bg-green-600;
 }
 
 .wallet-adapter-button[data-state="connecting"] {
-  @apply bg-yellow-500 hover:bg-yellow-600;
+  @apply !bg-yellow-500 hover:!bg-yellow-600;
 }
 
 .wallet-adapter-button[data-state="disconnecting"] {
-  @apply bg-red-500 hover:bg-red-600;
+  @apply !bg-red-500 hover:!bg-red-600;
+}
+
+/* Enhanced wallet pulse animation */
+@keyframes walletPulseRing {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(0.8);
+    opacity: 0.8;
+  }
+}
+
+.wallet-pulse-indicator {
+  position: relative;
+}
+
+.wallet-pulse-indicator::before {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  background: inherit;
+  opacity: 0.5;
+  z-index: -1;
+  animation: walletPulseRing 2s ease infinite;
+}
+
+/* Infinite carousel animation fix */
+@keyframes carousel {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-100%); }
+}
+
+.animate-carousel {
+  animation: carousel 60s linear infinite;
+}
+
+/* Pulse ring animation */
+@keyframes pulse-ring {
+  0% { transform: scale(0.95); opacity: 0.7; }
+  50% { transform: scale(1.05); opacity: 0.4; }
+  100% { transform: scale(0.95); opacity: 0.7; }
+}
+
+.pulse-ring {
+  position: relative;
+}
+
+.pulse-ring::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: inherit;
+  border: 2px solid currentColor;
+  opacity: 0.3;
+  animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }

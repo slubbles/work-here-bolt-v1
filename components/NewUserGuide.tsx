@@ -110,15 +110,35 @@ export function NewUserGuide({ type = 'token-creation' }: { type?: 'token-creati
                 </div>
               </CardContent>
             )}
-            
-            <CardFooter className="flex justify-between pt-0 pb-2">
-              <Button variant="ghost" size="sm" onClick={() => setIsExpanded(!isExpanded)} className="text-xs">
-                {isExpanded ? "Collapse Guide" : "Expand Guide"}
-              </Button>
-              <Button variant="outline" size="sm" onClick={dismissGuide} className="text-xs">
-                <CheckCircle className="w-3 h-3 mr-1" />
-                Got it
-              </Button>
+
+            <CardFooter className="flex justify-between items-center pt-3 pb-3 border-t border-border/30">
+              <div className="flex items-center space-x-2">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => setIsExpanded(!isExpanded)} 
+                  className="text-xs h-8 px-2 hover:bg-muted/50"
+                >
+                  {isExpanded ? "Hide Details" : "Show Details"}
+                </Button>
+                
+                <a href="/support" className="text-xs text-blue-500 hover:underline flex items-center">
+                  <HelpCircle className="w-3 h-3 mr-1" />
+                  Need Help?
+                </a>
+              </div>
+              
+              <div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={dismissGuide} 
+                  className="text-xs h-8 px-3 bg-green-500/10 hover:bg-green-500/20 text-green-600 border-green-500/30"
+                >
+                  <CheckCircle className="w-3 h-3 mr-1" />
+                  Got it
+                </Button>
+              </div>
             </CardFooter>
           </>
         );

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Send, Plus, Flame, BarChart3, Network, Sparkles, TrendingUp, Pause, Wallet, Check, HelpCircle, ExternalLink } from 'lucide-react';
+import { Send, Plus, Flame, BarChart3, Network, Sparkles, TrendingUp, Pause, Wallet, Check, HelpCircle, ExternalLink, Shield } from 'lucide-react';
 import { Tooltip } from '@/components/ui/tooltip';
 import { Callout } from '@/components/ui/callout';
 
@@ -35,7 +35,7 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsLoading(false);
-    }, 800);
+    }, 400);
     return () => clearTimeout(timer);
   }, []);
 
@@ -223,6 +223,7 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
               <div className={`token-preview-circle w-40 h-40 text-3xl relative ${tokenGlowClass} transition-all duration-500`}>
                 {symbol.slice(0, 3).toUpperCase() || 'TKN'}
                 <div className="absolute inset-0 rounded-full border-2 border-current opacity-30 animate-ping"></div>
+                <div className="absolute inset-0 rounded-full border-4 border-red-500/20 opacity-70 animate-pulse"></div>
               </div>
             )}
           </div>
@@ -297,6 +298,15 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
               Pause
             </Button>
           )}
+
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="border-border text-muted-foreground hover:bg-muted hover:text-foreground h-12 rounded-xl text-sm font-semibold hover:border-yellow-500/30 hover:shadow-md transition-all"
+          >
+            <Shield className="w-4 h-4 mr-2" />
+            Verify
+          </Button>
           
           <Button 
             variant="outline" 
@@ -309,7 +319,7 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
         </div>
 
         <div className="pt-8 border-t border-border text-center relative">
-          <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-lg inline-flex items-center space-x-3 hover:bg-green-500/20 hover:border-green-500/50 transition-all shadow-sm">
+          <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-lg inline-flex items-center space-x-3 hover:bg-green-500/20 hover:border-green-500/50 transition-all shadow-sm pulse-ring">
             <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center shadow-sm">
               <Check className="w-3 h-3 text-white animate-pulse" />
             </div>
