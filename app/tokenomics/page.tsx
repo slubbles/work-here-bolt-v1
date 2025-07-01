@@ -125,9 +125,9 @@ export default function TokenomicsPage() {
   const searchParams = useSearchParams();
   
   // Debounce function
-  const debounce = (func, wait) => {
-    let timeout;
-    return (...args) => {
+  const debounce = (func: (...args: any[]) => void, wait: number) => {
+    let timeout: NodeJS.Timeout | undefined;
+    return (...args: any[]) => {
       clearTimeout(timeout);
       timeout = setTimeout(() => func(...args), wait);
     };
@@ -198,7 +198,7 @@ export default function TokenomicsPage() {
   );
   
   // Handle total supply change with validation
-  const handleTotalSupplyChange = (e) => {
+  const handleTotalSupplyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     const parsedValue = parseInt(value);
     
@@ -218,12 +218,12 @@ export default function TokenomicsPage() {
   };
   
   // Update distribution and ensure total is 100%
-  const handleDistributionChange = (category, newValue) => {
+  const handleDistributionChange = (category: string, newValue: number) => {
     // Calculate how much we need to adjust other categories
     const currentTotal = Object.values(distribution)
       .reduce((sum, item) => sum + item.value, 0);
     
-    const currentCategoryValue = distribution[category].value;
+    const currentCategoryValue = distribution[category as keyof typeof distribution].value;
     const difference = newValue - currentCategoryValue;
     const newTotal = currentTotal + difference;
     
@@ -235,20 +235,20 @@ export default function TokenomicsPage() {
       
       // Calculate total value of other categories
       const otherTotal = otherCategories.reduce(
-        (sum, key) => sum + distribution[key].value, 0
+        (sum, key) => sum + distribution[key as keyof typeof distribution].value, 0
       );
       
       // Create new distribution
       const newDistribution = { ...distribution };
-      newDistribution[category] = { ...distribution[category], value: newValue };
+      newDistribution[category as keyof typeof distribution] = { ...distribution[category as keyof typeof distribution], value: newValue };
       
       // Adjust other categories proportionally
       otherCategories.forEach(key => {
-        const proportion = distribution[key].value / otherTotal;
+        const proportion = distribution[key as keyof typeof distribution].value / otherTotal;
         const reduction = excess * proportion;
-        newDistribution[key] = {
-          ...distribution[key],
-          value: Math.max(0, distribution[key].value - reduction)
+        newDistribution[key as keyof typeof distribution] = {
+          ...distribution[key as keyof typeof distribution],
+          value: Math.max(0, distribution[key as keyof typeof distribution].value - reduction)
         };
       });
       
@@ -257,7 +257,7 @@ export default function TokenomicsPage() {
       // Simple case - just update the category and we're still <= 100%
       setDistribution({
         ...distribution,
-        [category]: { ...distribution[category], value: newValue }
+        [category]: { ...distribution[category as keyof typeof distribution], value: newValue }
       });
     }
   };
@@ -265,10 +265,10 @@ export default function TokenomicsPage() {
   // Generate distribution data for charts
   const getDistributionData = () => {
     return Object.keys(distribution).map(key => ({
-      name: distribution[key].label,
-      value: distribution[key].value,
-      color: distribution[key].color,
-      amount: Math.round(totalSupply * (distribution[key].value / 100))
+      name: distribution[key as keyof typeof distribution].label,
+      value: distribution[key as keyof typeof distribution].value,
+      color: distribution[key as keyof typeof distribution].color,
+      amount: Math.round(totalSupply * (distribution[key as keyof typeof distribution].value / 100))
     }));
   };
   
@@ -308,7 +308,7 @@ export default function TokenomicsPage() {
   };
   
   // Custom tooltip for distribution chart
-  const CustomTooltip = ({ active, payload, label }) => {
+  const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: any[]; label?: string }) => {
     if (active && payload && payload.length) {
       return (
         <div className="glass-card p-3 text-sm border border-border">
@@ -448,8 +448,8 @@ export default function TokenomicsPage() {
   };
   
   // Apply template
-  const applyTemplate = (templateKey) => {
-    const template = templates[templateKey];
+  const applyTemplate = (templateKey: string) => {
+    const template = templates[templateKey as keyof typeof templates];
     if (!template) return;
     
     setTotalSupply(template.totalSupply);
@@ -627,15 +627,15 @@ export default function TokenomicsPage() {
                       <div key={key} className="space-y-2">
                         <div className="flex items-center justify-between">
                           <Label className="flex items-center">
-                            <div className="w-3 h-3 rounded-full mr-2" style={{ backgroundColor: distribution[key].color }}></div>
-                            {distribution[key].label}
+                            <div className="w-3 h-3 rounded-full mr-2" style={{ backgroundColor: distribution[key as keyof typeof distribution].color }}></div>
+                            {distribution[key as keyof typeof distribution].label}
                           </Label>
                           <span className="text-sm font-mono">
-                            {distribution[key].value}% ({formatNumber(Math.round(totalSupply * distribution[key].value / 100))})
+                            {distribution[key as keyof typeof distribution].value}% ({formatNumber(Math.round(totalSupply * distribution[key as keyof typeof distribution].value / 100))})
                           </span>
                         </div>
                         <Slider
-                          value={[distribution[key].value]}
+                          value={[distribution[key as keyof typeof distribution].value]}
                           min={0}
                           max={100}
                           step={1}
@@ -650,15 +650,15 @@ export default function TokenomicsPage() {
                     {Object.keys(distribution).map((key) => (
                       <div key={key} className="grid grid-cols-4 gap-4 items-center">
                         <div className="col-span-2 flex items-center space-x-2">
-                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: distribution[key].color }}></div>
-                          <Label>{distribution[key].label}</Label>
+                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: distribution[key as keyof typeof distribution].color }}></div>
+                          <Label>{distribution[key as keyof typeof distribution].label}</Label>
                         </div>
                         <div className="col-span-2 flex space-x-2">
                           <Input
                             type="number"
                             min="0"
                             max="100"
-                            value={distribution[key].value}
+                            value={distribution[key as keyof typeof distribution].value}
                             onChange={(e) => handleDistributionChange(key, parseFloat(e.target.value) || 0)}
                             className="input-enhanced"
                           />
@@ -809,7 +809,7 @@ export default function TokenomicsPage() {
                       </thead>
                       <tbody>
                         {Object.keys(distribution).map(key => {
-                          const tokenAmount = totalSupply * (distribution[key].value / 100);
+                          const tokenAmount = totalSupply * (distribution[key as keyof typeof distribution].value / 100);
                           const hasVesting = vestingEnabled && 
                             (key === 'team' || key === 'investors' || key === 'advisors');
                           
@@ -819,22 +819,22 @@ export default function TokenomicsPage() {
                                 <div className="flex items-center space-x-2">
                                   <div 
                                     className="w-3 h-3 rounded-full" 
-                                    style={{ backgroundColor: distribution[key].color }}
+                                    style={{ backgroundColor: distribution[key as keyof typeof distribution].color }}
                                   ></div>
-                                  <span className="font-medium text-foreground">{distribution[key].label}</span>
+                                  <span className="font-medium text-foreground">{distribution[key as keyof typeof distribution].label}</span>
                                 </div>
                               </td>
                               <td className="py-4 px-4 text-center">
-                                <span className="font-mono">{distribution[key].value}%</span>
+                                <span className="font-mono">{distribution[key as keyof typeof distribution].value}%</span>
                               </td>
                               <td className="py-4 px-4 text-right">
                                 <span className="font-mono">{formatNumber(Math.round(tokenAmount))}</span>
                               </td>
                               {vestingEnabled && (
                                 <td className="py-4 px-4 text-right">
-                                  {hasVesting && vestingSchedule[key] ? (
+                                  {hasVesting && vestingSchedule[key as keyof typeof vestingSchedule] && typeof vestingSchedule[key as keyof typeof vestingSchedule] === 'object' ? (
                                     <span className="text-sm">
-                                      {vestingSchedule[key].period} months
+                                      {(vestingSchedule[key as keyof typeof vestingSchedule] as any).period} months
                                     </span>
                                   ) : (
                                     <span className="text-sm text-muted-foreground">None</span>

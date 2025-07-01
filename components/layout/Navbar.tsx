@@ -219,7 +219,6 @@ export default function Navbar() {
                 <div className="flex items-center space-x-2">
                   <div className="wallet-status-connected rounded-full px-3 py-1.5">
                     <div 
-                      size="sm"
                       className="flex items-center space-x-2 px-3 cursor-pointer"
                       onClick={() => setShowWalletOptions(!showWalletOptions)}
                     >

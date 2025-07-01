@@ -1,10 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   poweredByHeader: false,
-  reactStrictMode: true,
-  compiler: {
-    removeConsole: process.env.NODE_ENV === 'production',
-  },
+  reactStrictMode: false,
+  swcMinify: true,
   optimizeFonts: true,
   images: {
     domains: ['api.dicebear.com', 'images.unsplash.com'],
@@ -13,31 +11,19 @@ const nextConfig = {
     minimumCacheTTL: 60,
     dangerouslyAllowSVG: true,
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
-  },
+  },    
   eslint: {
     ignoreDuringBuilds: true,
   },
   pageExtensions: ['ts', 'tsx', 'js', 'jsx'],
   experimental: {
     optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
-    optimizeCss: true,
-    scrollRestoration: true,
-    forceSwcTransforms: false,
+    optimizeCss: false,
+    scrollRestoration: false,
+    forceSwcTransforms: true,
   },
   // Simplified webpack configuration
-  webpack: (config, { webpack }) => {
-    // Fix for import.meta usage
-    config.module.rules.push({
-      test: /\.m?js$/,
-      type: 'javascript/auto',
-      resolve: {
-        fullySpecified: false,
-      },
-      parser: {
-        importMeta: true,
-      },
-    });
-
+  webpack: (config, { webpack, isServer }) => {
     // Add polyfills for Node.js modules
     config.resolve.fallback = {
       ...config.resolve.fallback,
@@ -49,7 +35,7 @@ const nextConfig = {
       net: false,
       tls: false,
       encoding: false,
-      querystring: require.resolve('querystring-es3'),
+      'pino-pretty': false,
     };
 
     // Make Buffer and process globally available
@@ -60,13 +46,15 @@ const nextConfig = {
       })
     );
 
-    // Ignore dynamic imports that cause critical dependency warnings
-    config.plugins.push(
-      new webpack.IgnorePlugin({
-        resourceRegExp: /^ws$/,
-        contextRegExp: /supabase/,
-      })
-    );
+    // Ignore problematic modules for client-side bundles
+    if (!isServer) {
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        ws: false,
+        'pino-pretty': false,
+      };
+    }
+    
     return config;
   },
 };

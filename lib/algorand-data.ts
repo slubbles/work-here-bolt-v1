@@ -61,26 +61,26 @@ export async function getAlgorandEnhancedTokenInfo(walletAddress: string, networ
       if (asset.amount && asset.amount > 0) {
         try {
           // Get asset details
-          const assetResult = await getAlgorandAssetInfo(asset['asset-id'], network);
+          const assetResult = await getAlgorandAssetInfo((asset as any)['asset-id'], network);
 
-          console.log(`Asset info result for ${asset['asset-id']}:`, assetResult);
+          console.log(`Asset info result for ${(asset as any)['asset-id']}:`, assetResult);
 
-          console.log(`Asset info result for ${asset['asset-id']}:`, assetResult);
+          console.log(`Asset info result for ${(asset as any)['asset-id']}:`, assetResult);
           
           if (assetResult && assetResult.success && assetResult.data) {
             const assetData = assetResult.data;
-            const uiBalance = asset.amount / Math.pow(10, assetData.decimals || 0);
+            const uiBalance = Number(asset.amount) / Math.pow(10, assetData.decimals || 0);
             
             const tokenInfo: AlgorandTokenInfo = {
-              assetId: asset['asset-id'],
-              name: assetData.assetName || `Asset ${asset['asset-id']}`,
+              assetId: (asset as any)['asset-id'],
+              name: assetData.assetName || `Asset ${(asset as any)['asset-id']}`,
               symbol: assetData.unitName || 'ASA',
               balance: asset.amount.toString(),
               uiBalance: uiBalance,
               decimals: assetData.decimals || 0,
-              description: assetData.metadata?.description || '',
-              image: assetData.metadata?.image || '',
-              website: assetData.metadata?.external_url,
+              description: (assetData.metadata as any)?.description || '',
+              image: (assetData.metadata as any)?.image || '',
+              website: (assetData.metadata as any)?.external_url,
               creator: assetData.creator,
               manager: assetData.manager,
               freeze: assetData.freeze,
@@ -89,7 +89,7 @@ export async function getAlgorandEnhancedTokenInfo(walletAddress: string, networ
               defaultFrozen: assetData.defaultFrozen || false,
               isFrozen: false, // This would need an account-specific check
               verified: true, // All found assets are considered verified
-              explorerUrl: `${networkConfig.explorer}/asset/${asset['asset-id']}`,
+              explorerUrl: `${networkConfig.explorer}/asset/${(asset as any)['asset-id']}`,
               // Mock some additional data for demo purposes
               value: `$${(Math.random() * 100).toFixed(2)}`,
               change: `${Math.random() > 0.5 ? '+' : '-'}${(Math.random() * 10).toFixed(1)}%`,
@@ -100,7 +100,7 @@ export async function getAlgorandEnhancedTokenInfo(walletAddress: string, networ
             enhancedTokens.push(tokenInfo);
           }
         } catch (assetError) {
-          console.warn(`Failed to get details for asset ${asset['asset-id']}:`, assetError);
+          console.warn(`Failed to get details for asset ${(asset as any)['asset-id']}:`, assetError);
           // Continue with next asset
         }
       }

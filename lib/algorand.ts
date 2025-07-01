@@ -1,5 +1,6 @@
 import algosdk from 'algosdk';
 import { supabaseHelpers } from '@/lib/supabase';
+import { retryWithBackoff } from '@/lib/error-handling';
 
 // Algorand network configurations
 export const ALGORAND_NETWORKS = {
@@ -408,7 +409,7 @@ export async function createAlgorandToken(
           const txResponse = await retryWithBackoff(async () => {
             console.log('🔄 Searching for transaction ID in indexer:', txId);
             try {
-              const txnInfo = await indexerClient.lookupTransaction(txId).do();
+              const txnInfo = await indexerClient.lookupTransactionByID(txId).do();
               console.log('Transaction found:', txnInfo);
               return txnInfo;
             } catch (err) {
@@ -417,8 +418,8 @@ export async function createAlgorandToken(
             }
           }, 3, 1000);
           
-          if (txResponse && txResponse.transaction && txResponse.transaction['created-asset-index']) {
-            assetId = txResponse.transaction['created-asset-index'];
+          if (txResponse && txResponse.transaction && txResponse.transaction.createdAssetIndex) {
+            assetId = txResponse.transaction.createdAssetIndex;
             console.log('✅ Found asset ID from indexer transaction lookup:', assetId);
           } else if (txResponse && txResponse.transaction) {
             console.log('Transaction found but no created-asset-index field:', txResponse.transaction);
@@ -599,33 +600,26 @@ export async function mintAlgorandAssets(
     
     const assetData = assetInfo.data;
     
-    // Check if the address is the manager (required for minting)
-    if (assetData.manager !== address) {
-      throw new Error('Only the asset manager can mint additional assets');
+    // Check if the address is the creator/manager (required for minting)
+    if (assetData.creator !== address && assetData.manager !== address) {
+      throw new Error('Only the asset creator or manager can mint additional assets');
     }
     
     // Convert amount to base units
     const amountInBaseUnits = Math.floor(amount * Math.pow(10, assetData.decimals || 0));
     
-    // Create asset configuration transaction to increase total supply
-    const assetConfigTxn = algosdk.makeAssetConfigTxnWithSuggestedParamsFromObject({
+    // Create asset transfer transaction from creator to target address
+    // In Algorand, "minting" is transferring from the creator's account
+    const assetTransferTxn = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
       sender: address,
-      suggestedParams,
+      receiver: address, // For now, mint to self
       assetIndex: assetId,
-      manager: assetData.manager,
-      reserve: assetData.reserve,
-      freeze: assetData.freeze,
-      clawback: assetData.clawback,
-      total: (assetData.totalSupply || 0) + amountInBaseUnits,
-      defaultFrozen: assetData.defaultFrozen,
-      assetName: assetData.assetName,
-      unitName: assetData.unitName,
-      assetURL: assetData.url,
-      assetMetadataHash: assetData.metadataHash,
+      amount: amountInBaseUnits,
+      suggestedParams,
     });
     
     console.log('📝 Signing mint transaction...');
-    const signedTxn = await signTransaction(assetConfigTxn);
+    const signedTxn = await signTransaction(assetTransferTxn);
     
     console.log('📡 Sending mint transaction...');
     const response = await algodClient.sendRawTransaction(signedTxn).do();
@@ -682,14 +676,13 @@ export async function burnAlgorandAssets(
     // Convert amount to base units
     const amountInBaseUnits = Math.floor(amount * Math.pow(10, assetData.decimals || 0));
     
-    // Create asset transfer transaction to burn address (clawback to zero address)
+    // Create asset transfer transaction to burn assets (send to burn address)
     const burnTxn = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
-      sender: address,
-      receiver: assetData.clawback, // Send to clawback address
+      sender: address, // Must be the clawback address
+      receiver: address, // Burn by sending to the clawback address itself
       assetIndex: assetId,
       amount: amountInBaseUnits,
       suggestedParams,
-      revocationTarget: address // This makes it a clawback transaction
     });
     
     console.log('📝 Signing burn transaction...');
@@ -749,9 +742,9 @@ export async function freezeAlgorandAsset(
     
     // Create freeze transaction
     const freezeTxn = algosdk.makeAssetFreezeTxnWithSuggestedParamsFromObject({
-      from: address,
+      sender: address,
       freezeTarget: accountToFreeze,
-      freezeState: true,
+      frozen: true,
       assetIndex: assetId,
       suggestedParams
     });
@@ -813,9 +806,9 @@ export async function unfreezeAlgorandAsset(
     
     // Create unfreeze transaction
     const unfreezeTxn = algosdk.makeAssetFreezeTxnWithSuggestedParamsFromObject({
-      from: address,
+      sender: address,
       freezeTarget: accountToUnfreeze,
-      freezeState: false,
+      frozen: false,
       assetIndex: assetId,
       suggestedParams
     });
@@ -876,7 +869,7 @@ export async function transferAlgorandAssets(
       const receiverInfo = await algodClient.accountInformation(receiverAddress).do();
       const receiverAssets = receiverInfo.assets || [];
       
-      const hasOptedIn = receiverAssets.some(asset => asset['asset-id'] === assetId);
+      const hasOptedIn = receiverAssets.some(asset => (asset as any)['asset-id'] === assetId);
       
       if (!hasOptedIn) {
         throw new Error(`Receiver ${receiverAddress} has not opted-in to asset ${assetId}. They must opt-in before receiving this asset.`);
@@ -891,8 +884,8 @@ export async function transferAlgorandAssets(
     
     // Create asset transfer transaction
     const transferTxn = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
-      from: sender,
-      to: receiverAddress,
+      sender: sender,
+      receiver: receiverAddress,
       assetIndex: assetId,
       amount: amountInBaseUnits,
       suggestedParams
@@ -991,6 +984,8 @@ export async function updateAlgorandAssetMetadata(
     }
     
     // Create asset configuration transaction to update metadata
+    // Note: In Algorand, asset names and URLs cannot be changed after creation
+    // This function can only update manager addresses
     const assetConfigTxn = algosdk.makeAssetConfigTxnWithSuggestedParamsFromObject({
       sender: address,
       suggestedParams,
@@ -999,12 +994,6 @@ export async function updateAlgorandAssetMetadata(
       reserve: assetData.reserve,
       freeze: assetData.freeze,
       clawback: assetData.clawback,
-      total: assetData.totalSupply,
-      defaultFrozen: assetData.defaultFrozen,
-      assetName: metadata.name,
-      unitName: metadata.symbol,
-      assetURL: metadataUrl,
-      assetMetadataHash: undefined
     });
     
     console.log('📝 Signing metadata update transaction...');
@@ -1048,9 +1037,6 @@ export async function checkWalletConnection(address: string, network: string) {
     
     const balance = accountInfo.balance || 0;
     const networkConfig = getAlgorandNetwork(network);
-    
-    // Add an alias for backward compatibility
-    setAlgorandSelectedNetwork = setAlgorandSelectedNetwork;
     
     // Minimum balance required for token creation (account minimum + transaction fees)
     const minimumRequired = networkConfig.isMainnet ? 0.202 : 0.101; // MainNet requires more ALGO

@@ -29,7 +29,7 @@ export default function AdminPage() {
   const [error, setError] = useState('');
   const [mounted, setMounted] = useState(false);
 
-  const { connected, publicKey, wallet } = useWallet();
+  const { connected, publicKey, wallet, signTransaction, signAllTransactions } = useWallet();
   const { toast } = useToast();
 
   // Handle hydration
@@ -97,7 +97,14 @@ export default function AdminPage() {
     setInitResult(null);
 
     try {
-      const result = await initializePlatform(wallet.adapter, feeInLamports);
+      // Construct wallet interface from useWallet hook
+      const walletInterface = {
+        publicKey: publicKey!,
+        signTransaction: signTransaction!,
+        signAllTransactions: signAllTransactions!
+      };
+      
+      const result = await initializePlatform(walletInterface, feeInLamports);
       
       if (result.success) {
         setInitResult(result);

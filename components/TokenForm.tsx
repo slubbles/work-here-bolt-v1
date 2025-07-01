@@ -6,9 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
-import { Check, AlertCircle, Loader2, ExternalLink, Clipboard, CheckCircle, Calculator, Copy, HelpCircle } from 'lucide-react';
+import { Check, AlertCircle, Loader2, ExternalLink, Clipboard, CheckCircle, Calculator, Copy, HelpCircle, Plus, Flame, Pause, Rocket } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
@@ -26,25 +26,24 @@ import Link from 'next/link';
 interface TokenFormProps {
   onTokenCreate?: (result: any) => void;
   defaultNetwork?: string;
+  tokenData?: any;
+  setTokenData?: (data: any) => void;
 }
 
-export default function TokenForm({ onTokenCreate, defaultNetwork = 'algorand-testnet' }: TokenFormProps) {
+export default function TokenForm({ onTokenCreate, defaultNetwork = 'algorand-testnet', tokenData: externalTokenData, setTokenData: setExternalTokenData }: TokenFormProps) {
   const [formData, setFormData] = useState({
-    name: 'My Custom Token',
-    symbol: 'MCT',
-    description: 'A custom token created with Snarbles token platform',
-    totalSupply: '1000000',
-    decimals: '9',
-    logoUrl: '',
-    website: '',
-    twitter: '',
-    github: '',
-    features: {
-      mintable: true,
-      burnable: false,
-      pausable: false,
-      transferable: true,
-    }
+    name: externalTokenData?.name || 'My Custom Token',
+    symbol: externalTokenData?.symbol || 'MCT',
+    description: externalTokenData?.description || 'A custom token created with Snarbles token platform',
+    totalSupply: externalTokenData?.totalSupply || '1000000',
+    decimals: externalTokenData?.decimals || '9',
+    logoUrl: externalTokenData?.logoUrl || '',
+    website: externalTokenData?.website || '',
+    twitter: externalTokenData?.twitter || '',
+    github: externalTokenData?.github || '',
+    mintable: externalTokenData?.mintable ?? true,
+    burnable: externalTokenData?.burnable ?? false,
+    pausable: externalTokenData?.pausable ?? false,
   });
   
   const [network, setNetwork] = useState<string>(defaultNetwork);
@@ -340,8 +339,8 @@ ${tokenomicsInfo.vestingSchedule?.enabled ? `- Vesting: Enabled (Team: ${tokenom
               tokenSymbol: formData.symbol,
               network: network,
               contractAddress: isAlgorand 
-                ? createResult.assetId?.toString() || ''
-                : createResult.mintAddress || '',
+                ? (createResult as any).assetId?.toString() || (createResult as any).transactionId || ''
+                : (createResult as any).mintAddress || (createResult as any).tokenAddress || '',
               description: formData.description,
               totalSupply: formData.totalSupply,
               decimals: parseInt(formData.decimals),
@@ -353,8 +352,8 @@ ${tokenomicsInfo.vestingSchedule?.enabled ? `- Vesting: Enabled (Team: ${tokenom
               burnable: formData.burnable,
               pausable: formData.pausable,
               transactionHash: isAlgorand 
-                ? createResult.transactionId
-                : createResult.signature,
+                ? (createResult as any).transactionId || ''
+                : (createResult as any).signature || '',
               walletAddress
             };
             
@@ -434,6 +433,29 @@ ${tokenomicsInfo.vestingSchedule?.enabled ? `- Vesting: Enabled (Team: ${tokenom
       }
     }
   };
+
+  // Sync formData with external tokenData
+  useEffect(() => {
+    if (setExternalTokenData && formData) {
+      setExternalTokenData({
+        ...formData,
+        network: network
+      });
+    }
+  }, [formData, network, setExternalTokenData]);
+
+  // Initialize from external tokenData if provided
+  useEffect(() => {
+    if (externalTokenData) {
+      setFormData(prev => ({
+        ...prev,
+        ...externalTokenData
+      }));
+      if (externalTokenData.network) {
+        setNetwork(externalTokenData.network);
+      }
+    }
+  }, [externalTokenData]);
 
   const getStepIcon = (status: string) => {
     switch (status) {
@@ -655,34 +677,80 @@ ${tokenomicsInfo.vestingSchedule?.enabled ? `- Vesting: Enabled (Team: ${tokenom
                 </TooltipProvider>
               </div>
               
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {/* Mintable Feature */}
                 <div className={`p-3 rounded-lg border flex justify-between items-center transition-all cursor-pointer ${
-                  formData.features.mintable 
+                  formData.mintable 
                     ? 'border-green-500/40 bg-green-500/10' 
                     : 'border-border hover:border-green-500/20 hover:bg-green-500/5'
                 }`}
-                  onClick={() => setFormData({
-                    ...formData, 
-                    features: {...formData.features, mintable: !formData.features.mintable}
-                  })}
+                  onClick={() => setFormData({...formData, mintable: !formData.mintable})}
                 >
                   <div className="flex items-center">
                     <div className="w-8 h-8 rounded-lg bg-green-500/20 flex items-center justify-center mr-3">
                       <Plus className="h-4 w-4 text-green-500" />
                     </div>
-                    <span className="font-medium">Mintable</span>
+                    <div>
+                      <span className="font-medium block">Mintable</span>
+                      <span className="text-xs text-muted-foreground">Create more tokens</span>
+                    </div>
                   </div>
                   <div className={`w-5 h-5 rounded-full flex items-center justify-center ${
-                    formData.features.mintable ? 'bg-green-500' : 'bg-muted border border-muted-foreground/30'
+                    formData.mintable ? 'bg-green-500' : 'bg-muted border border-muted-foreground/30'
                   }`}>
-                    {formData.features.mintable && <Check className="h-3 w-3 text-white" />}
+                    {formData.mintable && <Check className="h-3 w-3 text-white" />}
+                  </div>
+                </div>
+
+                {/* Burnable Feature */}
+                <div className={`p-3 rounded-lg border flex justify-between items-center transition-all cursor-pointer ${
+                  formData.burnable 
+                    ? 'border-red-500/40 bg-red-500/10' 
+                    : 'border-border hover:border-red-500/20 hover:bg-red-500/5'
+                }`}
+                  onClick={() => setFormData({...formData, burnable: !formData.burnable})}
+                >
+                  <div className="flex items-center">
+                    <div className="w-8 h-8 rounded-lg bg-red-500/20 flex items-center justify-center mr-3">
+                      <Flame className="h-4 w-4 text-red-500" />
+                    </div>
+                    <div>
+                      <span className="font-medium block">Burnable</span>
+                      <span className="text-xs text-muted-foreground">Destroy tokens</span>
+                    </div>
+                  </div>
+                  <div className={`w-5 h-5 rounded-full flex items-center justify-center ${
+                    formData.burnable ? 'bg-red-500' : 'bg-muted border border-muted-foreground/30'
+                  }`}>
+                    {formData.burnable && <Check className="h-3 w-3 text-white" />}
+                  </div>
+                </div>
+
+                {/* Pausable Feature */}
+                <div className={`p-3 rounded-lg border flex justify-between items-center transition-all cursor-pointer ${
+                  formData.pausable 
+                    ? 'border-yellow-500/40 bg-yellow-500/10' 
+                    : 'border-border hover:border-yellow-500/20 hover:bg-yellow-500/5'
+                }`}
+                  onClick={() => setFormData({...formData, pausable: !formData.pausable})}
+                >
+                  <div className="flex items-center">
+                    <div className="w-8 h-8 rounded-lg bg-yellow-500/20 flex items-center justify-center mr-3">
+                      <Pause className="h-4 w-4 text-yellow-500" />
+                    </div>
+                    <div>
+                      <span className="font-medium block">Pausable</span>
+                      <span className="text-xs text-muted-foreground">Stop transfers</span>
+                    </div>
+                  </div>
+                  <div className={`w-5 h-5 rounded-full flex items-center justify-center ${
+                    formData.pausable ? 'bg-yellow-500' : 'bg-muted border border-muted-foreground/30'
+                  }`}>
+                    {formData.pausable && <Check className="h-3 w-3 text-white" />}
                   </div>
                 </div>
                 
-                {/* Additional features (burnable, pausable, transferable) would be added similarly */}
-                {/* I'm showing just one for brevity but the pattern would be repeated */}
-                
-                <div className="text-xs text-muted-foreground col-span-2 mt-1">
+                <div className="text-xs text-muted-foreground col-span-full mt-2">
                   Select the features you want to enable for your token. These settings cannot be changed after deployment.
                 </div>
               </div>
@@ -953,7 +1021,6 @@ ${tokenomicsInfo.vestingSchedule?.enabled ? `- Vesting: Enabled (Team: ${tokenom
                     title: "Token Created Successfully!",
                     description: `Your ${formData.name} token is now live on the blockchain.`,
                     duration: 5000,
-                    variant: "success"
                   });
                   
                   // Clear form after a brief delay so user can see the success message
@@ -969,6 +1036,12 @@ ${tokenomicsInfo.vestingSchedule?.enabled ? `- Vesting: Enabled (Team: ${tokenom
                       totalSupply: '',
                       decimals: '6',
                       logoUrl: '',
+                      website: '',
+                      twitter: '',
+                      github: '',
+                      mintable: true,
+                      burnable: false,
+                      pausable: false,
                     });
                   }, 500);
                 }}

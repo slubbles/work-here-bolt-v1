@@ -1,6 +1,13 @@
-import { Connection, PublicKey, Keypair, SystemProgram, LAMPORTS_PER_SOL, SendTransactionError } from '@solana/web3.js';
+import { Connection, PublicKey, Keypair, SystemProgram, LAMPORTS_PER_SOL, SendTransactionError, Transaction } from '@solana/web3.js';
 import { Program, AnchorProvider, web3, BN, Idl } from '@coral-xyz/anchor';
 import { TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddress, createAssociatedTokenAccountInstruction } from '@solana/spl-token';
+
+// Wallet interface type
+export interface WalletInterface {
+  publicKey: PublicKey;
+  signTransaction: (txn: any) => Promise<any>;
+  signAllTransactions: (txns: any[]) => Promise<any[]>;
+}
 
 // Program ID from your deployed contract
 export const PROGRAM_ID = new PublicKey('BKyaw9S5QkkSQ3dc3FdivbsYRWw2ADw9zN4bjnLStWbT');
@@ -466,7 +473,7 @@ export const IDL: Idl = {
 export const connection = new Connection(NETWORK_ENDPOINT, 'confirmed');
 
 // Get program instance
-export function getProgram(wallet: any) {
+export function getProgram(wallet: WalletInterface | null) {
   const provider = new AnchorProvider(connection, wallet, {
     commitment: 'confirmed',
   });
@@ -555,7 +562,13 @@ export async function isPlatformInitialized() {
 // Enhanced error logging function
 function extractTransactionLogs(error: any): string[] {
   if (error instanceof SendTransactionError) {
-    return error.getLogs() || [];
+    // Handle the case where getLogs might be async
+    try {
+      const logs = error.logs || [];
+      return Array.isArray(logs) ? logs : [];
+    } catch {
+      return [];
+    }
   }
   
   // Try to extract logs from various error formats
@@ -565,7 +578,7 @@ function extractTransactionLogs(error: any): string[] {
   
   if (error?.message && typeof error.message === 'string') {
     // Try to extract logs from error message
-    const logMatch = error.message.match(/Logs:\s*\[(.*?)\]/s);
+    const logMatch = error.message.match(/Logs:\s*\[(.*?)\]/);
     if (logMatch) {
       try {
         return JSON.parse(`[${logMatch[1]}]`);
@@ -579,7 +592,7 @@ function extractTransactionLogs(error: any): string[] {
 }
 
 // Initialize platform (admin only) with improved error handling
-export async function initializePlatform(wallet: any, creationFee: number = 0) {
+export async function initializePlatform(wallet: WalletInterface, creationFee: number = 0) {
   try {
     // Validate wallet
     if (!wallet || !wallet.publicKey) {
@@ -722,7 +735,7 @@ export async function initializePlatform(wallet: any, creationFee: number = 0) {
 
 // Token creation function with improved error handling
 export async function createTokenOnChain(
-  wallet: any,
+  wallet: WalletInterface,
   tokenData: {
     name: string;
     symbol: string;
@@ -861,8 +874,8 @@ export async function createTokenOnChain(
     // Handle specific Anchor errors
     let errorMessage = 'Failed to create token';
     
-    if (onStepUpdate) {
-      onStepUpdate('wallet-approval', 'failed', { error: errorMessage });
+    if (options?.onStepUpdate) {
+      options.onStepUpdate('wallet-approval', 'failed', { error: errorMessage });
     }
     
     if (error instanceof Error) {
@@ -913,7 +926,7 @@ export async function getTokenData(tokenAddress: string) {
 
 // Transfer tokens
 export async function transferTokens(
-  wallet: any,
+  wallet: WalletInterface,
   tokenAddress: string,
   toAddress: string,
   amount: number,
@@ -929,7 +942,10 @@ export async function transferTokens(
     const mintPubkey = tokenData.mint;
     
     // Get associated token accounts
-    const fromTokenAccount = await getAssociatedTokenAddress(mintPubkey, wallet.publicKey);
+    const fromTokenAccount = await getAssociatedTokenAddress(
+      mintPubkey,
+      wallet.publicKey
+    );
     const toTokenAccount = await getAssociatedTokenAddress(mintPubkey, toPubkey);
     
     const tx = await program.methods
@@ -970,7 +986,7 @@ export async function transferTokens(
 
 // Mint tokens
 export async function mintTokens(
-  wallet: any,
+  wallet: WalletInterface,
   tokenAddress: string,
   amount: number,
   decimals: number
@@ -1024,7 +1040,7 @@ export async function mintTokens(
 
 // Burn tokens
 export async function burnTokens(
-  wallet: any,
+  wallet: WalletInterface,
   tokenAddress: string,
   amount: number,
   decimals: number
@@ -1077,7 +1093,7 @@ export async function burnTokens(
 }
 
 // Pause token
-export async function pauseToken(wallet: any, tokenAddress: string) {
+export async function pauseToken(wallet: WalletInterface, tokenAddress: string) {
   try {
     const program = getProgram(wallet);
     const tokenPubkey = new PublicKey(tokenAddress);
@@ -1116,7 +1132,7 @@ export async function pauseToken(wallet: any, tokenAddress: string) {
 }
 
 // Unpause token
-export async function unpauseToken(wallet: any, tokenAddress: string) {
+export async function unpauseToken(wallet: WalletInterface, tokenAddress: string) {
   try {
     const program = getProgram(wallet);
     const tokenPubkey = new PublicKey(tokenAddress);
@@ -1180,7 +1196,7 @@ export async function getTokenBalance(walletAddress: string, mintAddress: string
 
 // Update token metadata
 export async function updateTokenMetadata(
-  wallet: any,
+  wallet: WalletInterface,
   mintAddress: string,
   metadata: {
     name: string;

@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
 import { 
   Coins, 
@@ -56,8 +56,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { 
   getEnhancedTokenInfo as fetchEnhancedTokenInfo,
   getWalletTransactionHistory as fetchWalletTransactionHistory, 
-  getWalletSummary as fetchWalletSummary,
-  formatAlgorandTransactionForDisplay
+  getWalletSummary as fetchWalletSummary
 } from '@/lib/solana-data';
 import { mintTokens, burnTokens, transferTokens, getTokenBalance, pauseToken, unpauseToken } from '@/lib/solana';
 import { DashboardSkeleton, TokenCardSkeleton } from '@/components/skeletons/DashboardSkeletons';
@@ -95,7 +94,7 @@ interface Transaction {
 }
 
 export default function SolanaDashboard() {
-  const { connected, publicKey } = useWallet();
+  const { connected, publicKey, signTransaction, signAllTransactions } = useWallet();
   const { toast } = useToast();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [supabaseConfigured, setSupabaseConfigured] = useState(false);
@@ -106,7 +105,8 @@ export default function SolanaDashboard() {
     totalValue: 0,
     tokenCount: 0,
     totalTransactions: 0,
-    change24h: 0
+    change24h: 0,
+    solBalance: 0
   });
   
   const [loading, setLoading] = useState(true);
@@ -237,19 +237,26 @@ export default function SolanaDashboard() {
       const transactionResult = await fetchWalletTransactionHistory(publicKey.toString());
       
       if (transactionResult.success && transactionResult.data) {
-        const formattedTransactions = transactionResult.data.map(tx => ({
-          signature: tx.signature,
-          type: tx.type.toLowerCase().includes('mint') 
-            ? 'mint' 
-            : tx.type.toLowerCase().includes('burn') 
-              ? 'burn' 
-              : 'transfer',
-          amount: parseFloat(tx.amount) || 0,
-          timestamp: new Date(tx.timestamp),
-          status: tx.status as 'confirmed' | 'pending' | 'failed',
-          from: tx.from,
-          to: tx.to
-        }));
+        const formattedTransactions = transactionResult.data.map(tx => {
+          const typeString = tx.type.toLowerCase();
+          let transactionType: 'mint' | 'burn' | 'transfer' = 'transfer';
+          
+          if (typeString.includes('mint')) {
+            transactionType = 'mint';
+          } else if (typeString.includes('burn')) {
+            transactionType = 'burn';
+          }
+          
+          return {
+            signature: tx.signature,
+            type: transactionType,
+            amount: parseFloat(tx.amount) || 0,
+            timestamp: new Date(tx.timestamp),
+            status: tx.status as 'confirmed' | 'pending' | 'failed',
+            from: tx.from,
+            to: tx.to
+          };
+        });
         
         setTransactions(formattedTransactions.length > 0 ? formattedTransactions : []);
       }
@@ -292,11 +299,18 @@ export default function SolanaDashboard() {
       );
       
       const decimals = balanceResult.success 
-        ? balanceResult.decimals 
+        ? (balanceResult.decimals || 9)
         : (selectedToken.decimals || 9);
       
+      // Create wallet interface for mintTokens
+      const walletInterface = {
+        publicKey: publicKey!,
+        signTransaction: signTransaction!,
+        signAllTransactions: signAllTransactions!
+      };
+      
       const mintResult = await mintTokens(
-        publicKey!, 
+        walletInterface, 
         selectedToken.mint, 
         parseFloat(actionAmount),
         decimals
@@ -354,7 +368,7 @@ export default function SolanaDashboard() {
       );
       
       const decimals = balanceResult.success 
-        ? balanceResult.decimals 
+        ? (balanceResult.decimals || 9)
         : (selectedToken.decimals || 9);
       
       // Validate burn amount against balance
@@ -369,8 +383,15 @@ export default function SolanaDashboard() {
         return;
       }
       
+      // Create wallet interface for burnTokens
+      const walletInterface = {
+        publicKey: publicKey!,
+        signTransaction: signTransaction!,
+        signAllTransactions: signAllTransactions!
+      };
+      
       const burnResult = await burnTokens(
-        publicKey!,
+        walletInterface,
         selectedToken.mint,
         parseFloat(actionAmount),
         decimals
@@ -458,7 +479,7 @@ export default function SolanaDashboard() {
       );
       
       const decimals = balanceResult.success 
-        ? balanceResult.decimals 
+        ? (balanceResult.decimals || 9)
         : (selectedToken.decimals || 9);
       
       // Validate transfer amount against balance
@@ -473,8 +494,15 @@ export default function SolanaDashboard() {
         return;
       }
       
+      // Create wallet interface for transferTokens
+      const walletInterface = {
+        publicKey: publicKey!,
+        signTransaction: signTransaction!,
+        signAllTransactions: signAllTransactions!
+      };
+      
       const transferResult = await transferTokens(
-        publicKey!,
+        walletInterface,
         selectedToken.mint,
         transferRecipient,
         parseFloat(actionAmount),

@@ -85,13 +85,13 @@ export async function getUserTokenAccounts(walletAddress: string): Promise<{ suc
     ]) as any;
 
     const tokenAccountInfos: TokenAccountInfo[] = tokenAccounts.value
-      .filter(account => {
+      .filter((account: any) => {
         const parsedInfo = account.account.data as ParsedAccountData;
         const tokenAmount = parsedInfo.parsed.info.tokenAmount as TokenAmount;
         // Only include accounts with non-zero balance
         return tokenAmount.uiAmount && tokenAmount.uiAmount > 0;
       })
-      .map(account => {
+      .map((account: any) => {
         const parsedInfo = account.account.data as ParsedAccountData;
         const info = parsedInfo.parsed.info;
         const tokenAmount = info.tokenAmount as TokenAmount;
@@ -236,7 +236,10 @@ export async function getEnhancedTokenInfo(walletAddress: string): Promise<{ suc
     // First get all token accounts
     const accountsResult = await getUserTokenAccounts(walletAddress);
     if (!accountsResult.success || !accountsResult.data) {
-      return accountsResult;
+      return {
+        success: false,
+        error: accountsResult.error || 'Failed to get token accounts'
+      };
     }
     
     // Then get metadata for each token
@@ -551,7 +554,7 @@ export async function getTokenHolders(mintAddress: string): Promise<{
     
     // Parse account data to get balances
     const holders = tokenAccounts
-      .map(account => {
+      .map((account: any) => {
         const data = account.account.data;
         if (data.length >= 72) {
           const balance = Number(data.readBigUInt64LE(64));
@@ -565,13 +568,13 @@ export async function getTokenHolders(mintAddress: string): Promise<{
         }
         return null;
       })
-      .filter(holder => holder && holder.balance > 0) // Filter out zero balances
-      .sort((a, b) => (b?.balance || 0) - (a?.balance || 0)); // Sort by balance desc
+      .filter((holder: any) => holder && holder.balance > 0) // Filter out zero balances
+      .sort((a: any, b: any) => (b?.balance || 0) - (a?.balance || 0)); // Sort by balance desc
     
     // Calculate percentages
     const totalSupply = holders.reduce((sum, holder) => sum + (holder?.balance || 0), 0);
     
-    const topHolders = holders.slice(0, 10).map(holder => ({
+    const topHolders = holders.slice(0, 10).map((holder: any) => ({
       address: holder?.address || '',
       balance: holder?.balance || 0,
       percentage: totalSupply > 0 ? ((holder?.balance || 0) / totalSupply) * 100 : 0

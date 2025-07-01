@@ -124,7 +124,7 @@ async function calculateOnChainMetrics(mintAddress: string): Promise<TokenMarket
       const data = account.account.data;
       if (data.length >= 72) {
         const balance = data.readBigUInt64LE(64);
-        return balance > 0n;
+        return balance > BigInt(0);
       }
       return false;
     }).length;

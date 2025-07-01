@@ -203,7 +203,7 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
             variant="outline"
             className="text-xs px-2 py-1 bg-blue-500/10 text-blue-500 border-blue-500/30"
           >
-            {formData.features?.mintable ? 'Mintable' : 'Fixed Supply'}
+            {tokenData.mintable ? 'Mintable' : 'Fixed Supply'}
           </Badge>
         </div>
       </div>

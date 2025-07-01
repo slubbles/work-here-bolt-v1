@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Mail, MessageSquare, HelpCircle, Send, Clock, MapPin, Globe, Twitter, Github, Check } from 'lucide-react';
+import { Mail, MessageSquare, HelpCircle, Send, Clock, MapPin, Globe, Twitter, Github, Check, ChevronRight } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function ContactPage() {
