@@ -31,12 +31,9 @@ export default function TokenPreview({ tokenData }: TokenPreviewProps) {
   const [isImageLoading, setIsImageLoading] = useState(true);
   const [tokenGlowClass, setTokenGlowClass] = useState('');
 
-  // Simulate initial loading
+  // Set loading to false immediately
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 400);
-    return () => clearTimeout(timer);
+    setIsLoading(false);
   }, []);
 
   // Handle image loading state

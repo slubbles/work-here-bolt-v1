@@ -4,7 +4,8 @@ import {
   S3Client, 
   PutObjectCommand,
   CreateBucketCommand,
-  HeadBucketCommand
+  HeadBucketCommand,
+  ObjectCannedACL
 } from '@aws-sdk/client-s3';
 
 // Supabase configuration
@@ -130,7 +131,7 @@ export const supabaseHelpers = {
             Key: s3Key,
             Body: buffer,
             ContentType: file.type,
-            ACL: 'public-read'
+            ACL: ObjectCannedACL.public_read
           };
           
           await s3Client.send(new PutObjectCommand(uploadParams));
@@ -264,7 +265,7 @@ export const supabaseHelpers = {
             Key: s3Key,
             Body: metadataJson,
             ContentType: 'application/json',
-            ACL: 'public-read'
+            ACL: ObjectCannedACL.public_read
           };
           
           await s3Client.send(new PutObjectCommand(uploadParams));
@@ -432,9 +433,9 @@ export const supabaseHelpers = {
         new PutObjectCommand({
           Bucket: ipfsBucket,
           Key: finalFileName,
-          Body: fileContent instanceof Blob ? await fileContent.arrayBuffer() : fileContent,
+          Body: fileContent instanceof Blob ? new Uint8Array(await fileContent.arrayBuffer()) : fileContent,
           ContentType: data instanceof File ? data.type : 'application/octet-stream',
-          ACL: 'public-read'
+          ACL: ObjectCannedACL.public_read
         })
       );
       

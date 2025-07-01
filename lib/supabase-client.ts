@@ -23,7 +23,7 @@ export const supabase = createClient(
  * Check if Supabase is properly configured
  */
 export function isSupabaseAvailable(): boolean {
-  return isSupabaseConfigured;
+  return Boolean(isSupabaseConfigured);
 }
 
 /**

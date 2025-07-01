@@ -62,7 +62,7 @@ export default function TokenForm({ onTokenCreate, defaultNetwork = 'algorand-te
   const [showConfetti, setShowConfetti] = useState(false);
   
   // Wallet connections
-  const { connected: solanaConnected, publicKey: solanaPublicKey, wallet: solanaWallet } = useWallet();
+  const { connected: solanaConnected, publicKey: solanaPublicKey, wallet: solanaWallet, signTransaction, signAllTransactions } = useWallet();
   const { 
     connected: algorandConnected,
     address: algorandAddress,
@@ -280,9 +280,16 @@ ${tokenomicsInfo.vestingSchedule?.enabled ? `- Vesting: Enabled (Team: ${tokenom
           throw new Error('Solana wallet not properly connected');
         }
         
+        // Create wallet interface for Solana token creation
+        const walletInterface = {
+          publicKey: solanaPublicKey!,
+          signTransaction: signTransaction!,
+          signAllTransactions: signAllTransactions!
+        };
+        
         // Create Solana token
         createResult = await createTokenOnChain(
-          solanaWallet,
+          walletInterface,
           {
             name: formData.name,
             symbol: formData.symbol,

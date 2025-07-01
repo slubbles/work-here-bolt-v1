@@ -474,7 +474,14 @@ export const connection = new Connection(NETWORK_ENDPOINT, 'confirmed');
 
 // Get program instance
 export function getProgram(wallet: WalletInterface | null) {
-  const provider = new AnchorProvider(connection, wallet, {
+  // Convert WalletInterface to Anchor wallet format if needed
+  const anchorWallet = wallet ? {
+    publicKey: wallet.publicKey,
+    signTransaction: wallet.signTransaction,
+    signAllTransactions: wallet.signAllTransactions
+  } : null;
+  
+  const provider = new AnchorProvider(connection, anchorWallet as any, {
     commitment: 'confirmed',
   });
   return new Program(IDL, PROGRAM_ID, provider);
@@ -907,7 +914,7 @@ export async function createTokenOnChain(
 // Get token data
 export async function getTokenData(tokenAddress: string) {
   try {
-    const program = getProgram({ publicKey: null }); // Read-only
+    const program = getProgram(null); // Read-only
     const tokenPubkey = new PublicKey(tokenAddress);
     const tokenData = await program.account.tokenData.fetch(tokenPubkey);
     
@@ -939,7 +946,7 @@ export async function transferTokens(
     
     // Get token data to find mint
     const tokenData = await program.account.tokenData.fetch(tokenPubkey);
-    const mintPubkey = tokenData.mint;
+    const mintPubkey = new PublicKey(tokenData.mint as string);
     
     // Get associated token accounts
     const fromTokenAccount = await getAssociatedTokenAddress(
@@ -997,7 +1004,7 @@ export async function mintTokens(
     
     // Get token data to find mint
     const tokenData = await program.account.tokenData.fetch(tokenPubkey);
-    const mintPubkey = tokenData.mint;
+    const mintPubkey = new PublicKey(tokenData.mint as string);
     
     // Get associated token account
     const toTokenAccount = await getAssociatedTokenAddress(mintPubkey, wallet.publicKey);
@@ -1051,7 +1058,7 @@ export async function burnTokens(
     
     // Get token data to find mint
     const tokenData = await program.account.tokenData.fetch(tokenPubkey);
-    const mintPubkey = tokenData.mint;
+    const mintPubkey = new PublicKey(tokenData.mint as string);
     
     // Get associated token account
     const fromTokenAccount = await getAssociatedTokenAddress(mintPubkey, wallet.publicKey);

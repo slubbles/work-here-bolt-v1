@@ -394,6 +394,11 @@ export async function createAlgorandToken(
       }
     }
 
+    // Convert BigInt to number if needed for safety
+    if (typeof assetId === 'bigint') {
+      assetId = Number(assetId);
+    }
+
     // If still not found, try to get it by looking at the transaction result
     if (!assetId && confirmedTxn.confirmedRound) {
       console.log('🔍 Attempting to retrieve asset ID from account assets...');
@@ -419,7 +424,9 @@ export async function createAlgorandToken(
           }, 3, 1000);
           
           if (txResponse && txResponse.transaction && txResponse.transaction.createdAssetIndex) {
-            assetId = txResponse.transaction.createdAssetIndex;
+            assetId = typeof txResponse.transaction.createdAssetIndex === 'bigint' 
+              ? Number(txResponse.transaction.createdAssetIndex) 
+              : txResponse.transaction.createdAssetIndex;
             console.log('✅ Found asset ID from indexer transaction lookup:', assetId);
           } else if (txResponse && txResponse.transaction) {
             console.log('Transaction found but no created-asset-index field:', txResponse.transaction);
@@ -444,7 +451,9 @@ export async function createAlgorandToken(
               const latestAsset = assets.reduce((prev: any, current: any) => 
                 (current.index > prev.index) ? current : prev, assets[0]
               );
-              assetId = latestAsset.index;
+              assetId = typeof latestAsset.index === 'bigint' 
+                ? Number(latestAsset.index) 
+                : latestAsset.index;
               console.log('✅ Found asset ID from account assets:', assetId);
             }
           } catch (accountError) {
@@ -503,7 +512,7 @@ export async function createAlgorandToken(
     return {
       success: true,
       transactionId: txId,
-      assetId: assetId, 
+      assetId: typeof assetId === 'bigint' ? Number(assetId) : assetId, 
       details: {
         network: network,
         explorerUrl: explorerUrl,

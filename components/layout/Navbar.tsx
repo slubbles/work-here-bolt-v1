@@ -341,7 +341,7 @@ export default function Navbar() {
                           )}
                           {(!solanaConnected || !solanaPublicKey) && (
                             <div>
-                              <WalletMultiButton className="w-full bg-[#AB9FF2] hover:bg-[#AB9FF2]/90 text-white font-medium rounded-lg py-2 px-4 transition-colors" />
+                              <WalletMultiButton className="!w-full !bg-[#AB9FF2] !hover:bg-[#AB9FF2]/90 !text-white !font-medium !rounded-lg !py-2 !px-4 !transition-colors !cursor-pointer !pointer-events-auto !z-10" />
                             </div>
                           )}
                         </div>
@@ -541,8 +541,8 @@ export default function Navbar() {
                 </div>
               )}
 
-              {/* WalletMultiButton - hidden but needed to trigger Solana adapter modal */}
-              <div className="hidden">
+              {/* Hidden WalletMultiButton for fallback - ensure it doesn't interfere */}
+              <div className="hidden opacity-0 pointer-events-none">
                 <WalletMultiButton />
               </div>
             </div>
