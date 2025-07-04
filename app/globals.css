@@ -57,6 +57,85 @@
   --radius: 0.75rem;
 }
 
+/* Custom animations for enhanced UX */
+@keyframes bounce-once {
+  0%, 20%, 53%, 80%, 100% {
+    animation-timing-function: cubic-bezier(0.215, 0.610, 0.355, 1.000);
+    transform: translate3d(0, 0, 0);
+  }
+  40%, 43% {
+    animation-timing-function: cubic-bezier(0.755, 0.050, 0.855, 0.060);
+    transform: translate3d(0, -8px, 0);
+  }
+  70% {
+    animation-timing-function: cubic-bezier(0.755, 0.050, 0.855, 0.060);
+    transform: translate3d(0, -4px, 0);
+  }
+  90% {
+    transform: translate3d(0, -2px, 0);
+  }
+}
+
+@keyframes glow-pulse {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(59, 130, 246, 0.6);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(200%);
+  }
+}
+
+@keyframes gradient-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.animate-bounce-once {
+  animation: bounce-once 1.5s;
+}
+
+.animate-glow-pulse {
+  animation: glow-pulse 2s ease-in-out infinite;
+}
+
+.animate-shimmer {
+  animation: shimmer 2s ease-in-out infinite;
+}
+
+.animate-gradient-shift {
+  background-size: 200% 200%;
+  animation: gradient-shift 3s ease infinite;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
 /* Add bounce-once animation */
 @keyframes bounce-once {
   0%, 100% {
@@ -1291,10 +1370,17 @@ p {
   box-shadow: 0 15px 30px rgba(239, 68, 68, 0.4) !important;
 }
 
-/* Wallet adapter modal styling with improved glass effect */
+/* Wallet adapter modal styling with improved glass effect and z-index */
 .wallet-adapter-modal {
   @apply backdrop-blur-xl !important;
   background-color: rgba(0, 0, 0, 0.8) !important;
+  z-index: 99999 !important;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  pointer-events: auto !important;
 }
 
 .wallet-adapter-modal .wallet-adapter-modal-container {
@@ -1307,11 +1393,17 @@ p {
     0 0 0 1px rgba(255, 255, 255, 0.1) !important;
   border-radius: 1rem !important;
   padding: 1.5rem !important;
+  z-index: 100000 !important;
+  position: relative !important;
+  pointer-events: auto !important;
 }
 
 /* Style the wallet adapter buttons */
 .wallet-adapter-modal-button-close {
   background-color: rgba(255, 255, 255, 0.1) !important;
+  pointer-events: auto !important;
+  cursor: pointer !important;
+  z-index: 100002 !important;
 }
 
 .wallet-adapter-modal-title {
@@ -1326,6 +1418,37 @@ p {
   @apply !rounded-xl !bg-muted/30 hover:!bg-red-500/20 transition-all !border !border-transparent hover:!border-red-500/30 !shadow-none !h-14;
   color: white !important;
   background: rgba(30, 30, 30, 0.5) !important;
+  pointer-events: auto !important;
+  cursor: pointer !important;
+  z-index: 100001 !important;
+  position: relative !important;
+}
+
+.wallet-adapter-modal-list .wallet-adapter-button:hover {
+  background: rgba(239, 68, 68, 0.1) !important;
+  border-color: rgba(239, 68, 68, 0.3) !important;
+  transform: translateY(-1px) !important;
+  pointer-events: auto !important;
+}
+
+/* Ensure all wallet adapter elements are clickable */
+.wallet-adapter-modal * {
+  pointer-events: auto !important;
+}
+
+.wallet-adapter-modal button {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+}
+
+.wallet-adapter-modal-list-item {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+}
+
+/* Override any potential blocking elements */
+.wallet-adapter-modal-overlay {
+  pointer-events: auto !important;
 }
 
 .wallet-adapter-modal .wallet-adapter-modal-title {
@@ -1347,21 +1470,39 @@ p {
   transition: all 0.2s ease;
 }
 
-/* Fix wallet button reactivity */
+/* Fix wallet button reactivity and z-index issues */
 .wallet-adapter-button {
   cursor: pointer !important;
+  pointer-events: auto !important;
+  position: relative !important;
+  z-index: 1000 !important;
+}
+
+.wallet-adapter-modal {
+  z-index: 9999 !important;
+}
+
+.wallet-adapter-modal .wallet-adapter-modal-container {
+  z-index: 10000 !important;
+}
+
+.wallet-adapter-button-trigger {
+  z-index: 1001 !important;
+  position: relative !important;
 }
 
 .wallet-adapter-dropdown-list-active {
   opacity: 1 !important;
   visibility: visible !important;
   pointer-events: auto !important;
+  z-index: 10001 !important;
 }
 
 /* Make sure wallet dropdown is visible */
 .wallet-adapter-dropdown-list {
   top: 100% !important;
   transform: translateY(10px) !important;
+  z-index: 10002 !important;
 }
 
 /* Wallet connection states */
@@ -1470,4 +1611,45 @@ p {
 
 .wallet-adapter-modal-list-item {
   @apply bg-muted/50 hover:bg-muted border border-border rounded-lg transition-all;
+}
+
+/* Additional fixes for wallet modal clickability */
+.wallet-adapter-modal-wrapper {
+  z-index: 99999 !important;
+  position: fixed !important;
+  pointer-events: auto !important;
+}
+
+/* Ensure wallet buttons are always on top and clickable */
+.wallet-adapter-button[data-testid] {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+  z-index: 100001 !important;
+  position: relative !important;
+}
+
+/* Fix for any overlay issues */
+body:has(.wallet-adapter-modal) {
+  overflow: hidden;
+}
+
+.wallet-adapter-modal:not(.wallet-adapter-modal-fade-out) {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* Make sure the modal content is interactive */
+.wallet-adapter-modal-container * {
+  pointer-events: auto !important;
+}
+
+/* Specific fix for wallet list items */
+.wallet-adapter-modal-list-item button {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+  width: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
 }

@@ -29,6 +29,7 @@ export default function AdminPage() {
   const [error, setError] = useState('');
   const [mounted, setMounted] = useState(false);
 
+  // Solana wallet
   const { connected, publicKey, wallet, signTransaction, signAllTransactions } = useWallet();
   const { toast } = useToast();
 
@@ -84,7 +85,7 @@ export default function AdminPage() {
     }
 
     // Check if user is admin
-    if (publicKey.toString() !== ADMIN_WALLET.toString()) {
+    if (publicKey && publicKey.toString() !== ADMIN_WALLET.toString()) {
       setError(`❌ Admin access required. Only the designated admin wallet can initialize the platform.`);
       alert("Platform initialization requires the admin wallet. Please connect the correct wallet.");
       return;
@@ -185,7 +186,7 @@ export default function AdminPage() {
                   <div className="space-y-2">
                     <p className="font-semibold text-red-700">❌ Unauthorized Wallet</p>
                     <p className="text-sm">
-                      <strong>Connected:</strong> <code className="bg-red-100 px-2 py-1 rounded text-xs font-mono">{publicKey.toString()}</code>
+                      <strong>Connected:</strong> <code className="bg-red-100 px-2 py-1 rounded text-xs font-mono">{publicKey?.toString()}</code>
                     </p>
                     <p className="text-sm">
                       <strong>Required:</strong> <code className="bg-green-100 px-2 py-1 rounded text-xs font-mono">{ADMIN_WALLET.toString()}</code>
@@ -255,7 +256,7 @@ export default function AdminPage() {
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="text-center">
-                <WalletMultiButton className="!bg-gradient-to-r !from-red-500 !to-red-600 hover:!from-red-600 hover:!to-red-700 !rounded-xl !shadow-lg !min-h-[48px] !px-6 !text-base !font-semibold" />
+                <WalletMultiButton className="!bg-red-500 !hover:bg-red-600 !text-white !font-semibold !rounded-xl !min-h-[48px] !px-6 !text-base !transition-colors" />
               </div>
 
               <Alert className="border-orange-500/30 bg-orange-500/10">
@@ -357,13 +358,15 @@ export default function AdminPage() {
                     <p className="text-base md:text-sm text-muted-foreground">Full administrative access granted</p>
                   </div>
                 </div>
-                <WalletMultiButton className="!bg-green-500 hover:!bg-green-600 !rounded-xl !min-h-[48px] !px-4 !text-base md:!text-sm" />
+                <Button disabled className="bg-gray-400 text-gray-600 rounded-xl min-h-[48px] px-4 text-base md:text-sm">
+                  Solana Wallet Temporarily Disabled
+                </Button>
               </div>
               
               <div className="space-y-2">
                 <p className="text-base md:text-sm text-muted-foreground mb-2 font-medium">Connected Wallet:</p>
                 <p className="font-mono text-base md:text-sm bg-muted p-4 md:p-3 rounded-lg break-all">
-                  {publicKey?.toString()}
+                  Solana wallet temporarily disabled
                 </p>
               </div>
             </div>

@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import { 
   Coins, 
@@ -32,7 +32,8 @@ import {
   Loader2,
   AlertTriangle,
   MessageSquare,
-  Clock
+  Clock,
+  Activity
 } from 'lucide-react';
 import { 
   DropdownMenu,
@@ -1435,6 +1436,257 @@ export default function AlgorandDashboard() {
           </DialogContent>
         </Dialog>
       </div>
+      
+      {/* Token Management Section for Asset Creators */}
+      {tokens.length > 0 && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <Card className="border-[#76f935]/30 shadow-lg">
+            <CardHeader className="bg-gradient-to-r from-[#76f935]/10 to-[#68e029]/10 border-b border-[#76f935]/30">
+              <CardTitle className="text-[#76f935] flex items-center">
+                <Settings className="w-5 h-5 mr-2" />
+                Asset Management Center
+              </CardTitle>
+              <CardDescription className="text-[#68e029]">
+                Manage your Algorand Standard Assets (ASA) with advanced controls
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {tokens.map((token) => (
+                  <Card key={token.assetId} className="border-[#76f935]/20 hover:border-[#76f935]/40 transition-colors">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          {token.image ? (
+                            <img 
+                              src={token.image} 
+                              alt={token.symbol} 
+                              className="w-8 h-8 rounded-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-8 h-8 bg-gradient-to-br from-[#76f935] to-[#68e029] rounded-full flex items-center justify-center">
+                              <span className="text-black font-bold text-xs">
+                                {token.symbol?.charAt(0) || 'A'}
+                              </span>
+                            </div>
+                          )}
+                          <div>
+                            <h3 className="font-semibold text-foreground">{token.symbol}</h3>
+                            <p className="text-sm text-muted-foreground">{token.name}</p>
+                            <p className="text-xs text-muted-foreground">ID: {token.assetId}</p>
+                          </div>
+                        </div>
+                        <Badge variant={token.isFrozen ? "destructive" : "default"}>
+                          {token.isFrozen ? "Frozen" : "Active"}
+                        </Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <span className="text-muted-foreground">Balance:</span>
+                          <p className="font-medium">{token.uiBalance?.toLocaleString() || '0'}</p>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Decimals:</span>
+                          <p className="font-medium">{token.decimals}</p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setSelectedToken(token);
+                            setShowMintDialog(true);
+                            setActionError('');
+                            setActionSuccess('');
+                          }}
+                          className="flex-1 border-green-200 text-green-700 hover:bg-green-50"
+                        >
+                          <Plus className="w-3 h-3 mr-1" />
+                          Mint
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setSelectedToken(token);
+                            setShowBurnDialog(true);
+                            setActionError('');
+                            setActionSuccess('');
+                          }}
+                          className="flex-1 border-red-200 text-red-700 hover:bg-red-50"
+                        >
+                          <Flame className="w-3 h-3 mr-1" />
+                          Burn
+                        </Button>
+                      </div>
+                      
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setSelectedToken(token);
+                            setShowTransferDialog(true);
+                            setActionError('');
+                            setActionSuccess('');
+                          }}
+                          className="flex-1 border-blue-200 text-blue-700 hover:bg-blue-50"
+                        >
+                          <Send className="w-3 h-3 mr-1" />
+                          Transfer
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            const explorerUrl = selectedNetwork === 'algorand-mainnet' 
+                              ? `https://algoexplorer.io/asset/${token.assetId}`
+                              : `https://testnet.algoexplorer.io/asset/${token.assetId}`;
+                            window.open(explorerUrl, '_blank');
+                          }}
+                          className="border-gray-200 text-gray-700 hover:bg-gray-50"
+                        >
+                          <ExternalLink className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Analytics Section */}
+      {tokens.length > 0 && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <Card className="border-[#76f935]/30 shadow-lg">
+            <CardHeader className="bg-gradient-to-r from-[#76f935]/10 to-[#68e029]/10 border-b border-[#76f935]/30">
+              <CardTitle className="text-[#76f935] flex items-center">
+                <BarChart3 className="w-5 h-5 mr-2" />
+                Portfolio Analytics
+              </CardTitle>
+              <CardDescription className="text-[#68e029]">
+                Basic analytics for your Algorand asset portfolio
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                <Card className="border-green-200 bg-green-50">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-green-600">Total Assets</p>
+                        <p className="text-2xl font-bold text-green-800">{tokens.length}</p>
+                      </div>
+                      <Coins className="w-8 h-8 text-green-600" />
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <Card className="border-blue-200 bg-blue-50">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-blue-600">ALGO Balance</p>
+                        <p className="text-2xl font-bold text-blue-800">
+                          {walletSummary.algoBalance.toFixed(2)}
+                        </p>
+                      </div>
+                      <Wallet className="w-8 h-8 text-blue-600" />
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <Card className="border-purple-200 bg-purple-50">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-purple-600">Transactions</p>
+                        <p className="text-2xl font-bold text-purple-800">
+                          {transactions.length}
+                        </p>
+                      </div>
+                      <Activity className="w-8 h-8 text-purple-600" />
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Asset Distribution Chart */}
+                <Card className="border-gray-200">
+                  <CardHeader>
+                    <CardTitle className="text-lg">Asset Distribution</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={200}>
+                      <PieChart>
+                        <Pie
+                          data={tokens.map(token => ({
+                            name: token.symbol,
+                            value: token.uiBalance || 0
+                          }))}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                          outerRadius={80}
+                          fill="#8884d8"
+                          dataKey="value"
+                        >
+                          {tokens.map((_, index) => (
+                            <Cell key={`cell-${index}`} fill={[
+                              '#76f935', '#68e029', '#5dd41f', '#52c715', '#47ba0b', '#3cad01'
+                            ][index % 6]} />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+
+                {/* Recent Activity */}
+                <Card className="border-gray-200">
+                  <CardHeader>
+                    <CardTitle className="text-lg">Recent Activity</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {transactions.slice(0, 5).map((tx, index) => (
+                        <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                          <div className="flex items-center space-x-2">
+                            <div className={`w-2 h-2 rounded-full ${
+                              tx.type === 'asset-transfer' ? 'bg-blue-500' :
+                              tx.type === 'payment' ? 'bg-green-500' : 'bg-gray-500'
+                            }`}></div>
+                            <span className="text-sm font-medium capitalize">
+                              {tx.type.replace('-', ' ')}
+                            </span>
+                            <span className="text-sm text-muted-foreground">{tx.amount}</span>
+                          </div>
+                          <span className="text-xs text-muted-foreground">
+                            {formatDistanceToNow(new Date(tx.timestamp), { addSuffix: true })}
+                          </span>
+                        </div>
+                      ))}
+                      {transactions.length === 0 && (
+                        <p className="text-sm text-muted-foreground text-center py-4">No recent activity</p>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
       
       {/* Token History Section */}
       {supabaseConfigured && walletAddress && (

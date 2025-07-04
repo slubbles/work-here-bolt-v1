@@ -5,14 +5,13 @@ import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react
 import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
 import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
 import {
-  PhantomWalletAdapter, 
+  PhantomWalletAdapter,
   SolflareWalletAdapter,
 } from '@solana/wallet-adapter-wallets';
-import { clusterApiUrl } from '@solana/web3.js';
-import { NETWORK_ENDPOINT, dispatchWalletEvent } from '@/lib/solana';
+import { NETWORK_ENDPOINT } from '@/lib/solana';
 import { AlgorandWalletProvider } from './AlgorandWalletProvider';
 
-// Add wallet adapter CSS
+// Import wallet adapter CSS
 import '@solana/wallet-adapter-react-ui/styles.css';
 
 interface WalletContextProviderProps {
@@ -24,13 +23,11 @@ export default function WalletContextProvider({ children }: WalletContextProvide
   const network = WalletAdapterNetwork.Devnet;
   const endpoint = useMemo(() => NETWORK_ENDPOINT, []);
 
-  // Define wallet adapters - only using stable ones
-  const wallets = useMemo(() => {
-    return [
-      new PhantomWalletAdapter(),
-      new SolflareWalletAdapter({ network }),
-    ];      
-  }, [network]);
+  // Fresh wallet adapter configuration - only stable, well-tested adapters
+  const wallets = useMemo(() => [
+    new PhantomWalletAdapter(),
+    new SolflareWalletAdapter({ network }),
+  ], [network]);
 
   return (
     <ConnectionProvider 
@@ -38,16 +35,18 @@ export default function WalletContextProvider({ children }: WalletContextProvide
       config={{
         commitment: 'confirmed',
         confirmTransactionInitialTimeout: 60000,
+        wsEndpoint: undefined // Disable websocket for stability
       }}
     >
       <WalletProvider 
         wallets={wallets} 
-        autoConnect={true}
+        autoConnect={true} // Enable autoConnect for better UX
         onError={(error, adapter) => {
-          console.error('Wallet connection error:', error);
-          console.error('Adapter:', adapter?.name);
-          // Don't throw the error, just log it
+          console.warn('Solana wallet error:', error?.message || error);
+          console.warn('Adapter:', adapter?.name);
+          // Graceful error handling - don't throw
         }}
+        localStorageKey="walletName" // Persist wallet selection
       >
         <WalletModalProvider>
           <AlgorandWalletProvider>

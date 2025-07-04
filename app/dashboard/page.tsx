@@ -15,9 +15,9 @@ import { SupabaseStatus } from '@/components/SupabaseStatus';
 import { isSupabaseAvailable } from '@/lib/supabase-client';
 import dynamic from 'next/dynamic';
 
-// Dynamically import AlgorandDashboard to fix hydration issues
+// Dynamically import OptimizedAlgorandDashboard to fix hydration issues
 const AlgorandDashboard = dynamic(
-  () => import('@/components/dashboard/AlgorandDashboard'), 
+  () => import('./OptimizedAlgorandDashboard'), 
   { 
     ssr: false,
     loading: () => (
@@ -25,7 +25,6 @@ const AlgorandDashboard = dynamic(
         <div className="glass-card p-8 text-center">
           <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-red-500 mx-auto mb-4"></div>
           <p className="text-foreground text-lg font-semibold">Loading Algorand Dashboard...</p>
-          <p className="text-muted-foreground mt-2">Please wait while we fetch your assets</p>
           <p className="text-muted-foreground mt-2">Please wait while we fetch your assets</p>
         </div>
       </div>
@@ -134,9 +133,6 @@ export default function DashboardPage() {
     return (
       <div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2">
-          {/* New User Guide */}
-          <NewUserGuide type="dashboard" />
-          
           {selectedNetwork === 'algorand-mainnet' ? (
             <div className="flex items-center justify-center mb-4 bg-yellow-500/10 border border-yellow-500/20 p-2 rounded-lg">
               <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30 mr-2">

@@ -75,7 +75,7 @@ interface VerificationResult {
 export default function VerifyPage() {
   const searchParams = useSearchParams();
   const { toast } = useToast();
-  const [network, setNetwork] = useState<NetworkType>('solana-devnet');
+  const [network, setNetwork] = useState<NetworkType>('algorand-mainnet'); // Default to Algorand mainnet since most assets are there
   const [tokenId, setTokenId] = useState(searchParams?.get('id') || '');
   const [isVerifying, setIsVerifying] = useState(false);
   const [verificationResult, setVerificationResult] = useState<VerificationResult | null>(null);
@@ -171,14 +171,46 @@ export default function VerifyPage() {
 
   const fetchAlgorandTokenData = async (assetId: string, networkType: NetworkType): Promise<Partial<VerificationResult>> => {
     try {
+      console.log(`🔍 Verifying Algorand asset ${assetId} on ${networkType}`);
       const isMainnet = networkType === 'algorand-mainnet';
-      const assetInfo = await getAlgorandAssetInfo(parseInt(assetId), isMainnet ? 'mainnet' : 'testnet');
+      const networkName = isMainnet ? 'mainnet' : 'testnet';
+      
+      console.log(`📡 Using network: ${networkName}`);
+      let assetInfo = await getAlgorandAssetInfo(parseInt(assetId), networkName);
+      
+      // If asset not found on selected network, try the other network
+      if (!assetInfo.success && networkType === 'algorand-mainnet') {
+        console.log('🔄 Asset not found on mainnet, trying testnet...');
+        assetInfo = await getAlgorandAssetInfo(parseInt(assetId), 'testnet');
+        if (assetInfo.success) {
+          console.log('✅ Asset found on testnet instead');
+          toast({
+            title: "Network Switch",
+            description: "Asset found on Algorand Testnet instead of Mainnet",
+          });
+        }
+      } else if (!assetInfo.success && networkType === 'algorand-testnet') {
+        console.log('🔄 Asset not found on testnet, trying mainnet...');
+        assetInfo = await getAlgorandAssetInfo(parseInt(assetId), 'mainnet');
+        if (assetInfo.success) {
+          console.log('✅ Asset found on mainnet instead');
+          toast({
+            title: "Network Switch", 
+            description: "Asset found on Algorand Mainnet instead of Testnet",
+          });
+        }
+      }
+      
+      console.log('Asset info result:', assetInfo);
       
       if (!assetInfo.success || !assetInfo.data) {
-        throw new Error(assetInfo.error || 'Asset not found');
+        console.error(`❌ Failed to fetch asset info: ${assetInfo.error}`);
+        throw new Error(assetInfo.error || `Asset ${assetId} not found on either Algorand Mainnet or Testnet. Please verify the asset ID.`);
       }
 
       const asset = assetInfo.data;
+      
+      console.log(`✅ Asset found: ${asset.assetName} (${asset.unitName})`);
       
       const metadata: TokenMetadata = {
         name: asset.assetName || 'Unknown Asset',
@@ -199,7 +231,8 @@ export default function VerifyPage() {
 
       const score = Object.values(checks).filter(Boolean).length * 20;
       
-      const networkName = isMainnet ? 'mainnet' : 'testnet';
+      // Determine which network was actually used
+      const actualNetwork = assetInfo.success ? (isMainnet ? 'mainnet' : 'testnet') : 'unknown';
       
       return {
         verified: score >= 80,
@@ -213,7 +246,9 @@ export default function VerifyPage() {
           volume24h: 'N/A',
           priceChange24h: 'N/A'
         },
-        explorerUrl: `https://allo.info/asset/${assetId}`,
+        explorerUrl: actualNetwork === 'mainnet'
+          ? `https://explorer.perawallet.app/asset/${assetId}`
+          : `https://testnet.algoexplorer.io/asset/${assetId}`,
         warnings: score < 80 ? [
           'Asset verification incomplete',
           'Limited market data available',
@@ -221,7 +256,8 @@ export default function VerifyPage() {
         ] : []
       };
     } catch (error) {
-      throw new Error(`Failed to fetch Algorand asset data: ${error}`);
+      console.error('❌ Algorand verification error:', error);
+      throw new Error(`Failed to fetch Algorand asset data: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
@@ -299,9 +335,9 @@ export default function VerifyPage() {
 
   const getNetworkStatus = () => {
     const statusMap = {
-      'solana-devnet': { label: 'Solana Devnet', color: 'bg-purple-500', icon: Globe },
+      'solana-devnet': { label: 'Solana Devnet', color: 'bg-red-500', icon: Globe },
       'algorand-mainnet': { label: 'Algorand Mainnet', color: 'bg-green-500', icon: Globe },
-      'algorand-testnet': { label: 'Algorand Testnet', color: 'bg-blue-500', icon: Globe }
+      'algorand-testnet': { label: 'Algorand Testnet', color: 'bg-gray-500', icon: Globe }
     };
     return statusMap[network];
   };
@@ -330,7 +366,7 @@ export default function VerifyPage() {
   const networkStatus = getNetworkStatus();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 py-8 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-red-100 py-8 px-4">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
@@ -355,7 +391,7 @@ export default function VerifyPage() {
 
         {/* Search Form */}
         <Card className="mb-8 shadow-lg border-0">
-          <CardHeader className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-t-lg">
+          <CardHeader className="bg-gradient-to-r from-red-500 to-red-600 text-white rounded-t-lg">
             <CardTitle className="flex items-center space-x-2">
               <Search className="w-5 h-5" />
               <span>Token/Asset Verification</span>
@@ -376,7 +412,7 @@ export default function VerifyPage() {
                   <SelectContent>
                     <SelectItem value="solana-devnet">
                       <div className="flex items-center space-x-2">
-                        <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                        <div className="w-2 h-2 bg-red-500 rounded-full"></div>
                         <span>Solana Devnet</span>
                       </div>
                     </SelectItem>
@@ -388,7 +424,7 @@ export default function VerifyPage() {
                     </SelectItem>
                     <SelectItem value="algorand-testnet">
                       <div className="flex items-center space-x-2">
-                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                        <div className="w-2 h-2 bg-gray-500 rounded-full"></div>
                         <span>Algorand Testnet</span>
                       </div>
                     </SelectItem>
@@ -413,7 +449,7 @@ export default function VerifyPage() {
                   <Button 
                     onClick={() => handleVerification()}
                     disabled={!tokenId || isVerifying}
-                    className="ml-2 px-6 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                    className="ml-2 px-6 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700"
                   >
                     {isVerifying ? (
                       <div className="flex items-center space-x-2">
@@ -469,7 +505,7 @@ export default function VerifyPage() {
           <div className="space-y-6">
             {/* Overall Status */}
             <Card className="shadow-lg border-0">
-              <CardHeader className="bg-gradient-to-r from-gray-50 to-gray-100">
+              <CardHeader className="bg-gradient-to-r from-red-50 to-red-100 border-b border-red-200">
                 <div className="flex items-center justify-between">
                   <CardTitle className="flex items-center space-x-3">
                     {getStatusIcon(verificationResult.status)}
@@ -492,7 +528,7 @@ export default function VerifyPage() {
               </CardHeader>
               <CardContent className="p-6">
                 {/* Token ID Display */}
-                <div className="bg-gray-50 rounded-lg p-4 mb-4">
+                <div className="bg-red-50 rounded-lg p-4 mb-4 border border-red-200">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-gray-600">Token ID</p>
@@ -575,7 +611,7 @@ export default function VerifyPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg">
+                    <div className="text-center p-4 bg-gradient-to-br from-red-50 to-red-100 rounded-lg border border-red-200">
                       <Users className="w-6 h-6 text-blue-600 mx-auto mb-2" />
                       <p className="text-sm text-gray-600">Holders</p>
                       <p className="text-lg font-semibold text-gray-900">{verificationResult.metrics.holders || 'N/A'}</p>
@@ -662,7 +698,7 @@ export default function VerifyPage() {
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
                   <div className="text-center">
-                    <Search className="w-8 h-8 text-blue-600 mx-auto mb-2" />
+                    <Search className="w-8 h-8 text-red-600 mx-auto mb-2" />
                     <h4 className="font-medium text-gray-900">1. Enter Details</h4>
                     <p className="text-sm text-gray-600">Select network and enter token address or asset ID</p>
                   </div>

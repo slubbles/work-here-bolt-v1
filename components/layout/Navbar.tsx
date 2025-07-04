@@ -157,9 +157,11 @@ export default function Navbar() {
           {/* Logo */}
           <Link href="/" className="flex items-center group">
             <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center">
-                <span className="text-white font-bold text-sm">S</span>
-              </div>
+              <img 
+                src="/logo.png" 
+                alt="Snarbles Logo" 
+                className="w-8 h-8 rounded-lg object-contain"
+              />
               <span className="text-2xl font-bold text-foreground group-hover:text-red-500 transition-colors">
                 Snarbles
               </span>
@@ -282,58 +284,58 @@ export default function Navbar() {
 
               {/* Enhanced Wallet Options Dropdown */}
               {showWalletOptions && (
-                <div className="absolute right-0 top-full mt-2 w-96 bg-background/95 backdrop-blur-xl border border-border rounded-xl shadow-2xl z-50 animate-in slide-in-from-top-2 duration-200 overflow-hidden">
-                  <div className="p-6 relative overflow-visible">
+                <div className="absolute right-0 top-full mt-2 w-80 bg-background/95 backdrop-blur-xl border border-border rounded-xl shadow-2xl z-50 animate-in slide-in-from-top-2 duration-200 overflow-hidden">
+                  <div className="p-4 relative overflow-visible">
                     {/* Background decoration */}
                     <div className="absolute -top-24 -right-24 w-48 h-48 bg-red-500/5 rounded-full blur-3xl"></div>
                     <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-blue-500/5 rounded-full blur-3xl"></div>
 
-                    <div className="mb-6 text-center">
-                      <h3 className="text-foreground font-bold text-2xl mb-1 gradient-text">Wallet Management</h3>
-                      <p className="text-muted-foreground text-sm">Connect or manage your wallets</p>
+                    <div className="mb-4 text-center">
+                      <h3 className="text-foreground font-bold text-lg mb-1 gradient-text">Wallet Management</h3>
+                      <p className="text-muted-foreground text-xs">Connect or manage your wallets</p>
                     </div>
                     
                     {/* Wallet Cards Container */}
-                    <div className="grid grid-cols-1 gap-6">
+                    <div className="grid grid-cols-1 gap-3">
                       {/* Solana Wallet Card */}
-                      <div className="rounded-xl overflow-hidden border border-[#AB9FF2]/20 shadow-md">
-                        <div className="bg-[#AB9FF2]/10 p-4">
-                          <div className="flex items-center space-x-3">
-                            <div className="w-10 h-10 rounded-full bg-[#AB9FF2] flex items-center justify-center shadow-md">
-                              <span className="text-white font-bold text-sm">S</span>
+                      <div className="rounded-lg overflow-hidden border border-[#9945FF]/20 shadow-sm">
+                        <div className="bg-[#9945FF]/10 p-3">
+                          <div className="flex items-center space-x-2">
+                            <div className="w-8 h-8 rounded-full bg-[#9945FF] flex items-center justify-center shadow-md">
+                              <span className="text-white font-bold text-xs">S</span>
                             </div>
                             <div>
-                              <p className="text-foreground font-medium">Solana Wallet</p>
-                              <p className="text-muted-foreground text-sm">For Solana Network tokens</p>
+                              <p className="text-foreground font-medium text-sm">Solana Wallet</p>
+                              <p className="text-muted-foreground text-xs">For Solana Network tokens</p>
                             </div>
                             
                             {solanaConnected && (
-                              <div className="ml-auto flex items-center space-x-2">
+                              <div className="ml-auto flex items-center space-x-1">
                                 <span className="flex items-center text-green-500 text-xs font-medium">
-                                  <span className="w-2 h-2 bg-green-500 rounded-full mr-1"></span>
+                                  <span className="w-1.5 h-1.5 bg-green-500 rounded-full mr-1"></span>
                                   Connected
                                 </span>
                               </div>
                             )}
                           </div>
                         </div>
-                        <div className="p-4 space-y-3">
+                        <div className="p-3 space-y-2">
                           {solanaConnected && solanaPublicKey && (
                             <div className="space-y-2">
                               {/* Wallet Address Display */}
-                              <div className="flex items-center justify-between p-2 pl-3 bg-[#AB9FF2]/5 border border-[#AB9FF2]/20 rounded-lg">
-                                <p className="text-[#AB9FF2] text-sm font-mono">{formatAddress(solanaPublicKey.toString())}</p>
+                              <div className="flex items-center justify-between p-2 bg-[#9945FF]/5 border border-[#9945FF]/20 rounded-md">
+                                <p className="text-[#9945FF] text-xs font-mono">{formatAddress(solanaPublicKey.toString())}</p>
                                 <Button
                                   variant="ghost"
                                   size="sm"
                                   onClick={() => copyToClipboard(solanaPublicKey.toString(), 'Solana')}
-                                  className="h-7 w-7 p-0"
+                                  className="h-6 w-6 p-0"
                                   title="Copy full address"
                                 >
                                   {copiedAddress === solanaPublicKey.toString() ? (
-                                    <Check className="w-3.5 h-3.5 text-green-500" />
+                                    <Check className="w-3 h-3 text-green-500" />
                                   ) : (
-                                    <Copy className="w-3.5 h-3.5 text-[#AB9FF2]" />
+                                    <Copy className="w-3 h-3 text-[#9945FF]" />
                                   )}
                                 </Button>
                               </div>
@@ -341,75 +343,62 @@ export default function Navbar() {
                           )}
                           {(!solanaConnected || !solanaPublicKey) && (
                             <div>
-                              <WalletMultiButton className="!w-full !bg-[#AB9FF2] !hover:bg-[#AB9FF2]/90 !text-white !font-medium !rounded-lg !py-2 !px-4 !transition-colors !cursor-pointer !pointer-events-auto !z-10" />
+                              <WalletMultiButton className="!w-full !bg-[#9945FF] !hover:bg-[#9945FF]/90 !text-white !font-medium !rounded-md !py-2 !px-3 !transition-colors !cursor-pointer !pointer-events-auto !z-[100001] !text-sm !h-9 !relative" />
                             </div>
                           )}
                         </div>
                       </div>
                       
                       {/* Algorand Wallet Card */}
-                      <div className="rounded-xl overflow-hidden border border-[#22C55E]/20 shadow-md">
-                        <div className="bg-[#22C55E]/10 p-4">
-                          <div className="flex items-center space-x-3">
-                            <div className="w-10 h-10 rounded-full bg-[#22C55E] flex items-center justify-center shadow-md relative">
-                              <span className="text-white font-bold text-sm">A</span>
-                              <div className="absolute -inset-1 bg-[#22C55E]/30 rounded-full animate-pulse opacity-75"></div>
+                      <div className="rounded-lg overflow-hidden border border-[#ffee55]/20 shadow-sm">
+                        <div className="bg-[#ffee55]/10 p-3">
+                          <div className="flex items-center space-x-2">
+                            <div className="w-8 h-8 rounded-full bg-[#ffee55] flex items-center justify-center shadow-md relative">
+                              <span className="text-black font-bold text-xs">A</span>
+                              <div className="absolute -inset-1 bg-[#ffee55]/30 rounded-full animate-pulse opacity-75"></div>
                             </div>
                             <div>
-                              <p className="text-foreground font-medium">Algorand Wallet</p>
-                              <p className="text-muted-foreground text-sm">For Algorand Network tokens</p>
+                              <p className="text-foreground font-medium text-sm">Algorand Wallet</p>
+                              <p className="text-muted-foreground text-xs">For Algorand Network tokens</p>
                             </div>
                             
                             {algorandConnected && (
-                              <div className="ml-auto flex items-center space-x-2">
+                              <div className="ml-auto flex items-center space-x-1">
                                 <span className="flex items-center text-green-500 text-xs font-medium">
-                                  <span className="w-2 h-2 bg-green-500 rounded-full mr-1"></span>
+                                  <span className="w-1.5 h-1.5 bg-green-500 rounded-full mr-1"></span>
                                   Connected
                                 </span>
                               </div>
                             )}
                           </div>
                         </div>
-                        <div className="p-4 space-y-3">
+                        <div className="p-3 space-y-2">
                           {algorandConnected && algorandAddress && (
                             <>
                               <div className="space-y-2">
                                 {/* Wallet Address Display */}
-                                <div className="flex items-center justify-between p-2 pl-3 bg-[#22C55E]/5 border border-[#22C55E]/20 rounded-lg overflow-hidden">
-                                  <p className="text-[#22C55E] text-sm font-mono break-all">{formatAddress(algorandAddress)}</p>
+                                <div className="flex items-center justify-between p-2 bg-[#ffee55]/5 border border-[#ffee55]/20 rounded-md overflow-hidden">
+                                  <p className="text-[#ffee55] text-xs font-mono break-all">{formatAddress(algorandAddress)}</p>
                                   <Button
                                     variant="ghost"
                                     size="sm"
                                     onClick={() => copyToClipboard(algorandAddress, 'Algorand')}
-                                    className="h-7 w-7 p-0"
+                                    className="h-6 w-6 p-0"
                                     title="Copy full address"
                                   >
                                     {copiedAddress === algorandAddress ? (
-                                      <Check className="w-3.5 h-3.5 text-green-500" />
+                                      <Check className="w-3 h-3 text-green-500" />
                                     ) : (
-                                      <Copy className="w-3.5 h-3.5 text-[#22C55E]" />
+                                      <Copy className="w-3 h-3 text-[#ffee55]" />
                                     )}
                                   </Button>
                                 </div>
                                 
-                                {/* Network Display */}
-                                <div className="flex items-center justify-between p-2 pl-3 bg-[#22C55E]/5 border border-[#22C55E]/20 rounded-lg">
-                                  <p className="text-[#22C55E] text-sm">Network:</p>
-                                  <select 
-                                    value={algorandSelectedNetwork}
-                                    onChange={(e) => setAlgorandSelectedNetwork(e.target.value)}
-                                    className="bg-[#22C55E]/10 border border-[#22C55E]/20 rounded text-sm px-2 py-1 text-[#22C55E]"
-                                  >
-                                    <option value="algorand-testnet">Algorand Testnet</option>
-                                    <option value="algorand-mainnet">Algorand Mainnet</option>
-                                  </select>
-                                </div>
-                                
-                                <div className="mt-2 p-2 pl-3 bg-[#22C55E]/5 border border-[#22C55E]/20 rounded-lg">
+                                <div className="p-2 bg-[#ffee55]/5 border border-[#ffee55]/20 rounded-md">
                                   <div className="flex justify-between items-center">
-                                    <span className="text-sm text-[#22C55E]">Network Status:</span>
+                                    <span className="text-xs text-[#ffee55]">Network Status:</span>
                                     <div className="flex items-center">
-                                      <span className="h-2 w-2 rounded-full bg-green-500 mr-1.5"></span>
+                                      <span className="h-1.5 w-1.5 rounded-full bg-green-500 mr-1"></span>
                                       <span className="text-xs text-green-500">Connected</span>
                                     </div>
                                   </div>
@@ -434,7 +423,7 @@ export default function Navbar() {
                                   }}
                                   variant="outline"
                                   size="sm"
-                                  className="w-full border-red-500/20 text-red-500 hover:bg-red-500/10 hover:border-red-500/40"
+                                  className="w-full border-red-500/20 text-red-500 hover:bg-red-500/10 hover:border-red-500/40 text-xs h-8"
                                 >
                                   Disconnect
                                 </Button>
@@ -443,70 +432,28 @@ export default function Navbar() {
                           )}
                           
                           {!algorandConnected && (
-                            <div className="space-y-3">
+                            <div className="space-y-2">
                               {!isPeraWalletReady && (
-                                <div className="flex items-center p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg mb-3">
-                                  <AlertTriangle className="w-4 h-4 text-yellow-500 mr-2 flex-shrink-0" />
-                                  <p className="text-yellow-600 dark:text-yellow-400 text-sm">
+                                <div className="flex items-center p-2 bg-yellow-500/10 border border-yellow-500/20 rounded-md">
+                                  <AlertTriangle className="w-3 h-3 text-yellow-500 mr-1 flex-shrink-0" />
+                                  <p className="text-yellow-600 dark:text-yellow-400 text-xs">
                                     Pera Wallet extension not detected. Please install to connect.
                                   </p>
                                 </div>
                               )}
                               
-                              {/* Network selection for new connections */}
-                              <div className="p-3 bg-[#22C55E]/5 border border-[#22C55E]/20 rounded-lg mb-4">
-                                <div className="flex justify-between items-center mb-2">
-                                  <p className="text-sm font-medium text-[#22C55E]">Select Network:</p>
-                                  <TooltipProvider>
-                                    <Tooltip>
-                                      <TooltipTrigger>
-                                        <HelpCircle className="w-4 h-4 text-[#22C55E]" />
-                                      </TooltipTrigger>
-                                      <TooltipContent>
-                                        <p>Choose which Algorand network to connect to</p>
-                                      </TooltipContent>
-                                    </Tooltip>
-                                  </TooltipProvider>
-                                </div>
-                                <div className="grid grid-cols-2 gap-2">
-                                  <button
-                                    type="button"
-                                    className={`p-2 text-center rounded text-sm transition-all ${
-                                      algorandSelectedNetwork === 'algorand-testnet' 
-                                        ? 'bg-[#22C55E]/20 border border-[#22C55E]/40 font-medium'
-                                        : 'bg-muted/40 border border-border hover:bg-[#22C55E]/10'
-                                    }`}
-                                    onClick={() => setAlgorandSelectedNetwork('algorand-testnet')}
-                                  >
-                                    Testnet
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className={`p-2 text-center rounded text-sm transition-all ${
-                                      algorandSelectedNetwork === 'algorand-mainnet' 
-                                        ? 'bg-[#00d4aa]/20 border border-[#00d4aa]/40 font-medium'
-                                        : 'bg-muted/40 border border-border hover:bg-[#00d4aa]/10'
-                                    }`}
-                                    onClick={() => setAlgorandSelectedNetwork('algorand-mainnet')}
-                                  >
-                                    Mainnet
-                                  </button>
-                                </div>
-                              </div>
-                              
                               <Button
                                 onClick={handleAlgorandConnect}
                                 disabled={!isPeraWalletReady || algorandIsConnecting}
-                                className="w-full bg-[#22C55E] hover:bg-[#22C55E]/90 text-white font-medium rounded-lg py-2 px-4 transition-colors disabled:opacity-50"
                               >
                                 {algorandIsConnecting ? (
                                   <div className="flex items-center justify-center">
-                                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                                    <div className="w-3 h-3 border-2 border-black border-t-transparent rounded-full animate-spin mr-1"></div>
                                     <span>Connecting...</span>
                                   </div>
                                 ) : (
                                   <div className="flex items-center justify-center">
-                                    <Wallet className="w-4 h-4 mr-2" />
+                                    <Wallet className="w-3 h-3 mr-1" />
                                     <span>Connect Pera Wallet</span>
                                   </div>
                                 )}
@@ -517,7 +464,7 @@ export default function Navbar() {
                                 href="https://perawallet.app/download/" 
                                 target="_blank" 
                                 rel="noreferrer" 
-                                className="text-xs text-center block text-[#22C55E] hover:underline mt-2"
+                                className="text-xs text-center block text-[#22C55E] hover:underline"
                               >
                                 Need to install Pera Wallet?
                               </a>
@@ -527,18 +474,35 @@ export default function Navbar() {
                       </div>
                     </div>
                     
-                    {/* Close Button */}
-                    <div className="mt-6 pt-4 border-t border-border">
+                    {/* Close button */}
+                    <div className="flex justify-end mt-3">
                       <Button
                         onClick={() => setShowWalletOptions(false)}
-                        variant="outline"
-                        className="w-full shadow-none"
+                        variant="ghost"
+                        size="sm"
+                        className="text-muted-foreground hover:text-foreground text-xs"
                       >
                         Close
                       </Button>
                     </div>
                   </div>
                 </div>
+              )}
+
+              {/* Click outside to close - but don't interfere with wallet modal */}
+              {showWalletOptions && (
+                <div 
+                  className="fixed inset-0 z-40"
+                  onClick={(e) => {
+                    // Don't close if clicking on wallet adapter modal elements
+                    if (e.target instanceof HTMLElement && 
+                        (e.target.closest('.wallet-adapter-modal') || 
+                         e.target.closest('.wallet-adapter-dropdown'))) {
+                      return;
+                    }
+                    setShowWalletOptions(false);
+                  }}
+                />
               )}
 
               {/* Hidden WalletMultiButton for fallback - ensure it doesn't interfere */}

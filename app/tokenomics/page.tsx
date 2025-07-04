@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { BarChart, Bar, XAxis, YAxis, Cell, Tooltip, ResponsiveContainer, PieChart, Pie, Legend } from 'recharts';
+import { Cell, Tooltip, ResponsiveContainer, PieChart, Pie, Legend } from 'recharts';
 import { 
   Calculator, 
   Download, 
@@ -483,7 +483,7 @@ export default function TokenomicsPage() {
         </div>
 
         {/* Main Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10">
           {/* Left Column - Controls */}
           <div className="lg:col-span-5 space-y-6">
             {/* Supply Settings */}
@@ -745,7 +745,7 @@ export default function TokenomicsPage() {
               <CardContent>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {/* Pie Chart */}
-                  <div className="h-[300px] flex items-center justify-center">
+                  <div className="h-[300px] sm:h-[400px] flex items-center justify-center">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
@@ -757,47 +757,80 @@ export default function TokenomicsPage() {
                           fill="#8884d8"
                           paddingAngle={2}
                           dataKey="value"
-                          label={({ name, value }) => `${name}: ${value}%`}
+                          labelLine={false}
                         >
                           {getDistributionData().map((entry, index) => (
                             <Cell key={`cell-${index}`} fill={entry.color} />
                           ))}
                         </Pie>
                         <Tooltip content={<CustomTooltip />} />
-                        <Legend />
                       </PieChart>
                     </ResponsiveContainer>
                   </div>
                   
-                  {/* Bar Chart */}
-                  <div className="h-[300px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart
-                        data={getDistributionData()}
-                        layout="vertical"
-                        margin={{ top: 20, right: 30, left: 40, bottom: 10 }}
-                      >
-                        <XAxis type="number" domain={[0, 100]} />
-                        <YAxis 
-                          type="category" 
-                          dataKey="name" 
-                          width={100}
+                  {/* Custom Legend */}
+                  <div className="flex flex-col justify-center space-y-3">
+                    <h4 className="font-semibold text-foreground mb-2">Distribution</h4>
+                    {getDistributionData().map((entry, index) => (
+                      <div key={index} className="flex items-center space-x-3">
+                        <div 
+                          className="w-4 h-4 rounded-full flex-shrink-0" 
+                          style={{ backgroundColor: entry.color }}
                         />
-                        <Tooltip content={<CustomTooltip />} />
-                        <Bar dataKey="value" radius={[0, 4, 4, 0]}>
-                          {getDistributionData().map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.color} />
-                          ))}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium text-foreground truncate">
+                              {entry.name}
+                            </span>
+                            <span className="text-sm font-bold text-foreground ml-2">
+                              {entry.value}%
+                            </span>
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {(totalSupply * (entry.value / 100)).toLocaleString()} tokens
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
                 
                 {/* Distribution Table */}
                 <div className="mt-6 pt-6 border-t border-border">
                   <h3 className="font-semibold text-foreground mb-4">Token Allocation Breakdown</h3>
-                  <div className="overflow-x-auto">
+                  
+                  {/* Mobile View */}
+                  <div className="lg:hidden space-y-3">
+                    {Object.keys(distribution).map(key => {
+                      const tokenAmount = totalSupply * (distribution[key as keyof typeof distribution].value / 100);
+                      const hasVesting = vestingEnabled && 
+                        (key === 'team' || key === 'investors' || key === 'advisors');
+                      
+                      return (
+                        <div key={key} className="p-4 border border-border rounded-lg bg-card">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center space-x-2">
+                              <div 
+                                className="w-3 h-3 rounded-full" 
+                                style={{ backgroundColor: distribution[key as keyof typeof distribution].color }}
+                              />
+                              <span className="font-medium text-foreground">{distribution[key as keyof typeof distribution].label}</span>
+                            </div>
+                            <span className="font-mono text-lg font-semibold">{distribution[key as keyof typeof distribution].value}%</span>
+                          </div>
+                          <div className="flex justify-between text-sm text-muted-foreground">
+                            <span>Tokens: {formatNumber(Math.round(tokenAmount))}</span>
+                            {hasVesting && vestingSchedule[key as keyof typeof vestingSchedule] && typeof vestingSchedule[key as keyof typeof vestingSchedule] === 'object' && (
+                              <span>Vesting: {(vestingSchedule[key as keyof typeof vestingSchedule] as any).period} months</span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  
+                  {/* Desktop View */}
+                  <div className="hidden lg:block overflow-x-auto">
                     <table className="w-full">
                       <thead>
                         <tr className="border-b border-border">

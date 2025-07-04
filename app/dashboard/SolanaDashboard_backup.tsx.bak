@@ -45,7 +45,7 @@ import {
   Globe,
   CheckCircle
 } from 'lucide-react';
-import { useWallet } from '@solana/wallet-adapter-react';
+// import { useWallet } from '@solana/wallet-adapter-react'; // Temporarily disabled
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -64,7 +64,6 @@ import { TokenHistoryList } from '@/components/TokenHistoryList';
 import { SupabaseAuthModal } from '@/components/SupabaseAuthModal';
 import { isSupabaseAvailable } from '@/lib/supabase-client';
 import { useToast } from '@/hooks/use-toast';
-import { ADMIN_WALLET } from '@/lib/solana';
 
 interface TokenData {
   address: string;
@@ -95,8 +94,35 @@ interface Transaction {
 }
 
 export default function SolanaDashboard() {
-  // Solana wallet connection
-  const { connected, publicKey, signTransaction, signAllTransactions } = useWallet();
+  // Solana wallet (temporarily disabled for re-implementation)
+  const connected = false;
+  const publicKey = null;
+  const signTransaction = null;
+  const signAllTransactions = null;
+
+  // Early return to disable dashboard during Solana wallet re-implementation
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 flex items-center justify-center">
+      <div className="max-w-md mx-auto text-center">
+        <Card className="glass-card border-yellow-500/30 bg-yellow-500/5">
+          <CardHeader className="text-center">
+            <div className="w-16 h-16 rounded-full bg-yellow-500/20 flex items-center justify-center mx-auto">
+              <Wallet className="w-8 h-8 text-yellow-500" />
+            </div>
+            <div className="space-y-2">
+              <h2 className="text-2xl font-bold text-foreground">Solana Dashboard Temporarily Disabled</h2>
+              <p className="text-muted-foreground">
+                We're re-implementing the Solana wallet connection. Please use the Algorand dashboard for now.
+              </p>
+            </div>
+          </CardHeader>
+        </Card>
+      </div>
+    </div>
+  );
+
+  // Rest of component temporarily disabled during Solana wallet re-implementation
+  /*
   const { toast } = useToast();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [supabaseConfigured, setSupabaseConfigured] = useState(false);
@@ -125,9 +151,6 @@ export default function SolanaDashboard() {
   const [actionSuccess, setActionSuccess] = useState('');
   const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
   const [showTokenHistory, setShowTokenHistory] = useState(true);
-
-  // Check if user is admin
-  const isAdmin = connected && publicKey && publicKey.toString() === ADMIN_WALLET.toString();
 
   const chartData = [
     { name: 'Jan', value: 400 },
@@ -576,29 +599,19 @@ export default function SolanaDashboard() {
 
   if (!connected) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-red-100 flex items-center justify-center">
-        <Card className="w-full max-w-md mx-4 border-red-200 shadow-xl">
+      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 flex items-center justify-center">
+        <Card className="w-full max-w-md mx-4">
           <CardHeader className="text-center">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center mx-auto mb-4">
-              <Wallet className="w-8 h-8 text-white" />
-            </div>
-            <CardTitle className="text-2xl font-bold text-gray-900">Connect Your Solana Wallet</CardTitle>
-            <CardDescription className="text-lg text-gray-600">
+            <Wallet className="w-12 h-12 mx-auto mb-4 text-indigo-600" />
+            <CardTitle>Connect Your Wallet</CardTitle>
+            <CardDescription>
               Please connect your Solana wallet to access the dashboard
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-gray-600 text-center mb-4">
+            <p className="text-sm text-gray-600 text-center">
               Your wallet needs to be connected to view tokens and perform transactions.
             </p>
-            <div className="text-center">
-              <Button 
-                onClick={() => window.location.href = '/'}
-                className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white"
-              >
-                Go to Home Page
-              </Button>
-            </div>
           </CardContent>
         </Card>
       </div>
@@ -611,28 +624,15 @@ export default function SolanaDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-red-100">
+    <div className="min-h-screen">
       <div className="max-w-7xl mx-auto p-6">
-        {/* Header with Admin Badge */}
+        {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-red-600 to-red-800 bg-clip-text text-transparent">Solana Dashboard</h1>
-              {isAdmin && (
-                <Badge variant="destructive" className="bg-red-500 hover:bg-red-600">
-                  <Shield className="w-3 h-3 mr-1" />
-                  Admin
-                </Badge>
-              )}
-            </div>
+            <h1 className="text-3xl font-bold text-gray-900">Solana Dashboard</h1>
             <p className="text-gray-600">
-              Wallet: {publicKey?.toString().slice(0, 8)}...{publicKey?.toString().slice(-8)}
+              Wallet: {connected && publicKey ? `${publicKey.toString().slice(0, 8)}...${publicKey.toString().slice(-8)}` : 'Not connected'}
             </p>
-            {isAdmin && (
-              <p className="text-sm text-red-600 font-medium">
-                ⚡ Admin privileges enabled - You can manage platform tokens
-              </p>
-            )}
           </div>
           <div className="flex gap-3">
             <Button
@@ -640,15 +640,11 @@ export default function SolanaDashboard() {
               variant="outline"
               size="sm"
               disabled={refreshing}
-              className="border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300"
             >
               <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
               Refresh
             </Button>
-            <Button 
-              onClick={() => copyToClipboard(publicKey?.toString() || '')}
-              className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white"
-            >
+            <Button onClick={() => copyToClipboard(publicKey?.toString() || '')}>
               <Copy className="w-4 h-4 mr-2" />
               Copy Address
             </Button>
@@ -656,7 +652,7 @@ export default function SolanaDashboard() {
               <Button 
                 variant="outline" 
                 onClick={() => setShowAuthModal(true)}
-                className="ml-2 border-red-200 text-red-600 hover:bg-red-50"
+                className="ml-2"
               >
                 Account
               </Button>
@@ -664,59 +660,15 @@ export default function SolanaDashboard() {
           </div>
         </div>
 
-        {/* Admin Quick Actions */}
-        {isAdmin && (
-          <Card className="mb-8 border-red-200 bg-gradient-to-r from-red-50 to-red-100 shadow-lg">
-            <CardHeader>
-              <CardTitle className="text-red-700 flex items-center">
-                <Shield className="w-5 h-5 mr-2" />
-                Admin Quick Actions
-              </CardTitle>
-              <CardDescription className="text-red-600">
-                Platform administration tools for token management
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap gap-3">
-                <Button 
-                  onClick={() => window.location.href = '/create'}
-                  className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white shadow-md"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Create Platform Token
-                </Button>
-                <Button 
-                  onClick={() => window.location.href = '/admin'}
-                  variant="outline"
-                  className="border-red-300 text-red-700 hover:bg-red-100 hover:border-red-400"
-                >
-                  <Settings className="w-4 h-4 mr-2" />
-                  Admin Panel
-                </Button>
-                <Button 
-                  onClick={() => window.location.href = '/verify'}
-                  variant="outline"
-                  className="border-red-300 text-red-700 hover:bg-red-100 hover:border-red-400"
-                >
-                  <Shield className="w-4 h-4 mr-2" />
-                  Verify Tokens
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card className="border-red-200 shadow-lg hover:shadow-xl transition-shadow">
+          <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-700">Total Value</CardTitle>
-              <div className="w-8 h-8 bg-gradient-to-br from-red-500 to-red-600 rounded-full flex items-center justify-center">
-                <DollarSign className="h-4 w-4 text-white" />
-              </div>
+              <CardTitle className="text-sm font-medium">Total Value</CardTitle>
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-gray-900">
+              <div className="text-2xl font-bold">
                 ${typeof walletSummary.totalValue === 'number' 
                   ? walletSummary.totalValue.toFixed(2) 
                   : '0.00'}
@@ -730,45 +682,39 @@ export default function SolanaDashboard() {
             </CardContent>
           </Card>
 
-          <Card className="border-red-200 shadow-lg hover:shadow-xl transition-shadow">
+          <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-700">Tokens</CardTitle>
-              <div className="w-8 h-8 bg-gradient-to-br from-red-500 to-red-600 rounded-full flex items-center justify-center">
-                <Coins className="h-4 w-4 text-white" />
-              </div>
+              <CardTitle className="text-sm font-medium">Tokens</CardTitle>
+              <Coins className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-gray-900">{walletSummary.tokenCount}</div>
+              <div className="text-2xl font-bold">{walletSummary.tokenCount}</div>
               <p className="text-xs text-muted-foreground">
                 {walletSummary.tokenCount === 1 ? 'Token' : 'Tokens'}
               </p>
             </CardContent>
           </Card>
 
-          <Card className="border-red-200 shadow-lg hover:shadow-xl transition-shadow">
+          <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"> 
-              <CardTitle className="text-sm font-medium text-gray-700">SOL Balance</CardTitle>
-              <div className="w-8 h-8 bg-gradient-to-br from-red-500 to-red-600 rounded-full flex items-center justify-center">
-                <Wallet className="h-4 w-4 text-white" />
-              </div>
+              <CardTitle className="text-sm font-medium">SOL Balance</CardTitle>
+              <Wallet className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-gray-900">{walletSummary.solBalance.toFixed(4)} SOL</div>
+              <div className="text-2xl font-bold">{walletSummary.solBalance.toFixed(4)} SOL</div>
               <p className="text-xs text-muted-foreground">
                 Network currency
               </p>
             </CardContent>
           </Card>
 
-          <Card className="border-red-200 shadow-lg hover:shadow-xl transition-shadow">
+          <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-700">Network</CardTitle>
-              <div className="w-8 h-8 bg-gradient-to-br from-red-500 to-red-600 rounded-full flex items-center justify-center">
-                <Globe className="h-4 w-4 text-white" />
-              </div>
+              <CardTitle className="text-sm font-medium">Network</CardTitle>
+              <Globe className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-gray-900">Devnet</div>
+              <div className="text-2xl font-bold">Mainnet</div>
               <p className="text-xs text-muted-foreground">
                 <span className="text-green-600">●</span> Connected
               </p>
@@ -779,16 +725,16 @@ export default function SolanaDashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Tokens List */}
           <div className="lg:col-span-2">
-            <Card className="border-red-200 shadow-lg">
-              <CardHeader className="bg-gradient-to-r from-red-50 to-red-100 border-b border-red-200">
+            <Card>
+              <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-red-800">Your Tokens</CardTitle>
+                  <CardTitle>Your Tokens</CardTitle>
                   <div className="flex items-center space-x-2">
-                    <Badge variant="secondary" className="bg-red-100 text-red-700 border-red-300">{tokens.length}</Badge>
+                    <Badge variant="secondary">{tokens.length}</Badge>
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="p-6">
+              <CardContent>
                 {tokenLoading ? (
                   <div className="flex items-center justify-center py-8">
                     <div className="space-y-4 w-full">
@@ -800,33 +746,33 @@ export default function SolanaDashboard() {
                 ) : tokens.length > 0 ? (
                   <div className="space-y-4">
                     {tokens.map((token) => (
-                      <div key={token.address} className="flex items-center justify-between p-4 border border-red-100 rounded-lg hover:bg-red-50 hover:border-red-200 transition-all duration-200 shadow-sm">
+                      <div key={token.address} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors">
                         <div className="flex items-center gap-3">
                           {token.image ? (
                             <img 
                               src={token.image} 
                               alt={token.symbol} 
-                              className="w-10 h-10 rounded-full object-cover ring-2 ring-red-200"
+                              className="w-10 h-10 rounded-full object-cover"
                               onError={(e) => {
                                 (e.target as HTMLImageElement).onerror = null;
                                 (e.target as HTMLImageElement).src = ''; 
                                 // Replace with div containing first letter
                                 (e.target as HTMLImageElement).style.display = 'none';
                                 (e.target as HTMLImageElement).parentElement!.innerHTML = `
-                                  <div class="w-10 h-10 bg-gradient-to-br from-red-500 to-red-600 rounded-full flex items-center justify-center ring-2 ring-red-200">
+                                  <div class="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center">
                                     <span class="text-white font-bold">${(token.symbol || '?')[0]}</span>
                                   </div>
                                 `;
                               }}
                             />
                           ) : (
-                            <div className="w-10 h-10 bg-gradient-to-br from-red-500 to-red-600 rounded-full flex items-center justify-center ring-2 ring-red-200">
+                            <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center">
                               <span className="text-white font-bold">{(token.symbol || '?')[0]}</span>
                             </div>
                           )}
                           <div>
                             <div className="flex items-center gap-2">
-                              <h3 className="font-semibold text-gray-900">{token.name}</h3>
+                              <h3 className="font-semibold">{token.name}</h3>
                               {token.verified && (
                                 <TooltipProvider>
                                   <Tooltip>
@@ -856,18 +802,18 @@ export default function SolanaDashboard() {
 
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm" className="hover:bg-red-100 text-gray-600 hover:text-red-600">
+                            <Button variant="ghost" size="sm">
                               <Settings className="w-4 h-4" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent className="border-red-200">
+                          <DropdownMenuContent>
                             <DropdownMenuItem onClick={() => {
                               setSelectedToken(token);
                               setShowMintDialog(true);
                               setActionError('');
                               setActionSuccess('');
-                            }} className="hover:bg-red-50 focus:bg-red-50">
-                              <Plus className="w-4 h-4 mr-2 text-green-600" />
+                            }}>
+                              <Plus className="w-4 h-4 mr-2" />
                               Mint Tokens
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => {
@@ -875,8 +821,8 @@ export default function SolanaDashboard() {
                               setShowBurnDialog(true);
                               setActionError('');
                               setActionSuccess('');
-                            }} className="hover:bg-red-50 focus:bg-red-50">
-                              <Flame className="w-4 h-4 mr-2 text-red-600" />
+                            }}>
+                              <Flame className="w-4 h-4 mr-2" />
                               Burn Tokens
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => {
@@ -884,12 +830,12 @@ export default function SolanaDashboard() {
                               setShowTransferDialog(true);
                               setActionError('');
                               setActionSuccess('');
-                            }} className="hover:bg-red-50 focus:bg-red-50">
-                              <Send className="w-4 h-4 mr-2 text-red-600" />
+                            }}>
+                              <Send className="w-4 h-4 mr-2" />
                               Transfer
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => copyToClipboard(token.address)} className="hover:bg-red-50 focus:bg-red-50">
-                              <Copy className="w-4 h-4 mr-2 text-gray-600" />
+                            <DropdownMenuItem onClick={() => copyToClipboard(token.address)}>
+                              <Copy className="w-4 h-4 mr-2" />
                               Copy Address
                             </DropdownMenuItem>
                           </DropdownMenuContent>
@@ -907,7 +853,7 @@ export default function SolanaDashboard() {
                     <div className="mt-6">
                       <Button 
                         onClick={() => window.location.href = '/create'} 
-                        className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white shadow-lg"
+                        className="bg-indigo-600 hover:bg-indigo-700 text-white"
                       >
                         Create Your First Token
                       </Button>
@@ -921,9 +867,9 @@ export default function SolanaDashboard() {
           {/* Side Panel */}
           <div className="space-y-6">
             {/* Chart */}
-            <Card className="border-red-200 shadow-lg">
-              <CardHeader className="bg-gradient-to-r from-red-50 to-red-100 border-b border-red-200">
-                <CardTitle className="text-lg text-red-800">Token Allocation</CardTitle>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Token Allocation</CardTitle>
               </CardHeader>
               <CardContent>
                 {tokens.length > 0 ? (
@@ -960,9 +906,9 @@ export default function SolanaDashboard() {
             </Card>
 
             {/* Recent Transactions */}
-            <Card className="border-red-200 shadow-lg">
-              <CardHeader className="bg-gradient-to-r from-red-50 to-red-100 border-b border-red-200">
-                <CardTitle className="text-lg text-red-800">Recent Transactions</CardTitle>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Recent Transactions</CardTitle>
               </CardHeader>
               <CardContent>
                 {transactionLoading ? (
@@ -974,25 +920,25 @@ export default function SolanaDashboard() {
                 ) : transactions.length > 0 ? (
                   <div className="space-y-3">
                     {transactions.slice(0, 5).map((tx) => (
-                      <div key={tx.signature} className="flex items-center justify-between p-3 border border-red-100 rounded-lg hover:bg-red-50 hover:border-red-200 transition-all duration-200 shadow-sm">
+                      <div key={tx.signature} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 transition-all duration-200">
                         <div className="flex items-center gap-3">
                           <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                            tx.type === 'mint' ? 'bg-green-100 ring-2 ring-green-200' :
-                            tx.type === 'burn' ? 'bg-red-100 ring-2 ring-red-200' : 'bg-gray-100 ring-2 ring-gray-200'
+                            tx.type === 'mint' ? 'bg-green-100' :
+                            tx.type === 'burn' ? 'bg-red-100' : 'bg-blue-100'
                           }`}>
                             {tx.type === 'mint' ? <Plus className="w-4 h-4 text-green-600" /> :
                              tx.type === 'burn' ? <Flame className="w-4 h-4 text-red-600" /> :
-                             <Send className="w-4 h-4 text-red-600" />}
+                             <Send className="w-4 h-4 text-blue-600" />}
                           </div>
                           <div>
-                            <p className="font-medium capitalize text-gray-900">{tx.type}</p>
+                            <p className="font-medium capitalize">{tx.type}</p>
                             <p className="text-xs text-gray-500">
                               {formatDistanceToNow(tx.timestamp, { addSuffix: true })}
                             </p>
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="font-medium text-gray-900">{tx.amount.toLocaleString()}</p>
+                          <p className="font-medium">{tx.amount.toLocaleString()}</p>
                           <Badge variant={tx.status === 'confirmed' ? 'default' : 'secondary'} className="text-xs">
                             {tx.status}
                           </Badge>
@@ -1000,7 +946,7 @@ export default function SolanaDashboard() {
                         <Button 
                           variant="ghost" 
                           size="sm" 
-                          className="ml-2 hover:bg-red-100 text-gray-600 hover:text-red-600" 
+                          className="ml-2" 
                           onClick={() => window.open(`https://explorer.solana.com/tx/${tx.signature}?cluster=devnet`, '_blank')}
                         >
                           <ExternalLink className="w-4 h-4" />
@@ -1018,249 +964,6 @@ export default function SolanaDashboard() {
             </Card>
           </div>
         </div>
-        
-        {/* Token Management Section for Admin */}
-        {isAdmin && tokens.length > 0 && (
-          <div className="mt-8">
-            <Card className="border-red-200 shadow-lg">
-              <CardHeader className="bg-gradient-to-r from-red-50 to-red-100 border-b border-red-200">
-                <CardTitle className="text-red-800 flex items-center">
-                  <Settings className="w-5 h-5 mr-2" />
-                  Token Management Center
-                </CardTitle>
-                <CardDescription className="text-red-600">
-                  Manage your created tokens with advanced controls
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {tokens.map((token) => (
-                    <Card key={token.address} className="border-red-100 hover:border-red-200 transition-colors">
-                      <CardHeader className="pb-3">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-3">
-                            {token.image ? (
-                              <img 
-                                src={token.image} 
-                                alt={token.symbol} 
-                                className="w-8 h-8 rounded-full object-cover"
-                              />
-                            ) : (
-                              <div className="w-8 h-8 bg-gradient-to-br from-red-500 to-red-600 rounded-full flex items-center justify-center">
-                                <span className="text-white font-bold text-xs">
-                                  {token.symbol?.charAt(0) || 'T'}
-                                </span>
-                              </div>
-                            )}
-                            <div>
-                              <h3 className="font-semibold text-gray-900">{token.symbol}</h3>
-                              <p className="text-sm text-gray-500">{token.name}</p>
-                            </div>
-                          </div>
-                          <Badge variant={token.isPaused ? "destructive" : "default"}>
-                            {token.isPaused ? "Paused" : "Active"}
-                          </Badge>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4 text-sm">
-                          <div>
-                            <span className="text-gray-500">Balance:</span>
-                            <p className="font-medium">{token.uiBalance?.toLocaleString() || '0'}</p>
-                          </div>
-                          <div>
-                            <span className="text-gray-500">Holders:</span>
-                            <p className="font-medium">{token.holders || 0}</p>
-                          </div>
-                        </div>
-                        
-                        <div className="flex flex-wrap gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => {
-                              setSelectedToken(token);
-                              setShowMintDialog(true);
-                              setActionError('');
-                              setActionSuccess('');
-                            }}
-                            className="flex-1 border-green-200 text-green-700 hover:bg-green-50"
-                          >
-                            <Plus className="w-3 h-3 mr-1" />
-                            Mint
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => {
-                              setSelectedToken(token);
-                              setShowBurnDialog(true);
-                              setActionError('');
-                              setActionSuccess('');
-                            }}
-                            className="flex-1 border-red-200 text-red-700 hover:bg-red-50"
-                          >
-                            <Flame className="w-3 h-3 mr-1" />
-                            Burn
-                          </Button>
-                        </div>
-                        
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => {
-                              setSelectedToken(token);
-                              setShowTransferDialog(true);
-                              setActionError('');
-                              setActionSuccess('');
-                            }}
-                            className="flex-1 border-blue-200 text-blue-700 hover:bg-blue-50"
-                          >
-                            <Send className="w-3 h-3 mr-1" />
-                            Transfer
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => window.open(`https://explorer.solana.com/address/${token.address}?cluster=devnet`, '_blank')}
-                            className="border-gray-200 text-gray-700 hover:bg-gray-50"
-                          >
-                            <ExternalLink className="w-3 h-3" />
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
-        {/* Analytics Section */}
-        {tokens.length > 0 && (
-          <div className="mt-8">
-            <Card className="border-red-200 shadow-lg">
-              <CardHeader className="bg-gradient-to-r from-red-50 to-red-100 border-b border-red-200">
-                <CardTitle className="text-red-800 flex items-center">
-                  <BarChart3 className="w-5 h-5 mr-2" />
-                  Portfolio Analytics
-                </CardTitle>
-                <CardDescription className="text-red-600">
-                  Basic analytics for your token portfolio
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                  <Card className="border-green-200 bg-green-50">
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm text-green-600">Total Tokens</p>
-                          <p className="text-2xl font-bold text-green-800">{tokens.length}</p>
-                        </div>
-                        <Coins className="w-8 h-8 text-green-600" />
-                      </div>
-                    </CardContent>
-                  </Card>
-                  
-                  <Card className="border-blue-200 bg-blue-50">
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm text-blue-600">Total Balance</p>
-                          <p className="text-2xl font-bold text-blue-800">
-                            {tokens.reduce((sum, token) => sum + (token.uiBalance || 0), 0).toLocaleString()}
-                          </p>
-                        </div>
-                        <Wallet className="w-8 h-8 text-blue-600" />
-                      </div>
-                    </CardContent>
-                  </Card>
-                  
-                  <Card className="border-purple-200 bg-purple-50">
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm text-purple-600">Est. Holders</p>
-                          <p className="text-2xl font-bold text-purple-800">
-                            {tokens.reduce((sum, token) => sum + (token.holders || 0), 0).toLocaleString()}
-                          </p>
-                        </div>
-                        <Users className="w-8 h-8 text-purple-600" />
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {/* Token Distribution Chart */}
-                  <Card className="border-gray-200">
-                    <CardHeader>
-                      <CardTitle className="text-lg">Token Distribution</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <ResponsiveContainer width="100%" height={200}>
-                        <PieChart>
-                          <Pie
-                            data={tokens.map(token => ({
-                              name: token.symbol,
-                              value: token.uiBalance || 0
-                            }))}
-                            cx="50%"
-                            cy="50%"
-                            labelLine={false}
-                            label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                            outerRadius={80}
-                            fill="#8884d8"
-                            dataKey="value"
-                          >
-                            {tokens.map((_, index) => (
-                              <Cell key={`cell-${index}`} fill={[
-                                '#EF4444', '#F97316', '#EAB308', '#22C55E', '#3B82F6', '#8B5CF6'
-                              ][index % 6]} />
-                            ))}
-                          </Pie>
-                          <RechartsTooltip />
-                        </PieChart>
-                      </ResponsiveContainer>
-                    </CardContent>
-                  </Card>
-
-                  {/* Recent Activity */}
-                  <Card className="border-gray-200">
-                    <CardHeader>
-                      <CardTitle className="text-lg">Recent Activity</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-3">
-                        {transactions.slice(0, 5).map((tx, index) => (
-                          <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
-                            <div className="flex items-center space-x-2">
-                              <div className={`w-2 h-2 rounded-full ${
-                                tx.type === 'mint' ? 'bg-green-500' :
-                                tx.type === 'burn' ? 'bg-red-500' : 'bg-blue-500'
-                              }`}></div>
-                              <span className="text-sm font-medium capitalize">{tx.type}</span>
-                              <span className="text-sm text-gray-500">{tx.amount}</span>
-                            </div>
-                            <span className="text-xs text-gray-400">
-                              {formatDistanceToNow(tx.timestamp, { addSuffix: true })}
-                            </span>
-                          </div>
-                        ))}
-                        {transactions.length === 0 && (
-                          <p className="text-sm text-gray-500 text-center py-4">No recent activity</p>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
         
         {/* Token History Section */}
         {supabaseConfigured && showTokenHistory && publicKey && (
@@ -1310,7 +1013,7 @@ export default function SolanaDashboard() {
                   <Label>Current Balance</Label>
                   <span className="text-sm text-gray-500">{selectedToken?.uiBalance?.toLocaleString() || '0'} {selectedToken?.symbol}</span>
                 </div>
-                <div className="p-3 bg-red-50 border border-red-100 rounded-lg text-sm text-red-700">
+                <div className="p-3 bg-blue-50 border border-blue-100 rounded-lg text-sm text-blue-700">
                   <div className="flex items-start">
                     <Info className="w-4 h-4 mr-2 mt-0.5 flex-shrink-0" />
                     <p>Minting tokens requires ownership privileges. If you created this token, you can mint additional tokens to your wallet.</p>
@@ -1469,7 +1172,6 @@ export default function SolanaDashboard() {
             onClose={() => setShowAuthModal(false)}
           />
         )}
-      </div>
     </div>
   );
 }

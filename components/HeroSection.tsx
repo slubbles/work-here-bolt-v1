@@ -111,6 +111,7 @@ export default function HeroSection() {
                   border: '2px solid rgba(239, 68, 68, 0.3)',
                   boxShadow: '0 8px 24px rgba(0, 0, 0, 0.1)'
                 }}
+                onClick={() => window.open('https://youtu.be/HFP7OAyIG3k?si=Omt55bM0ojNsQniD', '_blank')}
               >
                 <Play className="w-5 h-5 mr-2" />
                 Watch Demo

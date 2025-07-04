@@ -13,7 +13,7 @@ import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { useWallet } from '@solana/wallet-adapter-react';
+// import { useWallet } from '@solana/wallet-adapter-react'; // Temporarily removed
 import { isSupabaseAvailable } from '@/lib/supabase-client';
 import { trackTokenCreation } from '@/lib/token-tracking';
 import { useAlgorandWallet } from '@/components/providers/AlgorandWalletProvider';
@@ -21,6 +21,7 @@ import { createTokenOnChain } from '@/lib/solana';
 import { createAlgorandToken, supabaseHelpers } from '@/lib/algorand';
 import { SuccessConfetti } from '@/components/SuccessConfetti';
 import { TransactionTracker, createTokenCreationSteps, classifyError, formatErrorForUser } from '@/lib/error-handling';
+import { safeStringify, safeLog } from '@/lib/utils';
 import Link from 'next/link';
 
 interface TokenFormProps {
@@ -62,7 +63,12 @@ export default function TokenForm({ onTokenCreate, defaultNetwork = 'algorand-te
   const [showConfetti, setShowConfetti] = useState(false);
   
   // Wallet connections
-  const { connected: solanaConnected, publicKey: solanaPublicKey, wallet: solanaWallet, signTransaction, signAllTransactions } = useWallet();
+  // Solana wallet (temporarily removed for re-implementation)
+  const solanaConnected = false;
+  const solanaPublicKey = null;
+  const solanaWallet = null;
+  const signTransaction = null;
+  const signAllTransactions = null;
   const { 
     connected: algorandConnected,
     address: algorandAddress,
@@ -259,7 +265,12 @@ ${tokenomicsInfo.vestingSchedule?.enabled ? `- Vesting: Enabled (Team: ${tokenom
           algorandNetwork,
           { 
             onStepUpdate: (step, status, details) => {
-              console.log(`Step update: ${step} - ${status}`, details);
+              // Safely log step updates (handle potential BigInt values)
+              try {
+                console.log(`Step update: ${step} - ${status}`, details ? safeStringify(details) : details);
+              } catch (logError) {
+                console.log(`Step update: ${step} - ${status}`, { error: 'Details contain non-serializable values' });
+              }
               if (tracker) {
                 if (status === 'in-progress') {
                   tracker.startStep(step);
@@ -306,7 +317,12 @@ ${tokenomicsInfo.vestingSchedule?.enabled ? `- Vesting: Enabled (Team: ${tokenom
           },
           {
             onStepUpdate: (step, status, details) => {
-              console.log(`Step update: ${step} - ${status}`, details);
+              // Safely log step updates (handle potential BigInt values)
+              try {
+                console.log(`Step update: ${step} - ${status}`, details ? safeStringify(details) : details);
+              } catch (logError) {
+                console.log(`Step update: ${step} - ${status}`, { error: 'Details contain non-serializable values' });
+              }
               if (tracker) {
                 if (status === 'in-progress') {
                   tracker.startStep(step);
@@ -338,7 +354,7 @@ ${tokenomicsInfo.vestingSchedule?.enabled ? `- Vesting: Enabled (Team: ${tokenom
         if (supabaseTracking && createResult.success) {
           try {
             console.log('Tracking token creation in Supabase...');
-            const walletAddress = network.includes('algorand') ? algorandAddress! : solanaPublicKey!.toString();
+            const walletAddress = network.includes('algorand') ? algorandAddress! : 'solana-address-placeholder';
             
             // Extract appropriate data based on blockchain
             const tokenDetails = {
@@ -477,55 +493,127 @@ ${tokenomicsInfo.vestingSchedule?.enabled ? `- Vesting: Enabled (Team: ${tokenom
     }
   };
 
+  const [formProgress, setFormProgress] = useState(0);
+  const [isFormValid, setIsFormValid] = useState(false);
+  const [fieldValidations, setFieldValidations] = useState({
+    name: false,
+    symbol: false,
+    description: false,
+    totalSupply: false
+  });
+
+  // Calculate form completion progress and validation
+  useEffect(() => {
+    const validations = {
+      name: formData.name && formData.name.trim().length >= 3,
+      symbol: formData.symbol && formData.symbol.trim().length >= 2 && formData.symbol.trim().length <= 8,
+      description: formData.description && formData.description.trim().length >= 10,
+      totalSupply: formData.totalSupply && !isNaN(parseFloat(formData.totalSupply)) && parseFloat(formData.totalSupply) > 0
+    };
+    
+    setFieldValidations(validations);
+    
+    const completedFields = Object.values(validations).filter(Boolean).length;
+    const totalFields = Object.keys(validations).length;
+    const progress = (completedFields / totalFields) * 100;
+    
+    setFormProgress(progress);
+    setIsFormValid(progress === 100);
+  }, [formData]);
+
+  // Enhanced step update handler with animations
+  const onStepUpdate = (step: string, status: string, details?: any) => {
+    setDeploymentSteps(prev => prev.map(s => {
+      if (s.id === step) {
+        return { ...s, status, details, timestamp: Date.now() };
+      }
+      return s;
+    }));
+    
+    // Use safe logging for step updates
+    safeLog(`Step Update - ${step}: ${status}`, details);
+  };
+
   return (
-    <Card className="w-full max-w-2xl mx-auto">
-      <CardHeader>
-        <CardTitle>Create Your Token</CardTitle>
-        <CardDescription>
-          Deploy your custom token on Solana with just a few clicks
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Tokenomics Info Banner */}
-        {hasAppliedTokenomics && tokenomicsInfo && (
-          <Alert className="mt-6 border-green-500/30 bg-green-500/5">
-            <CheckCircle className="h-4 w-4 text-green-500" />
-            <AlertTitle className="text-green-600 font-semibold">Tokenomics Applied</AlertTitle>
-            <AlertDescription className="text-sm text-muted-foreground">
-              <div className="space-y-1 mt-2">
-                <p>Supply of <span className="font-semibold">{tokenomicsInfo.totalSupply.toLocaleString()}</span> tokens with custom distribution:</p>
-                <ul className="grid grid-cols-2 gap-x-4 gap-y-1 mt-1">
-                  {Object.entries(tokenomicsInfo.distribution).map(([key, item]: [string, any]) => (
-                    <li key={key} className="flex items-center justify-between text-xs">
-                      <span>{item.label}:</span> 
-                      <span className="font-medium">{item.value}%</span>
-                    </li>
-                  ))}
-                </ul>
-                
-                <div className="flex justify-between items-center mt-3 pt-2 border-t border-green-500/20">
-                  <span className="text-xs">Health Score: {tokenomicsInfo.healthScore}%</span>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={copyTokenomicsDetails}
-                    className="h-8 px-2 text-xs border-green-500/30 text-green-600 hover:bg-green-500/10 hover:text-green-700"
-                  >
-                    {copySuccess ? (
-                      <Check className="w-3 h-3 mr-1" />
-                    ) : (
-                      <Clipboard className="w-3 h-3 mr-1" />
-                    )}
-                    {copySuccess || "Copy Details"}
-                  </Button>
+    <div className="w-full max-w-2xl mx-auto space-y-8">
+      {/* Progress Header */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-500/10 to-purple-500/10 backdrop-blur-sm border border-blue-500/20 p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-2xl font-bold text-white mb-1">Create Your Token</h2>
+            <p className="text-gray-300 text-sm">Deploy your custom token with professional-grade features</p>
+          </div>
+          <div className="text-right">
+            <div className="text-2xl font-bold text-blue-400">{Math.round(formProgress)}%</div>
+            <div className="text-xs text-gray-400">Complete</div>
+          </div>
+        </div>
+        
+        {/* Progress Bar */}
+        <div className="relative h-2 bg-gray-800 rounded-full overflow-hidden">
+          <div 
+            className="absolute inset-y-0 left-0 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full transition-all duration-700 ease-out"
+            style={{ width: `${formProgress}%` }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-50 animate-pulse" />
+        </div>
+        
+        {/* Field Validation Indicators */}
+        <div className="grid grid-cols-4 gap-2 mt-4">
+          {Object.entries(fieldValidations).map(([field, isValid]) => (
+            <div key={field} className={`flex items-center space-x-2 text-xs transition-all duration-300 ${isValid ? 'text-green-400' : 'text-gray-500'}`}>
+              <div className={`w-2 h-2 rounded-full transition-all duration-300 ${isValid ? 'bg-green-500 shadow-lg shadow-green-500/50' : 'bg-gray-600'}`} />
+              <span className="capitalize">{field}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Main Form Card */}
+      <Card className="relative overflow-hidden border-0 bg-black/50 backdrop-blur-sm">
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-purple-500/5" />
+        <CardContent className="relative z-10 p-8 space-y-6">
+          
+          {/* Tokenomics Info Banner */}
+          {hasAppliedTokenomics && tokenomicsInfo && (
+            <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-green-500/10 to-emerald-500/10 backdrop-blur-sm border border-green-500/20 p-4">
+              <div className="flex items-start space-x-3">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center flex-shrink-0">
+                  <CheckCircle className="w-4 h-4 text-white" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold text-green-400 mb-2">Tokenomics Applied</h3>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    {Object.entries(tokenomicsInfo.distribution).slice(0, 4).map(([key, item]: [string, any]) => (
+                      <div key={key} className="flex justify-between">
+                        <span className="text-gray-300">{item.label}:</span>
+                        <span className="text-green-400 font-medium">{item.value}%</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-green-500/20">
+                    <span className="text-xs text-gray-300">Health Score: <span className="text-green-400 font-medium">{tokenomicsInfo.healthScore}%</span></span>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={copyTokenomicsDetails}
+                      className="h-7 px-3 text-xs border-green-500/30 text-green-400 hover:bg-green-500/10"
+                    >
+                      {copySuccess ? (
+                        <Check className="w-3 h-3 mr-1" />
+                      ) : (
+                        <Clipboard className="w-3 h-3 mr-1" />
+                      )}
+                      {copySuccess || "Copy"}
+                    </Button>
+                  </div>
                 </div>
               </div>
-            </AlertDescription>
-          </Alert>
-        )}
+            </div>
+          )}
 
-        {!isDeploying && !deploymentComplete && (
-          <form onSubmit={handleSubmit} className="space-y-4">
+          {!isDeploying && !deploymentComplete && (
+            <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-3">
               <div className="flex justify-between items-center">
                 <Label htmlFor="network" className="text-base font-medium">Blockchain Network</Label>
@@ -850,20 +938,111 @@ ${tokenomicsInfo.vestingSchedule?.enabled ? `- Vesting: Enabled (Team: ${tokenom
 
             <Button 
               type="submit" 
-              className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white" 
-              size="lg"
+              className={`w-full h-14 text-lg font-medium transition-all duration-300 ${
+                isFormValid 
+                  ? 'bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-white shadow-lg shadow-red-500/25 hover:shadow-xl hover:shadow-red-500/30 hover:scale-[1.02]' 
+                  : 'bg-gray-700 text-gray-400 cursor-not-allowed'
+              }`}
+              disabled={!isFormValid}
             >
-              <Rocket className="w-5 h-5 mr-2" />
+              <Rocket className="w-5 h-5 mr-3" />
               Launch Token on {network.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+              {isFormValid && (
+                <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 opacity-0 hover:opacity-100 transition-opacity duration-500 rounded-lg" />
+              )}
             </Button>
           </form>
         )}
 
         {isDeploying && (
-          <div className="space-y-6">
-            <div className="text-center">
-              <h3 className="text-lg font-semibold mb-3 text-foreground">Deploying Your Token</h3>
-              <Progress value={deploymentProgress} className="w-full h-3 bg-muted/50" />
+          <>
+            <div className="space-y-8">
+            {/* Deployment Header */}
+            <div className="text-center space-y-4">
+              <div className="w-16 h-16 mx-auto rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
+                <Rocket className="w-8 h-8 text-white animate-pulse" />
+              </div>
+              <div>
+                <h3 className="text-2xl font-bold text-white mb-2">Launching Your Token</h3>
+                <p className="text-gray-300">Please wait while we deploy your token to the blockchain</p>
+              </div>
+            </div>
+
+            {/* Enhanced Progress Bar */}
+            <div className="relative">
+              <div className="h-4 bg-gray-800 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-green-500 rounded-full transition-all duration-1000 ease-out relative"
+                  style={{ width: `${deploymentProgress}%` }}
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent opacity-60 animate-pulse" />
+                </div>
+              </div>
+              <div className="flex justify-between text-sm text-gray-400 mt-2">
+                <span>0%</span>
+                <span className="font-medium text-blue-400">{deploymentProgress}% Complete</span>
+                <span>100%</span>
+              </div>
+            </div>
+
+            {/* Deployment Steps */}
+            <div className="space-y-4">
+              {deploymentSteps.map((step, index) => {
+                const isActive = step.status === 'in-progress';
+                const isCompleted = step.status === 'completed';
+                const isFailed = step.status === 'failed';
+                
+                return (
+                  <div key={step.id} className={`relative flex items-center space-x-4 p-4 rounded-xl transition-all duration-500 ${
+                    isActive ? 'bg-blue-500/10 border border-blue-500/30 scale-105' :
+                    isCompleted ? 'bg-green-500/10 border border-green-500/30' :
+                    isFailed ? 'bg-red-500/10 border border-red-500/30' :
+                    'bg-gray-800/50 border border-gray-700'
+                  }`}>
+                    {/* Step Icon */}
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ${
+                      isActive ? 'bg-blue-500 animate-pulse' :
+                      isCompleted ? 'bg-green-500' :
+                      isFailed ? 'bg-red-500' :
+                      'bg-gray-600'
+                    }`}>
+                      {isCompleted ? (
+                        <CheckCircle className="w-5 h-5 text-white" />
+                      ) : isFailed ? (
+                        <AlertCircle className="w-5 h-5 text-white" />
+                      ) : isActive ? (
+                        <Loader2 className="w-5 h-5 text-white animate-spin" />
+                      ) : (
+                        <div className="w-3 h-3 bg-gray-400 rounded-full" />
+                      )}
+                    </div>
+                    
+                    {/* Step Content */}
+                    <div className="flex-1">
+                      <h4 className={`font-medium transition-colors duration-300 ${
+                        isActive ? 'text-blue-400' :
+                        isCompleted ? 'text-green-400' :
+                        isFailed ? 'text-red-400' :
+                        'text-gray-400'
+                      }`}>
+                        {step.label}
+                      </h4>
+                      {step.details?.message && (
+                        <p className="text-sm text-gray-500 mt-1">{step.details.message}</p>
+                      )}
+                      {step.details?.txId && (
+                        <p className="text-xs text-blue-400 mt-1 font-mono">TX: {step.details.txId.slice(0, 16)}...</p>
+                      )}
+                    </div>
+                    
+                    {/* Animation Effect */}
+                    {isActive && (
+                      <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-blue-500/0 via-blue-500/20 to-blue-500/0 opacity-50 animate-pulse" />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
               <p className="text-sm text-muted-foreground mt-2">{deploymentProgress}% Complete</p>
             </div>
 
@@ -897,7 +1076,7 @@ ${tokenomicsInfo.vestingSchedule?.enabled ? `- Vesting: Enabled (Team: ${tokenom
                 </div>
               ))}
             </div>
-          </div>
+          </>
         )}
 
         {deploymentComplete && (
@@ -1079,5 +1258,6 @@ ${tokenomicsInfo.vestingSchedule?.enabled ? `- Vesting: Enabled (Team: ${tokenom
         )}
       </CardContent>
     </Card>
+    </div>
   );
 }

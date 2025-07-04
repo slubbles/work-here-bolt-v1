@@ -60,19 +60,27 @@ export async function getAlgorandEnhancedTokenInfo(walletAddress: string, networ
     for (const asset of accountResult.assets) {
       if (asset.amount && asset.amount > 0) {
         try {
+          // Handle BigInt asset IDs properly
+          const rawAssetId = (asset as any)['asset-id'];
+          const assetId = typeof rawAssetId === 'bigint' ? Number(rawAssetId) : rawAssetId;
+          
+          // Skip if asset ID is too large for safe conversion
+          if (typeof rawAssetId === 'bigint' && rawAssetId > Number.MAX_SAFE_INTEGER) {
+            console.warn(`Asset ID ${rawAssetId} is too large to process safely`);
+            continue;
+          }
+          
           // Get asset details
-          const assetResult = await getAlgorandAssetInfo((asset as any)['asset-id'], network);
+          const assetResult = await getAlgorandAssetInfo(assetId, network);
 
-          console.log(`Asset info result for ${(asset as any)['asset-id']}:`, assetResult);
-
-          console.log(`Asset info result for ${(asset as any)['asset-id']}:`, assetResult);
+          console.log(`Asset info result for ${assetId}:`, assetResult);
           
           if (assetResult && assetResult.success && assetResult.data) {
             const assetData = assetResult.data;
             const uiBalance = Number(asset.amount) / Math.pow(10, assetData.decimals || 0);
             
             const tokenInfo: AlgorandTokenInfo = {
-              assetId: (asset as any)['asset-id'],
+              assetId: assetId,
               name: assetData.assetName || `Asset ${(asset as any)['asset-id']}`,
               symbol: assetData.unitName || 'ASA',
               balance: asset.amount.toString(),
@@ -89,7 +97,7 @@ export async function getAlgorandEnhancedTokenInfo(walletAddress: string, networ
               defaultFrozen: assetData.defaultFrozen || false,
               isFrozen: false, // This would need an account-specific check
               verified: true, // All found assets are considered verified
-              explorerUrl: `${networkConfig.explorer}/asset/${(asset as any)['asset-id']}`,
+              explorerUrl: `${networkConfig.explorer}/asset/${assetId}`,
               // Mock some additional data for demo purposes
               value: `$${(Math.random() * 100).toFixed(2)}`,
               change: `${Math.random() > 0.5 ? '+' : '-'}${(Math.random() * 10).toFixed(1)}%`,
@@ -195,7 +203,7 @@ export async function getAlgorandWalletSummary(walletAddress: string, network: s
     }
     
     let totalTokens = 0;
-    let totalValue = algoBalance * 0.5; // Mock ALGO price
+    let totalValue = algoBalance * 0.175; // More accurate ALGO price (~$0.175)
     if (tokensResult.status === 'fulfilled' && tokensResult.value.success && tokensResult.value.data) {
       totalTokens = tokensResult.value.data.length;
       // Add mock value for tokens

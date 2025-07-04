@@ -32,7 +32,7 @@ interface AlgorandWalletProviderProps {
 export function AlgorandWalletProvider({ children }: AlgorandWalletProviderProps) {
   const [connected, setConnected] = useState(false);
   const [address, setAddress] = useState<string | null>(null);
-  const [selectedNetwork, setSelectedNetwork] = useState<string>('algorand-testnet');
+  const [selectedNetwork, setSelectedNetwork] = useState<string>('algorand-testnet'); // Default to testnet
   const [peraWallet, setPeraWallet] = useState<PeraWalletConnect | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
   const [isPeraWalletReady, setIsPeraWalletReady] = useState(false);

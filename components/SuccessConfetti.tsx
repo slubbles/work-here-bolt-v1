@@ -3,8 +3,11 @@
 import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 
-// Dynamically import react-confetti to avoid SSR issues
-const Confetti = dynamic(() => import('react-confetti'), {
+// Dynamically import react-confetti with error handling
+const Confetti = dynamic(() => import('react-confetti').catch(() => {
+  // Fallback component if react-confetti fails to load
+  return { default: () => null };
+}), {
   ssr: false,
   loading: () => null
 });

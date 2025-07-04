@@ -8,6 +8,7 @@ import { Copy, ExternalLink, Search, Coins, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { isSupabaseAvailable } from '@/lib/supabase-client';
+import { TokenTransfer } from '@/components/TokenTransfer';
 
 interface TokenHistoryListProps {
   walletAddress: string;
@@ -79,12 +80,12 @@ export function TokenHistoryList({
   
   const getNetworkColor = (network: string) => {
     if (network.includes('solana')) {
-      return 'bg-[#AB9FF2]/20 text-[#AB9FF2] border-[#AB9FF2]/30';
+      return 'bg-[#9945FF]/20 text-[#9945FF] border-[#9945FF]/30';
     }
     if (network.includes('algorand')) {
       return network.includes('mainnet')
         ? 'bg-[#00d4aa]/20 text-[#00d4aa] border-[#00d4aa]/30'
-        : 'bg-[#22C55E]/20 text-[#22C55E] border-[#22C55E]/30';
+        : 'bg-[#ffee55]/20 text-[#ffee55] border-[#ffee55]/30';
     }
     return 'bg-gray-200 text-gray-700 border-gray-300';
   };
@@ -199,6 +200,18 @@ export function TokenHistoryList({
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
+                    <TokenTransfer 
+                      token={{
+                        id: token.id,
+                        name: token.token_name,
+                        symbol: token.token_symbol,
+                        assetId: token.network.includes('algorand') ? token.contract_address : undefined,
+                        mintAddress: token.network.includes('solana') ? token.contract_address : undefined,
+                        network: token.network,
+                        decimals: token.decimals || 9,
+                        balance: token.balance // This would need to be fetched from wallet
+                      }}
+                    />
                     <Button 
                       variant="ghost" 
                       size="sm" 

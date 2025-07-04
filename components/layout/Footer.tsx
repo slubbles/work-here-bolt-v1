@@ -38,14 +38,14 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
           <div className="space-y-5">
             <div className="flex items-center">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center mr-3">
-                <span className="text-xl font-bold text-foreground">
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-red-600">
-                    Snarbles
-                  </span>
-                </span>
-              </div>
-              <span className="text-xl font-bold text-foreground">Snarbles</span>
+              <img 
+                src="/logo.png" 
+                alt="Snarbles Logo" 
+                className="w-8 h-8 rounded-lg object-contain mr-3"
+              />
+              <span className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-red-600">
+                Snarbles
+              </span>
             </div>
             <p className="text-muted-foreground text-sm leading-relaxed">
               The decentralized way to create and manage your own tokens. Empowering creators worldwide with professional-grade blockchain tools.

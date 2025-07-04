@@ -28,7 +28,7 @@ export default function TechnologyCarousel() {
   const techPartners = [
     {
       name: 'Bolt.new',
-      logo: '/white_circle_360x360 copy.png',
+      logo: '/logotext_poweredby_360w.png',
       url: 'https://bolt.new'
     },
     {

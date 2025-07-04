@@ -1,6 +1,7 @@
 import algosdk from 'algosdk';
 import { supabaseHelpers } from '@/lib/supabase';
 import { retryWithBackoff } from '@/lib/error-handling';
+import { safeStringify } from '@/lib/utils';
 
 // Algorand network configurations
 export const ALGORAND_NETWORKS = {
@@ -116,17 +117,37 @@ export async function getAlgorandAccountInfo(address: string, network: string) {
 }
 
 // Get asset information from Algorand Indexer
-export async function getAlgorandAssetInfo(assetId: number, network: string) {
+export async function getAlgorandAssetInfo(assetId: number | bigint, network: string) {
   try {
-    console.log(`📡 Fetching Algorand asset info for asset ID ${assetId} on ${network}`);
+    // Convert BigInt to number safely
+    const numericAssetId = typeof assetId === 'bigint' ? Number(assetId) : assetId;
     
-    const indexerClient = getAlgorandIndexerClient(network);
-    const assetInfo = await indexerClient.lookupAssetByID(assetId).do();
-    
-    if (!assetInfo || !assetInfo.asset) {
+    // Validate asset ID
+    if (!Number.isInteger(numericAssetId) || numericAssetId <= 0) {
+      console.log(`❌ Invalid asset ID: ${assetId}`);
       return {
         success: false,
-        error: 'Asset not found'
+        error: `Invalid asset ID: ${assetId}. Must be a positive integer.`
+      };
+    }
+    
+    console.log(`📡 Fetching Algorand asset info for asset ID ${numericAssetId} on ${network}`);
+    
+    const indexerClient = getAlgorandIndexerClient(network);
+    
+    // Add timeout and better error handling
+    const requestPromise = indexerClient.lookupAssetByID(numericAssetId).do();
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Request timeout')), 10000)
+    );
+    
+    const assetInfo = await Promise.race([requestPromise, timeoutPromise]) as any;
+    
+    if (!assetInfo || !assetInfo.asset) {
+      console.log(`❌ Asset ${numericAssetId} not found on ${network}`);
+      return {
+        success: false,
+        error: `Asset ${numericAssetId} not found on ${network}. Please verify the asset ID and network.`
       };
     }
 
@@ -145,8 +166,18 @@ export async function getAlgorandAssetInfo(assetId: number, network: string) {
     let metadata = {};
     if (params.url) {
       try {
-        // Try to fetch metadata from URL (ARC-3 standard)
-        const response = await fetch(params.url);
+        // Try to fetch metadata from URL (ARC-3 standard) with timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+        
+        const response = await fetch(params.url, { 
+          signal: controller.signal,
+          headers: {
+            'Accept': 'application/json',
+          }
+        });
+        clearTimeout(timeoutId);
+        
         if (response.ok) {
           metadata = await response.json();
         }
@@ -359,8 +390,12 @@ export async function createAlgorandToken(
     // Extract asset ID from transaction confirmation with robust fallback logic
     console.log('🔍 Examining confirmed transaction for asset ID...');
     
-    // Log entire transaction response for debugging
-    console.log('Confirmed transaction:', JSON.stringify(confirmedTxn, null, 2));
+    // Log transaction response safely (handle BigInt values)
+    try {
+      console.log('Confirmed transaction:', safeStringify(confirmedTxn, undefined, 2));
+    } catch (logError) {
+      console.log('Confirmed transaction (raw):', confirmedTxn);
+    }
 
     // Try multiple ways to extract asset ID from confirmation
     let assetId = confirmedTxn['asset-index'] || 
@@ -467,7 +502,11 @@ export async function createAlgorandToken(
 
     if (!assetId) {
       console.error('❌ Asset ID not found in confirmed transaction');
-      console.error('Full transaction details:', JSON.stringify(confirmedTxn, null, 2));
+      try {
+        console.error('Full transaction details:', safeStringify(confirmedTxn, undefined, 2));
+      } catch (logError) {
+        console.error('Full transaction details (raw):', confirmedTxn);
+      }
       
       if (onStepUpdate) {
         onStepUpdate('asset-verification', 'failed', { 
@@ -1136,3 +1175,5 @@ export const uploadFileToStorage = async (file: File, bucket: string, fileName: 
 
 // Re-export supabaseHelpers for compatibility
 export { supabaseHelpers };
+
+// ...existing code...

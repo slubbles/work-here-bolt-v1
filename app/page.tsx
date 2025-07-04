@@ -2,7 +2,6 @@ import HeroSection from '@/components/HeroSection';
 import TechnologyCarousel from '@/components/TechnologyCarousel';
 import StatsSection from '@/components/StatsSection';
 import FeaturesSection from '@/components/FeaturesSection';
-import SponsorsSection from '@/components/SponsorsSection';
 import TestimonialsSection from '@/components/TestimonialsSection';
 import FAQSection from '@/components/FAQSection';
 
@@ -18,9 +17,9 @@ export default function Home() {
           className="block transition-transform hover:scale-110"
         >
           <img 
-            src="/white_circle_360x360 copy.png" 
+            src="/white_circle_360x360.png" 
             alt="Powered by Bolt.new" 
-            className="w-10 h-10 sm:w-12 sm:h-12"
+            className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg object-contain"
           />
         </a>
       </div>
@@ -29,7 +28,6 @@ export default function Home() {
       <TechnologyCarousel />
       <StatsSection />
       <FeaturesSection />
-      <SponsorsSection />
       <TestimonialsSection />
       <FAQSection />
     </div>
