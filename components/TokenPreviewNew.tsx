@@ -29,11 +29,21 @@ export default function TokenPreviewNew({ tokenData }: TokenPreviewProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [isImageLoading, setIsImageLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
 
   useEffect(() => {
     setIsLoading(false);
     setMounted(true);
   }, []);
+
+  // Real-time update animation trigger
+  useEffect(() => {
+    setIsUpdating(true);
+    const timer = setTimeout(() => {
+      setIsUpdating(false);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [tokenData]);
 
   // Handle image loading state
   useEffect(() => {
@@ -114,135 +124,156 @@ export default function TokenPreviewNew({ tokenData }: TokenPreviewProps) {
   const hasAnyLinks = website || github || twitter;
 
   return (
-    <div className={`sticky top-8 space-y-6 transition-all duration-1000 ${mounted ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}>
-      {/* Live Preview Header */}
-      <div className="flex items-center space-x-3 mb-6">
-        <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse shadow-lg shadow-green-500/50" />
-        <h2 className="text-lg font-semibold text-foreground">Live Preview</h2>
+    <div className={`sticky top-8 space-y-8 transition-all duration-1000 ${mounted ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}>
+      {/* Enhanced Live Preview Header with Real-time Animation */}
+      <div className="flex items-center space-x-4 mb-8">
+        <div className="flex items-center space-x-3">
+          <div className={`w-4 h-4 rounded-full shadow-lg transition-all duration-300 ${isUpdating ? 'bg-red-500 animate-pulse shadow-red-500/50 scale-125' : 'bg-green-500 animate-pulse shadow-green-500/50'}`} />
+          <h2 className="text-2xl font-bold text-foreground">Live Preview</h2>
+          {isUpdating && (
+            <div className="px-2 py-1 rounded-full bg-red-500/20 border border-red-500/30 text-red-500 text-xs font-medium animate-bounce">
+              Updating...
+            </div>
+          )}
+        </div>
         <div className="flex-1 h-px bg-gradient-to-r from-green-500/50 to-transparent" />
+        <div className="px-3 py-1 rounded-full bg-green-500/10 border border-green-500/30 text-green-500 text-sm font-medium">
+          Real-time
+        </div>
       </div>
 
-      {/* Main Token Card */}
-      <div className="relative overflow-hidden rounded-2xl glass-card hover:border-red-500/50 transition-all duration-500 group">
-        {/* Animated Background */}
+      {/* Enhanced Main Token Card with Better Design */}
+      <div className={`relative overflow-hidden rounded-3xl glass-card hover:border-red-500/50 transition-all duration-500 group shadow-2xl border-2 border-red-500/20 ${isUpdating ? 'scale-[1.02] shadow-red-500/20' : 'scale-100'}`}>
+        {/* Enhanced Animated Background */}
         <div className="absolute inset-0 bg-gradient-to-br from-red-500/5 via-red-600/5 to-red-700/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+        <div className="absolute inset-0 bg-gradient-to-br from-green-500/3 to-blue-500/3 opacity-50" />
         
         {/* Content */}
-        <div className="relative z-10 p-6 space-y-6">
-          {/* Header Section */}
-          <div className="flex items-start space-x-4">
-            {/* Token Logo */}
+        <div className="relative z-10 p-8 space-y-8">
+          {/* Enhanced Header Section */}
+          <div className="flex items-start space-x-6">
+            {/* Enhanced Token Logo */}
             <div className="relative">
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-red-500/20 to-red-600/20 backdrop-blur-sm border border-border flex items-center justify-center overflow-hidden">
+              <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-red-500/20 to-red-600/20 backdrop-blur-sm border-2 border-border flex items-center justify-center overflow-hidden shadow-lg">
                 {logoUrl && !isImageLoading ? (
                   <img
                     src={logoUrl}
                     alt={`${name} logo`}
-                    className="w-full h-full object-cover rounded-2xl"
+                    className="w-full h-full object-cover rounded-3xl"
                     onError={() => setIsImageLoading(true)}
                   />
                 ) : (
                   <div className="flex items-center justify-center w-full h-full">
-                    <Coins className="w-8 h-8 text-muted-foreground" />
+                    <Coins className="w-10 h-10 text-muted-foreground" />
                   </div>
                 )}
               </div>
-              {/* Glow Effect */}
-              <div className="absolute -inset-1 bg-gradient-to-r from-red-500/20 to-red-600/20 rounded-2xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              {/* Enhanced Glow Effect */}
+              <div className="absolute -inset-2 bg-gradient-to-r from-red-500/30 to-red-600/30 rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             </div>
 
-            {/* Token Info */}
+            {/* Enhanced Token Info */}
             <div className="flex-1 min-w-0">
-              <div className="flex items-center space-x-2 mb-1">
-                <h3 className="text-xl font-bold text-foreground truncate">
+              <div className="flex flex-col space-y-3 mb-3">
+                <h3 className="text-2xl font-bold text-foreground truncate">
                   {name || 'Token Name'}
                 </h3>
                 {symbol && (
-                  <Badge className="bg-red-500/20 text-red-500 border-red-500/30 text-xs font-mono">
-                    ${symbol}
+                  <Badge className="bg-red-500/20 text-red-500 border-red-500/30 text-sm font-mono px-3 py-1 w-fit">
+                    ${symbol.toUpperCase()}
                   </Badge>
                 )}
               </div>
-              <p className="text-sm text-muted-foreground line-clamp-2">
+              <p className="text-muted-foreground line-clamp-3 leading-relaxed">
                 {description || 'Token description will appear here...'}
               </p>
             </div>
           </div>
 
-          {/* Network Badge */}
-          <div className="flex items-center justify-between">
-            <div className={`inline-flex items-center space-x-2 px-3 py-1.5 rounded-lg border ${networkInfo.color} text-xs font-medium`}>
-              <Network className="w-4 h-4" />
+          {/* Enhanced Network Badge */}
+          <div className="flex items-center justify-between p-4 rounded-2xl bg-card/50 border border-border">
+            <div className={`inline-flex items-center space-x-3 px-4 py-2 rounded-xl border ${networkInfo.color} text-sm font-semibold`}>
+              <Network className="w-5 h-5" />
               <span>{networkInfo.name}</span>
             </div>
             <div className="text-right">
               <div className="text-xs text-muted-foreground">Deployment Cost</div>
-              <div className="text-sm font-medium text-green-500">{networkInfo.cost}</div>
+              <div className="text-lg font-bold text-green-500">{networkInfo.cost}</div>
             </div>
           </div>
 
-          {/* Token Stats */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-card/50 rounded-xl p-4 border border-border">
-              <div className="flex items-center space-x-2 mb-2">
-                <Coins className="w-4 h-4 text-red-500" />
-                <span className="text-xs font-medium text-muted-foreground">Total Supply</span>
+          {/* Enhanced Token Stats */}
+          <div className="grid grid-cols-2 gap-6">
+            <div className="bg-gradient-to-br from-card/50 to-card/30 rounded-2xl p-6 border border-border hover:border-red-500/30 transition-all duration-300 group">
+              <div className="flex items-center space-x-3 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center">
+                  <Coins className="w-5 h-5 text-white" />
+                </div>
+                <span className="text-sm font-semibold text-muted-foreground">Total Supply</span>
               </div>
-              <div className="text-lg font-bold text-foreground">
-                {formatSupply(totalSupply)}
-              </div>
-              <div className="text-xs text-muted-foreground mt-1">
-                {totalSupply ? parseInt(totalSupply).toLocaleString() : '0'} tokens
+              <div className="space-y-2">
+                <div className="text-2xl font-bold text-foreground">
+                  {formatSupply(totalSupply)}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {totalSupply ? parseInt(totalSupply).toLocaleString() : '0'} tokens
+                </div>
               </div>
             </div>
 
-            <div className="bg-card/50 rounded-xl p-4 border border-border">
-              <div className="flex items-center space-x-2 mb-2">
-                <BarChart3 className="w-4 h-4 text-blue-500" />
-                <span className="text-xs font-medium text-muted-foreground">Decimals</span>
+            <div className="bg-gradient-to-br from-card/50 to-card/30 rounded-2xl p-6 border border-border hover:border-blue-500/30 transition-all duration-300 group">
+              <div className="flex items-center space-x-3 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
+                  <BarChart3 className="w-5 h-5 text-white" />
+                </div>
+                <span className="text-sm font-semibold text-muted-foreground">Decimals</span>
               </div>
-              <div className="text-lg font-bold text-foreground">
-                {decimals || '9'}
-              </div>
-              <div className="text-xs text-muted-foreground mt-1">
-                Precision level
+              <div className="space-y-2">
+                <div className="text-2xl font-bold text-foreground">
+                  {decimals || '9'}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  Precision level
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Token Features */}
-          <div className="space-y-3">
-            <h4 className="text-sm font-semibold text-foreground flex items-center space-x-2">
-              <Shield className="w-4 h-4 text-red-500" />
+          {/* Enhanced Token Features */}
+          <div className="space-y-4">
+            <h4 className="text-lg font-bold text-foreground flex items-center space-x-3">
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center">
+                <Shield className="w-4 h-4 text-white" />
+              </div>
               <span>Token Features</span>
             </h4>
-            <div className="grid grid-cols-1 gap-2">
+            <div className="grid grid-cols-1 gap-3">
               {features.map((feature) => {
                 const Icon = feature.icon;
                 return (
-                  <div key={feature.key} className={`flex items-center justify-between p-3 rounded-lg transition-all duration-300 ${
+                  <div key={feature.key} className={`flex items-center justify-between p-4 rounded-xl transition-all duration-300 ${
                     feature.active 
-                      ? 'bg-green-500/10 border border-green-500/30' 
-                      : 'bg-card/30 border border-border'
+                      ? 'bg-gradient-to-r from-green-500/10 to-green-600/10 border border-green-500/30 shadow-lg shadow-green-500/10' 
+                      : 'bg-card/30 border border-border hover:border-muted-foreground/30'
                   }`}>
-                    <div className="flex items-center space-x-3">
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                    <div className="flex items-center space-x-4">
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 ${
                         feature.active 
-                          ? 'bg-green-500/20' 
+                          ? 'bg-green-500/20 border border-green-500/30' 
                           : 'bg-muted/50'
                       }`}>
-                        <Icon className={`w-4 h-4 ${
+                        <Icon className={`w-5 h-5 ${
                           feature.active ? feature.color : 'text-muted-foreground'
                         }`} />
                       </div>
-                      <span className={`text-sm font-medium ${
+                      <span className={`font-semibold ${
                         feature.active ? 'text-foreground' : 'text-muted-foreground'
                       }`}>
                         {feature.label}
                       </span>
                     </div>
-                    <div className={`w-2 h-2 rounded-full ${
-                      feature.active ? 'bg-green-500' : 'bg-muted'
+                    <div className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                      feature.active ? 'bg-green-500 shadow-lg shadow-green-500/50' : 'bg-muted border-2 border-muted-foreground'
                     }`} />
                   </div>
                 );
@@ -250,36 +281,44 @@ export default function TokenPreviewNew({ tokenData }: TokenPreviewProps) {
             </div>
           </div>
 
-          {/* Social Links */}
+          {/* Enhanced Social Links */}
           {hasAnyLinks && (
-            <div className="space-y-3">
-              <h4 className="text-sm font-semibold text-foreground flex items-center space-x-2">
-                <Globe className="w-4 h-4 text-blue-500" />
-                <span>Links</span>
+            <div className="space-y-4">
+              <h4 className="text-lg font-bold text-foreground flex items-center space-x-3">
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
+                  <Globe className="w-4 h-4 text-white" />
+                </div>
+                <span>Social Links</span>
               </h4>
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {website && (
-                  <div className="flex items-center space-x-3 p-2 rounded-lg bg-card/30 border border-border">
-                    <Globe className="w-4 h-4 text-blue-500" />
-                    <span className="text-sm text-foreground">Website</span>
+                  <div className="flex items-center space-x-4 p-3 rounded-xl bg-card/30 border border-border hover:border-blue-500/30 transition-all duration-300 group">
+                    <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center group-hover:bg-blue-500/30 transition-colors duration-300">
+                      <Globe className="w-4 h-4 text-blue-500" />
+                    </div>
+                    <span className="text-sm font-medium text-foreground">Website</span>
                     <div className="flex-1" />
-                    <ExternalLink className="w-3 h-3 text-muted-foreground" />
+                    <ExternalLink className="w-4 h-4 text-muted-foreground group-hover:text-blue-500 transition-colors duration-300" />
                   </div>
                 )}
                 {github && (
-                  <div className="flex items-center space-x-3 p-2 rounded-lg bg-card/30 border border-border">
-                    <Github className="w-4 h-4 text-purple-500" />
-                    <span className="text-sm text-foreground">GitHub</span>
+                  <div className="flex items-center space-x-4 p-3 rounded-xl bg-card/30 border border-border hover:border-purple-500/30 transition-all duration-300 group">
+                    <div className="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center group-hover:bg-purple-500/30 transition-colors duration-300">
+                      <Github className="w-4 h-4 text-purple-500" />
+                    </div>
+                    <span className="text-sm font-medium text-foreground">GitHub</span>
                     <div className="flex-1" />
-                    <ExternalLink className="w-3 h-3 text-muted-foreground" />
+                    <ExternalLink className="w-4 h-4 text-muted-foreground group-hover:text-purple-500 transition-colors duration-300" />
                   </div>
                 )}
                 {twitter && (
-                  <div className="flex items-center space-x-3 p-2 rounded-lg bg-card/30 border border-border">
-                    <Twitter className="w-4 h-4 text-blue-500" />
-                    <span className="text-sm text-foreground">Twitter</span>
+                  <div className="flex items-center space-x-4 p-3 rounded-xl bg-card/30 border border-border hover:border-blue-400/30 transition-all duration-300 group">
+                    <div className="w-8 h-8 rounded-lg bg-blue-400/20 flex items-center justify-center group-hover:bg-blue-400/30 transition-colors duration-300">
+                      <Twitter className="w-4 h-4 text-blue-400" />
+                    </div>
+                    <span className="text-sm font-medium text-foreground">Twitter</span>
                     <div className="flex-1" />
-                    <ExternalLink className="w-3 h-3 text-muted-foreground" />
+                    <ExternalLink className="w-4 h-4 text-muted-foreground group-hover:text-blue-400 transition-colors duration-300" />
                   </div>
                 )}
               </div>
@@ -288,42 +327,50 @@ export default function TokenPreviewNew({ tokenData }: TokenPreviewProps) {
         </div>
       </div>
 
-      {/* Pro Tips Card */}
-      <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-red-500/10 to-red-600/10 backdrop-blur-sm border border-red-500/20 p-4">
-        <div className="flex items-start space-x-3">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center flex-shrink-0">
-            <Sparkles className="w-4 h-4 text-white" />
+      {/* Enhanced Pro Tips Card */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-red-500/10 to-red-600/10 backdrop-blur-sm border border-red-500/20 p-6">
+        <div className="flex items-start space-x-4">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center flex-shrink-0 shadow-lg">
+            <Sparkles className="w-6 h-6 text-white" />
           </div>
           <div className="flex-1 min-w-0">
-            <h4 className="font-medium text-red-500 mb-2">Pro Tips</h4>
-            <ul className="space-y-1 text-xs text-muted-foreground">
-              <li className="flex items-center space-x-2">
-                <div className="w-1 h-1 bg-red-500 rounded-full" />
+            <h4 className="text-lg font-bold text-red-500 mb-3">Pro Tips</h4>
+            <ul className="space-y-2 text-sm text-muted-foreground">
+              <li className="flex items-center space-x-3">
+                <div className="w-2 h-2 bg-red-500 rounded-full" />
                 <span>Start with testnet for your first token</span>
               </li>
-              <li className="flex items-center space-x-2">
-                <div className="w-1 h-1 bg-red-500 rounded-full" />
+              <li className="flex items-center space-x-3">
+                <div className="w-2 h-2 bg-red-500 rounded-full" />
                 <span>Add a logo URL for better recognition</span>
               </li>
-              <li className="flex items-center space-x-2">
-                <div className="w-1 h-1 bg-red-500 rounded-full" />
+              <li className="flex items-center space-x-3">
+                <div className="w-2 h-2 bg-red-500 rounded-full" />
                 <span>Consider decimal places carefully</span>
+              </li>
+              <li className="flex items-center space-x-3">
+                <div className="w-2 h-2 bg-red-500 rounded-full" />
+                <span>Enable features based on your needs</span>
               </li>
             </ul>
           </div>
         </div>
       </div>
 
-      {/* Deployment Readiness */}
-      <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-green-500/10 to-emerald-500/10 backdrop-blur-sm border border-green-500/20 p-4">
-        <div className="flex items-center space-x-3">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center">
-            <Zap className="w-4 h-4 text-white" />
+      {/* Enhanced Deployment Readiness */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-green-500/10 to-emerald-500/10 backdrop-blur-sm border border-green-500/20 p-6">
+        <div className="flex items-center space-x-4">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center shadow-lg">
+            <Zap className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h4 className="font-medium text-green-500 mb-1">Ready to Launch</h4>
-            <p className="text-xs text-muted-foreground">
-              Your token will be deployed to <span className="font-medium text-green-500">{networkInfo.name}</span>
+            <h4 className="text-lg font-bold text-green-500 mb-2">Ready to Launch</h4>
+            <p className="text-sm text-muted-foreground">
+              Your professional token will be deployed to{' '}
+              <span className="font-semibold text-green-500">{networkInfo.name}</span>
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Estimated cost: {networkInfo.cost}
             </p>
           </div>
         </div>

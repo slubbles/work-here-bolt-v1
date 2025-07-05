@@ -31,7 +31,7 @@ interface TokenFormProps {
   setTokenData?: (data: any) => void;
 }
 
-export default function TokenForm({ onTokenCreate, defaultNetwork = 'algorand-testnet', tokenData: externalTokenData, setTokenData: setExternalTokenData }: TokenFormProps) {
+export default function TokenForm({ onTokenCreate, defaultNetwork = 'algorand-mainnet', tokenData: externalTokenData, setTokenData: setExternalTokenData }: TokenFormProps) {
   const [formData, setFormData] = useState({
     name: externalTokenData?.name || 'My Custom Token',
     symbol: externalTokenData?.symbol || 'MCT',

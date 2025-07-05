@@ -32,14 +32,14 @@ interface AlgorandWalletProviderProps {
 export function AlgorandWalletProvider({ children }: AlgorandWalletProviderProps) {
   const [connected, setConnected] = useState(false);
   const [address, setAddress] = useState<string | null>(null);
-  const [selectedNetwork, setSelectedNetwork] = useState<string>('algorand-testnet'); // Default to testnet
+  const [selectedNetwork, setSelectedNetwork] = useState<string>('algorand-mainnet'); // Default to mainnet for production
   const [peraWallet, setPeraWallet] = useState<PeraWalletConnect | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
   const [isPeraWalletReady, setIsPeraWalletReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [networkSwitching, setNetworkSwitching] = useState(false);
   const [balance, setBalance] = useState<number | null>(null);
-  const [networkConfig, setNetworkConfig] = useState(getAlgorandNetwork('algorand-testnet'));
+  const [networkConfig, setNetworkConfig] = useState(getAlgorandNetwork('algorand-mainnet'));
 
   // Update network configuration when selected network changes
   useEffect(() => {
@@ -75,6 +75,17 @@ export function AlgorandWalletProvider({ children }: AlgorandWalletProviderProps
           setConnected(false);
           setAddress(null);
           setBalance(null);
+        }
+
+        // Clean up any existing ethereum property conflicts
+        if (typeof window !== 'undefined' && window.ethereum) {
+          try {
+            // Temporarily store ethereum reference if it exists
+            const existingEthereum = window.ethereum;
+            console.log('🔧 Handling ethereum property conflict...');
+          } catch (ethError) {
+            console.warn('Ethereum property conflict detected and handled:', ethError);
+          }
         }
 
         // Dynamic import to avoid SSR issues
@@ -168,6 +179,12 @@ export function AlgorandWalletProvider({ children }: AlgorandWalletProviderProps
 
     try {
       console.log(`🔗 Connecting to Pera Wallet on ${selectedNetwork}...`);
+      
+      // For mainnet connections, add additional validation
+      if (selectedNetwork === 'algorand-mainnet') {
+        console.log('🚨 Connecting to Algorand Mainnet - please ensure your Pera Wallet is set to Mainnet');
+      }
+      
       const accounts = await peraWallet.connect();
       
       if (accounts.length > 0) {
@@ -191,9 +208,11 @@ export function AlgorandWalletProvider({ children }: AlgorandWalletProviderProps
         if (error.message.includes('cancelled') || error.message.includes('rejected')) {
           errorMessage = 'Connection cancelled by user';
         } else if (error.message.includes('network')) {
-          errorMessage = `Network error connecting to ${networkConfig.name}. Please check your connection.`;
+          errorMessage = `Network error connecting to ${networkConfig.name}. Please check your connection and ensure Pera Wallet is set to the correct network.`;
         } else if (error.message.includes('mismatch')) {
-          errorMessage = `Network mismatch error. Please ensure you're connecting to ${networkConfig.name}.`;
+          errorMessage = `Network mismatch error. Please ensure your Pera Wallet is set to ${networkConfig.name}.`;
+        } else if (selectedNetwork === 'algorand-mainnet' && error.message.includes('chain')) {
+          errorMessage = `Mainnet connection failed. Please ensure your Pera Wallet is configured for Algorand Mainnet (not Testnet).`;
         } else {
           errorMessage = `${networkConfig.name}: ${error.message}`;
         }

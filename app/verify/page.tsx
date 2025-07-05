@@ -28,7 +28,8 @@ import {
   TrendingUp,
   Wallet,
   Hash,
-  BarChart3
+  BarChart3,
+  Check
 } from 'lucide-react';
 import { Connection, PublicKey } from '@solana/web3.js';
 import { getAlgorandAssetInfo, getAlgorandNetwork } from '@/lib/algorand';
@@ -80,6 +81,7 @@ export default function VerifyPage() {
   const [isVerifying, setIsVerifying] = useState(false);
   const [verificationResult, setVerificationResult] = useState<VerificationResult | null>(null);
   const [progress, setProgress] = useState(0);
+  const [copiedTokenId, setCopiedTokenId] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -165,7 +167,7 @@ export default function VerifyPage() {
         ] : []
       };
     } catch (error) {
-      throw new Error(`Failed to fetch Solana token data: ${error}`);
+      throw new Error('Unable to fetch data. Please check the asset ID and try again.');
     }
   };
 
@@ -257,7 +259,7 @@ export default function VerifyPage() {
       };
     } catch (error) {
       console.error('❌ Algorand verification error:', error);
-      throw new Error(`Failed to fetch Algorand asset data: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(error instanceof Error ? error.message : 'Unable to fetch data. Please check the asset ID and try again.');
     }
   };
 
@@ -327,10 +329,12 @@ export default function VerifyPage() {
 
   const copyTokenId = () => {
     navigator.clipboard.writeText(tokenId);
+    setCopiedTokenId(true);
     toast({
       title: "Copied",
       description: "Token ID copied to clipboard",
     });
+    setTimeout(() => setCopiedTokenId(false), 2000);
   };
 
   const getNetworkStatus = () => {
@@ -366,99 +370,101 @@ export default function VerifyPage() {
   const networkStatus = getNetworkStatus();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-red-100 py-8 px-4">
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center space-x-3 mb-4">
-            <Shield className="w-8 h-8 text-blue-600" />
-            <h1 className="text-4xl font-bold text-gray-900">Token Verification</h1>
+    <div className="min-h-screen app-background py-16 px-4">
+      <div className="max-w-7xl mx-auto space-y-20">
+        {/* Header - Maximum spacing */}
+        <div className="text-center mb-24">
+          <div className="flex items-center justify-center space-x-6 mb-8">
+            <Shield className="w-12 h-12 text-red-500" />
+            <h1 className="text-6xl font-bold text-white">Token Verification</h1>
           </div>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+          <p className="text-2xl text-gray-300 max-w-4xl mx-auto leading-relaxed mt-8">
             Verify token safety, legitimacy, and get detailed analytics before investing. 
             Support for Solana and Algorand networks.
           </p>
         </div>
 
-        {/* Network Status */}
-        <div className="flex justify-center mb-6">
-          <div className="flex items-center space-x-2 px-4 py-2 bg-white rounded-full shadow-sm border">
-            <div className={`w-3 h-3 rounded-full ${networkStatus.color}`}></div>
-            <networkStatus.icon className="w-4 h-4 text-gray-600" />
-            <span className="text-sm font-medium text-gray-700">{networkStatus.label}</span>
+        {/* Network Status - More spacing */}
+        <div className="flex justify-center mb-16">
+          <div className="flex items-center space-x-4 px-8 py-4 bg-gray-800 rounded-full shadow-lg border border-gray-700">
+            <div className={`w-5 h-5 rounded-full ${networkStatus.color} shadow-lg`}></div>
+            <networkStatus.icon className="w-6 h-6 text-gray-400" />
+            <span className="text-xl font-medium text-white">{networkStatus.label}</span>
           </div>
         </div>
 
-        {/* Search Form */}
-        <Card className="mb-8 shadow-lg border-0">
-          <CardHeader className="bg-gradient-to-r from-red-500 to-red-600 text-white rounded-t-lg">
-            <CardTitle className="flex items-center space-x-2">
-              <Search className="w-5 h-5" />
+        {/* Search Form - Minimal spacing fixes */}
+        <Card className="glass-card border border-border shadow-2xl">
+          <CardHeader className="bg-gradient-to-r from-red-500 to-red-600 text-white rounded-t-lg p-6">
+            <CardTitle className="flex items-center space-x-3 text-2xl">
+              <Search className="w-6 h-6" />
               <span>Token/Asset Verification</span>
             </CardTitle>
-            <CardDescription className="text-blue-100">
+            <CardDescription className="text-red-100 text-lg mt-2">
               Select network and enter token address or asset ID to start verification
             </CardDescription>
           </CardHeader>
-          <CardContent className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Network Selection */}
-              <div>
-                <Label htmlFor="network" className="text-sm font-medium text-gray-700">Network</Label>
-                <Select value={network} onValueChange={(value) => setNetwork(value as NetworkType)}>
-                  <SelectTrigger className="mt-1">
-                    <SelectValue placeholder="Select network" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="solana-devnet">
-                      <div className="flex items-center space-x-2">
-                        <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                        <span>Solana Devnet</span>
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="algorand-mainnet">
-                      <div className="flex items-center space-x-2">
-                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                        <span>Algorand Mainnet</span>
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="algorand-testnet">
-                      <div className="flex items-center space-x-2">
-                        <div className="w-2 h-2 bg-gray-500 rounded-full"></div>
-                        <span>Algorand Testnet</span>
-                      </div>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
+          <CardContent className="p-3 bg-card space-y-4" style={{ padding: '8px' }}>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              {/* Network Selection - Fixed label spacing */}
+              <div className="space-y-2">
+                <Label htmlFor="network" className="text-lg font-semibold text-white">Network</Label>
+                <div style={{ marginBottom: '3px' }}>
+                  <Select value={network} onValueChange={(value) => setNetwork(value as NetworkType)}>
+                    <SelectTrigger className="h-12 bg-gray-800 border-red-500 text-white focus:border-red-500 focus:ring-red-500/20 text-lg">
+                      <SelectValue placeholder="Select network" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-gray-800 border-gray-700">
+                      <SelectItem value="solana-devnet" className="text-white hover:bg-gray-700 py-3">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                          <span className="text-lg">Solana Devnet</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="algorand-mainnet" className="text-white hover:bg-gray-700 py-3">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                          <span className="text-lg">Algorand Mainnet</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="algorand-testnet" className="text-white hover:bg-gray-700 py-3">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-3 h-3 bg-gray-500 rounded-full"></div>
+                          <span className="text-lg">Algorand Testnet</span>
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
-              {/* Token ID Input */}
-              <div className="md:col-span-2">
-                <Label htmlFor="token-id" className="text-sm font-medium text-gray-700">
+              {/* Token ID Input - Fixed label spacing */}
+              <div className="lg:col-span-2 space-y-2">
+                <Label htmlFor="token-id" className="text-lg font-semibold text-white">
                   {network.includes('solana') ? 'Token Address' : 'Asset ID'}
                 </Label>
-                <div className="flex mt-1">
+                <div className="flex gap-3">
                   <Input
                     id="token-id"
                     placeholder={network.includes('solana') ? 'Enter Solana token address...' : 'Enter Algorand asset ID...'}
                     value={tokenId}
                     onChange={(e) => setTokenId(e.target.value)}
                     disabled={isVerifying}
-                    className="flex-1"
+                    className="flex-1 h-12 bg-gray-800 border-red-500 text-white placeholder-gray-400 focus:border-red-500 focus:ring-red-500/20 text-lg"
                   />
                   <Button 
                     onClick={() => handleVerification()}
-                    disabled={!tokenId || isVerifying}
-                    className="ml-2 px-6 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700"
+                    disabled={!tokenId || isVerifying || !validateTokenId(tokenId, network)}
+                    className="px-8 h-14 bg-red-500 hover:bg-red-600 text-white font-semibold text-lg transition-all duration-300 shadow-lg"
                   >
                     {isVerifying ? (
-                      <div className="flex items-center space-x-2">
-                        <RefreshCw className="w-4 h-4 animate-spin" />
+                      <div className="flex items-center space-x-3">
+                        <RefreshCw className="w-5 h-5 animate-spin text-white" />
                         <span>Verifying...</span>
                       </div>
                     ) : (
-                      <div className="flex items-center space-x-2">
-                        <Search className="w-4 h-4" />
+                      <div className="flex items-center space-x-3">
+                        <Search className="w-5 h-5" />
                         <span>Verify</span>
                       </div>
                     )}
@@ -467,32 +473,32 @@ export default function VerifyPage() {
               </div>
             </div>
 
-            {/* Error Display */}
+            {/* Error Display - Reduced spacing */}
             {error && (
-              <Alert className="mt-4 border-red-200 bg-red-50">
-                <AlertCircle className="h-4 w-4 text-red-600" />
-                <AlertDescription className="text-red-800">
-                  {error}
+              <Alert className="border-red-500 bg-red-950/50 p-4 mt-6">
+                <AlertCircle className="h-6 w-6 text-red-500" />
+                <AlertDescription className="text-red-400 text-lg ml-3">
+                  Unable to fetch data. Please check the asset ID and try again.
                 </AlertDescription>
               </Alert>
             )}
           </CardContent>
         </Card>
 
-        {/* Verification Progress */}
+        {/* Verification Progress - More spacing */}
         {isVerifying && (
-          <Card className="mb-8 shadow-lg">
-            <CardContent className="pt-6">
-              <div className="space-y-4">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600 flex items-center space-x-2">
-                    <RefreshCw className="w-4 h-4 animate-spin" />
+          <Card className="mb-12 glass-card border border-border">
+            <CardContent className="pt-8 p-8">
+              <div className="space-y-6">
+                <div className="flex justify-between text-lg">
+                  <span className="text-gray-300 flex items-center space-x-3">
+                    <RefreshCw className="w-6 h-6 animate-spin" />
                     <span>Verification in Progress</span>
                   </span>
-                  <span className="font-medium text-blue-600">{Math.round(progress)}%</span>
+                  <span className="font-medium text-red-500 text-xl">{Math.round(progress)}%</span>
                 </div>
-                <Progress value={progress} className="h-3 bg-gray-100" />
-                <p className="text-sm text-gray-500 text-center">
+                <Progress value={progress} className="h-4 bg-gray-800" />
+                <p className="text-lg text-gray-400 text-center mt-4">
                   Analyzing token data and security metrics...
                 </p>
               </div>
@@ -500,83 +506,104 @@ export default function VerifyPage() {
           </Card>
         )}
 
-        {/* Verification Results */}
+        {/* Verification Results - More spacing */}
         {verificationResult && (
-          <div className="space-y-6">
-            {/* Overall Status */}
-            <Card className="shadow-lg border-0">
-              <CardHeader className="bg-gradient-to-r from-red-50 to-red-100 border-b border-red-200">
+          <div className="space-y-10">
+            {/* Success Feedback */}
+            {verificationResult.verified && (
+              <div className="flex items-center justify-center space-x-4 mb-8 p-6 bg-green-950/50 border border-green-500/30 rounded-lg">
+                <CheckCircle className="w-8 h-8 text-green-500" />
+                <span className="text-green-400 font-semibold text-xl">Verification Successful</span>
+              </div>
+            )}
+
+            {/* Token Details Section - More spacing */}
+            <Card className="glass-card border border-border">
+              <CardHeader className="bg-gradient-to-r from-gray-800 to-gray-900 border-b border-gray-700 p-8">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center space-x-3">
+                  <CardTitle className="flex items-center space-x-4">
                     {getStatusIcon(verificationResult.status)}
                     <div>
-                      <h3 className="text-xl font-semibold">
+                      <h3 className="text-2xl font-semibold text-white">
                         {verificationResult.verified ? 'Verified Token' : 'Unverified Token'}
                       </h3>
-                      <p className="text-sm text-gray-600 mt-1">
+                      <p className="text-lg text-gray-400 mt-2">
                         Network: {networkStatus.label}
                       </p>
                     </div>
                   </CardTitle>
                   <div className="text-right">
-                    <Badge variant={getScoreBadgeVariant(verificationResult.score)} className="text-lg px-3 py-1">
+                    <Badge variant={getScoreBadgeVariant(verificationResult.score)} className="text-xl px-4 py-2">
                       {verificationResult.score}/100
                     </Badge>
-                    <p className="text-xs text-gray-500 mt-1">Trust Score</p>
+                    <p className="text-sm text-gray-400 mt-2">Trust Score</p>
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="p-6">
+              <CardContent className="p-8 bg-card">
                 {/* Token ID Display */}
-                <div className="bg-red-50 rounded-lg p-4 mb-4 border border-red-200">
+                <div className="bg-gray-800 rounded-lg p-6 mb-6 border border-red-500/30">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-gray-600">Token ID</p>
-                      <p className="font-mono text-sm text-gray-900 break-all">{verificationResult.tokenId}</p>
+                      <p className="text-lg text-gray-400 mb-2">Token ID</p>
+                      <p className="font-mono text-lg text-white break-all">{verificationResult.tokenId}</p>
                     </div>
-                    <Button variant="outline" size="sm" onClick={copyTokenId}>
-                      <Copy className="w-4 h-4" />
+                    <Button variant="outline" size="lg" onClick={copyTokenId} className="border-red-500 text-red-500 hover:bg-red-500 hover:text-white px-6 py-3">
+                      {copiedTokenId ? (
+                        <Check className="w-5 h-5 text-green-500" />
+                      ) : (
+                        <Copy className="w-5 h-5" />
+                      )}
                     </Button>
                   </div>
                 </div>
 
-                {/* Token Metadata */}
+                {/* Token Metadata - More spacing */}
                 {verificationResult.metadata && (
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                    <div className="bg-white p-3 rounded-lg border">
-                      <span className="text-gray-500 block">Name</span>
-                      <p className="font-medium text-gray-900">{verificationResult.metadata.name}</p>
-                    </div>
-                    <div className="bg-white p-3 rounded-lg border">
-                      <span className="text-gray-500 block">Symbol</span>
-                      <p className="font-medium text-gray-900">{verificationResult.metadata.symbol}</p>
-                    </div>
-                    <div className="bg-white p-3 rounded-lg border">
-                      <span className="text-gray-500 block">Total Supply</span>
-                      <p className="font-medium text-gray-900">{verificationResult.metadata.totalSupply || 'N/A'}</p>
-                    </div>
-                    <div className="bg-white p-3 rounded-lg border">
-                      <span className="text-gray-500 block">Decimals</span>
-                      <p className="font-medium text-gray-900">{verificationResult.metadata.decimals}</p>
+                  <div className="space-y-6">
+                    <h4 className="text-xl font-semibold text-white">Token Details</h4>
+                    <div className="space-y-4 bg-black p-6 rounded-lg border border-gray-700">
+                      <div className="flex justify-between py-2">
+                        <span className="text-gray-400 text-lg">Token Name:</span>
+                        <span className="text-white font-medium text-lg">{verificationResult.metadata.name}</span>
+                      </div>
+                      <div className="flex justify-between py-2">
+                        <span className="text-gray-400 text-lg">Symbol:</span>
+                        <span className="text-white font-medium text-lg">{verificationResult.metadata.symbol}</span>
+                      </div>
+                      <div className="flex justify-between py-2">
+                        <span className="text-gray-400 text-lg">Total Supply:</span>
+                        <span className="text-white font-medium text-lg">{verificationResult.metadata.totalSupply || 'N/A'}</span>
+                      </div>
+                      <div className="flex justify-between py-2">
+                        <span className="text-gray-400 text-lg">Decimals:</span>
+                        <span className="text-white font-medium text-lg">{verificationResult.metadata.decimals}</span>
+                      </div>
+                      {verificationResult.metadata.description && (
+                        <div className="pt-4 border-t border-gray-700">
+                          <span className="text-gray-400 block mb-3 text-lg">Description:</span>
+                          <span className="text-white text-lg">{verificationResult.metadata.description}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
               </CardContent>
             </Card>
 
-            {/* Security Checks */}
-            <Card className="shadow-lg">
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Shield className="w-5 h-5 text-blue-600" />
+            {/* Security Checks - More spacing */}
+            <Card className="glass-card border border-border">
+              <CardHeader className="p-8">
+                <CardTitle className="flex items-center space-x-3 text-white text-2xl">
+                  <Shield className="w-6 h-6 text-red-500" />
                   <span>Security Analysis</span>
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="text-gray-400 text-lg mt-2">
                   Comprehensive security and validation checks
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <CardContent className="bg-card p-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {[
                     { key: 'tokenExists', label: 'Token Exists', icon: Hash },
                     { key: 'metadataValid', label: 'Metadata Valid', icon: Eye },
@@ -584,15 +611,15 @@ export default function VerifyPage() {
                     { key: 'contractVerified', label: 'Contract Verified', icon: Shield },
                     { key: 'communityTrust', label: 'Community Trust', icon: Users }
                   ].map(({ key, label, icon: Icon }) => (
-                    <div key={key} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                      <div className="flex items-center space-x-3">
-                        <Icon className="w-5 h-5 text-gray-600" />
-                        <span className="font-medium">{label}</span>
+                    <div key={key} className="flex items-center justify-between p-6 bg-gray-800 rounded-lg border border-gray-700">
+                      <div className="flex items-center space-x-4">
+                        <Icon className="w-6 h-6 text-gray-400" />
+                        <span className="font-medium text-white text-lg">{label}</span>
                       </div>
                       {verificationResult.checks[key as keyof typeof verificationResult.checks] ? (
-                        <CheckCircle className="w-5 h-5 text-green-500" />
+                        <CheckCircle className="w-6 h-6 text-green-500" />
                       ) : (
-                        <AlertTriangle className="w-5 h-5 text-red-500" />
+                        <AlertTriangle className="w-6 h-6 text-red-500" />
                       )}
                     </div>
                   ))}
@@ -600,50 +627,50 @@ export default function VerifyPage() {
               </CardContent>
             </Card>
 
-            {/* Market Metrics */}
+            {/* Market Metrics - More spacing */}
             {verificationResult.metrics && (
-              <Card className="shadow-lg">
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <TrendingUp className="w-5 h-5 text-green-600" />
+              <Card className="glass-card border border-border">
+                <CardHeader className="p-8">
+                  <CardTitle className="flex items-center space-x-3 text-white text-2xl">
+                    <TrendingUp className="w-6 h-6 text-green-500" />
                     <span>Market Metrics</span>
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="text-center p-4 bg-gradient-to-br from-red-50 to-red-100 rounded-lg border border-red-200">
-                      <Users className="w-6 h-6 text-blue-600 mx-auto mb-2" />
-                      <p className="text-sm text-gray-600">Holders</p>
-                      <p className="text-lg font-semibold text-gray-900">{verificationResult.metrics.holders || 'N/A'}</p>
+                <CardContent className="bg-card p-8">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                    <div className="text-center p-6 bg-gray-800 rounded-lg border border-green-500/30">
+                      <Users className="w-8 h-8 text-green-500 mx-auto mb-3" />
+                      <p className="text-lg text-gray-400 mb-1">Holders</p>
+                      <p className="text-xl font-semibold text-white">{verificationResult.metrics.holders || 'N/A'}</p>
                     </div>
-                    <div className="text-center p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-lg">
-                      <TrendingUp className="w-6 h-6 text-green-600 mx-auto mb-2" />
-                      <p className="text-sm text-gray-600">Market Cap</p>
-                      <p className="text-lg font-semibold text-gray-900">{verificationResult.metrics.marketCap || 'N/A'}</p>
+                    <div className="text-center p-6 bg-gray-800 rounded-lg border border-purple-500/30">
+                      <TrendingUp className="w-8 h-8 text-purple-500 mx-auto mb-3" />
+                      <p className="text-lg text-gray-400 mb-1">Market Cap</p>
+                      <p className="text-xl font-semibold text-white">{verificationResult.metrics.marketCap || 'N/A'}</p>
                     </div>
-                    <div className="text-center p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg">
-                      <BarChart3 className="w-6 h-6 text-purple-600 mx-auto mb-2" />
-                      <p className="text-sm text-gray-600">24h Volume</p>
-                      <p className="text-lg font-semibold text-gray-900">{verificationResult.metrics.volume24h || 'N/A'}</p>
+                    <div className="text-center p-6 bg-gray-800 rounded-lg border border-blue-500/30">
+                      <BarChart3 className="w-8 h-8 text-blue-500 mx-auto mb-3" />
+                      <p className="text-lg text-gray-400 mb-1">24h Volume</p>
+                      <p className="text-xl font-semibold text-white">{verificationResult.metrics.volume24h || 'N/A'}</p>
                     </div>
-                    <div className="text-center p-4 bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-lg">
-                      <Clock className="w-6 h-6 text-yellow-600 mx-auto mb-2" />
-                      <p className="text-sm text-gray-600">24h Change</p>
-                      <p className="text-lg font-semibold text-gray-900">{verificationResult.metrics.priceChange24h || 'N/A'}</p>
+                    <div className="text-center p-6 bg-gray-800 rounded-lg border border-yellow-500/30">
+                      <Clock className="w-8 h-8 text-yellow-500 mx-auto mb-3" />
+                      <p className="text-lg text-gray-400 mb-1">24h Change</p>
+                      <p className="text-xl font-semibold text-white">{verificationResult.metrics.priceChange24h || 'N/A'}</p>
                     </div>
                   </div>
                 </CardContent>
               </Card>
             )}
 
-            {/* Warnings */}
+            {/* Warnings - More spacing */}
             {!verificationResult.verified && verificationResult.warnings.length > 0 && (
-              <Alert className="border-yellow-200 bg-yellow-50 shadow-lg">
-                <AlertTriangle className="h-5 w-5 text-yellow-600" />
+              <Alert className="border-yellow-500 bg-yellow-950/50 p-8">
+                <AlertTriangle className="h-8 w-8 text-yellow-500" />
                 <AlertDescription>
-                  <div className="mt-2">
-                    <p className="font-medium text-yellow-800 mb-2">Security Warnings</p>
-                    <ul className="list-disc list-inside space-y-1 text-sm text-yellow-700">
+                  <div className="mt-3">
+                    <p className="font-medium text-yellow-400 mb-3 text-lg">Security Warnings</p>
+                    <ul className="list-disc list-inside space-y-2 text-lg text-yellow-300">
                       {verificationResult.warnings.map((warning, index) => (
                         <li key={index}>{warning}</li>
                       ))}
@@ -653,29 +680,29 @@ export default function VerifyPage() {
               </Alert>
             )}
 
-            {/* Actions */}
-            <Card className="shadow-lg">
-              <CardContent className="pt-6">
-                <div className="flex flex-wrap gap-4">
+            {/* Actions - More spacing */}
+            <Card className="glass-card border border-border">
+              <CardContent className="pt-8 bg-card p-8">
+                <div className="flex flex-wrap gap-6">
                   <Button 
                     variant="outline" 
-                    className="flex items-center space-x-2"
+                    className="flex items-center space-x-3 border-red-500 text-red-500 hover:bg-red-500 hover:text-white px-6 py-3 text-lg"
                     onClick={() => verificationResult.explorerUrl && window.open(verificationResult.explorerUrl, '_blank')}
                     disabled={!verificationResult.explorerUrl}
                   >
-                    <ExternalLink className="w-4 h-4" />
+                    <ExternalLink className="w-5 h-5" />
                     <span>View on Explorer</span>
                   </Button>
                   <Button 
                     variant="outline" 
-                    className="flex items-center space-x-2"
+                    className="flex items-center space-x-3 border-gray-500 text-gray-400 hover:bg-gray-500 hover:text-white px-6 py-3 text-lg"
                     onClick={() => handleVerification()}
                   >
-                    <RefreshCw className="w-4 h-4" />
+                    <RefreshCw className="w-5 h-5" />
                     <span>Refresh Data</span>
                   </Button>
-                  <Button variant="outline" className="flex items-center space-x-2">
-                    <Wallet className="w-4 h-4" />
+                  <Button variant="outline" className="flex items-center space-x-3 border-green-500 text-green-500 hover:bg-green-500 hover:text-white px-6 py-3 text-lg">
+                    <Wallet className="w-5 h-5" />
                     <span>Add to Watchlist</span>
                   </Button>
                 </div>
@@ -684,33 +711,41 @@ export default function VerifyPage() {
           </div>
         )}
 
-        {/* Help Section */}
+        {/* Help Section - More spacing */}
         {!verificationResult && !isVerifying && (
-          <Card className="shadow-lg border-0 bg-gradient-to-r from-blue-50 to-purple-50">
-            <CardContent className="p-6">
+          <Card className="glass-card border border-border">
+            <CardContent className="p-8 bg-card">
               <div className="text-center">
-                <Shield className="w-12 h-12 text-blue-600 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">How Token Verification Works</h3>
-                <p className="text-gray-600 mb-4 max-w-2xl mx-auto">
+                <div style={{ padding: '15px' }}>
+                  <Shield className="w-12 h-12 text-red-500 mx-auto mb-4" />
+                </div>
+                <h3 className="text-2xl font-bold text-white mb-3">How Verification Works</h3>
+                <p className="text-gray-300 mb-6 max-w-2xl mx-auto text-lg leading-relaxed">
                   Our verification system analyzes multiple security factors including token existence, 
                   metadata validation, liquidity availability, and community trust metrics to provide 
                   a comprehensive safety score.
                 </p>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-                  <div className="text-center">
-                    <Search className="w-8 h-8 text-red-600 mx-auto mb-2" />
-                    <h4 className="font-medium text-gray-900">1. Enter Details</h4>
-                    <p className="text-sm text-gray-600">Select network and enter token address or asset ID</p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+                  <div className="text-center bg-black p-6 rounded-lg border border-gray-700">
+                    <div className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <span className="text-white font-bold text-lg">1</span>
+                    </div>
+                    <h4 className="font-medium text-white text-lg mb-2">Enter Details</h4>
+                    <p className="text-base text-gray-300">Select network and enter token address or asset ID</p>
                   </div>
-                  <div className="text-center">
-                    <Shield className="w-8 h-8 text-green-600 mx-auto mb-2" />
-                    <h4 className="font-medium text-gray-900">2. Security Analysis</h4>
-                    <p className="text-sm text-gray-600">Comprehensive security and validation checks</p>
+                  <div className="text-center bg-black p-6 rounded-lg border border-gray-700">
+                    <div className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <Shield className="w-6 h-6 text-white" />
+                    </div>
+                    <h4 className="font-medium text-white text-lg mb-2">Security Analysis</h4>
+                    <p className="text-base text-gray-300">Comprehensive security and validation checks</p>
                   </div>
-                  <div className="text-center">
-                    <CheckCircle className="w-8 h-8 text-purple-600 mx-auto mb-2" />
-                    <h4 className="font-medium text-gray-900">3. Get Results</h4>
-                    <p className="text-sm text-gray-600">Detailed report with trust score and recommendations</p>
+                  <div className="text-center bg-black p-6 rounded-lg border border-gray-700">
+                    <div className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <CheckCircle className="w-6 h-6 text-white" />
+                    </div>
+                    <h4 className="font-medium text-white text-lg mb-2">Get Results</h4>
+                    <p className="text-base text-gray-300">Detailed report with trust score and recommendations</p>
                   </div>
                 </div>
               </div>

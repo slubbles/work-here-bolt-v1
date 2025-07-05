@@ -78,7 +78,7 @@ export default function TechnologyCarousel() {
           </div>
           
           <div className="relative overflow-hidden mx-auto">
-            {/* Improved Carousel Container */}
+            {/* Improved Carousel Container with precise width calculation */}
             <div className="flex animate-carousel items-center justify-center">
               {/* First set of logos */}
               {techPartners.map((partner, index) => (
@@ -87,60 +87,63 @@ export default function TechnologyCarousel() {
                   href={partner.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex-shrink-0 mx-12 flex items-center justify-center h-24 transition-all duration-300 filter grayscale hover:filter-none hover:scale-110"
+                  className="flex-shrink-0 mx-8 sm:mx-12 flex items-center justify-center h-16 sm:h-24 transition-all duration-300 filter grayscale hover:filter-none hover:scale-110"
+                  style={{ minWidth: '140px' }}
                 >
                   <Image 
                     src={partner.logo} 
                     alt={partner.name}
-                    width={140}
-                    height={50}
-                    className="object-contain max-h-full"
+                    width={120}
+                    height={40}
+                    className="object-contain max-h-full w-auto"
                   />
                 </a>
               ))}
               
-              {/* Duplicate sets for smooth infinite scrolling */}
+              {/* Second set for smooth infinite scrolling */}
               {techPartners.map((partner, index) => (
                 <a 
                   key={`second-${index}`}
                   href={partner.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex-shrink-0 mx-12 flex items-center justify-center h-24 transition-all duration-300 filter grayscale hover:filter-none hover:scale-110"
+                  className="flex-shrink-0 mx-8 sm:mx-12 flex items-center justify-center h-16 sm:h-24 transition-all duration-300 filter grayscale hover:filter-none hover:scale-110"
+                  style={{ minWidth: '140px' }}
                 >
                   <Image 
                     src={partner.logo}
                     alt={partner.name}
-                    width={140}
-                    height={50}
-                    className="object-contain max-h-full"
+                    width={120}
+                    height={40}
+                    className="object-contain max-h-full w-auto"
                   />
                 </a>
               ))}
               
-              {/* Third set for smoother looping */}
+              {/* Third set for seamless looping */}
               {techPartners.map((partner, index) => (
                 <a 
                   key={`third-${index}`}
                   href={partner.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex-shrink-0 mx-12 flex items-center justify-center h-24 transition-all duration-300 filter grayscale hover:filter-none hover:scale-110"
+                  className="flex-shrink-0 mx-8 sm:mx-12 flex items-center justify-center h-16 sm:h-24 transition-all duration-300 filter grayscale hover:filter-none hover:scale-110"
+                  style={{ minWidth: '140px' }}
                 >
                   <Image 
                     src={partner.logo} 
                     alt={partner.name}
-                    width={140}
-                    height={50}
-                    className="object-contain max-h-full"
+                    width={120}
+                    height={40}
+                    className="object-contain max-h-full w-auto"
                   />
                 </a>
               ))}
             </div>
             
-            {/* Gradient overlays for fade effect */}
-            <div className="absolute top-0 left-0 bottom-0 w-32 bg-gradient-to-r from-background to-transparent z-10"></div>
-            <div className="absolute top-0 right-0 bottom-0 w-32 bg-gradient-to-l from-background to-transparent z-10"></div>
+            {/* Enhanced gradient overlays for fade effect */}
+            <div className="absolute top-0 left-0 bottom-0 w-32 sm:w-48 bg-gradient-to-r from-background via-background/80 to-transparent z-10 pointer-events-none"></div>
+            <div className="absolute top-0 right-0 bottom-0 w-32 sm:w-48 bg-gradient-to-l from-background via-background/80 to-transparent z-10 pointer-events-none"></div>
           </div>
           
           <div className="flex justify-center mt-8">

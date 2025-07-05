@@ -11,6 +11,7 @@ import { useAlgorandWallet } from '@/components/providers/AlgorandWalletProvider
 import { ADMIN_WALLET } from '@/lib/solana';
 import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import MainnetConnectionModal from '@/components/MainnetConnectionModal';
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -20,12 +21,13 @@ export default function Navbar() {
   const [showWalletOptions, setShowWalletOptions] = useState(false);
   const [copiedAddress, setCopiedAddress] = useState<string | null>(null);
   const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
+  const [showMainnetModal, setShowMainnetModal] = useState<boolean>(false);
   const pathname = usePathname();
   const router = useRouter();
   const { toast } = useToast();
   
   // Solana wallet
-  const { connected: solanaConnected, publicKey: solanaPublicKey } = useWallet();
+  const { connected: solanaConnected, publicKey: solanaPublicKey, disconnect: disconnectSolana } = useWallet();
   
   // Algorand wallet
   const { 
@@ -98,6 +100,17 @@ export default function Navbar() {
       setShowWalletOptions(false);
     } catch (error) {
       console.error('Failed to connect Algorand wallet:', error);
+      
+      // Show the modal for mainnet connection issues
+      if (algorandSelectedNetwork === 'algorand-mainnet') {
+        setShowMainnetModal(true);
+      } else {
+        toast({
+          title: "Connection Failed",
+          description: error instanceof Error ? error.message : "Failed to connect to Algorand wallet. Please try again.",
+          variant: "destructive",
+        });
+      }
     }
   };
 
@@ -339,6 +352,54 @@ export default function Navbar() {
                                   )}
                                 </Button>
                               </div>
+                              
+                              {/* Network Status */}
+                              <div className="p-2 bg-[#9945FF]/5 border border-[#9945FF]/20 rounded-md">
+                                <div className="flex justify-between items-center">
+                                  <span className="text-xs text-[#9945FF]">Network Status:</span>
+                                  <div className="flex items-center">
+                                    <span className="h-1.5 w-1.5 rounded-full bg-green-500 mr-1"></span>
+                                    <span className="text-xs text-green-500">Connected</span>
+                                  </div>
+                                </div>
+                              </div>
+                              
+                              {/* Disconnect Button */}
+                              <Button
+                                onClick={async () => {
+                                  try {
+                                    // Show loading state
+                                    toast({
+                                      title: "Disconnecting Solana wallet...",
+                                      duration: 1500
+                                    });
+                                    
+                                    // Perform disconnect
+                                    await disconnectSolana();
+                                    setShowWalletOptions(false);
+                                    
+                                    // Success feedback
+                                    toast({
+                                      title: "Solana wallet disconnected",
+                                      description: "Successfully disconnected from Solana wallet",
+                                      duration: 2000
+                                    });
+                                  } catch (err) {
+                                    console.error("Solana disconnect error:", err);
+                                    toast({
+                                      title: "Disconnect failed",
+                                      description: "Failed to disconnect Solana wallet",
+                                      variant: "destructive",
+                                      duration: 3000
+                                    });
+                                  }
+                                }}
+                                variant="outline"
+                                size="sm"
+                                className="w-full border-red-500/20 text-red-500 hover:bg-red-500/10 hover:border-red-500/40 text-xs h-8"
+                              >
+                                Disconnect Solana
+                              </Button>
                             </div>
                           )}
                           {(!solanaConnected || !solanaPublicKey) && (
@@ -616,6 +677,12 @@ export default function Navbar() {
           </div>
         )}
       </div>
+      
+      {/* Mainnet Connection Modal */}
+      <MainnetConnectionModal 
+        isOpen={showMainnetModal} 
+        onClose={() => setShowMainnetModal(false)} 
+      />
     </nav>
   );
 }

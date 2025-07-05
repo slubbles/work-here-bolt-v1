@@ -895,18 +895,9 @@
     color: rgba(0, 0, 0, 0.9) !important;
     border: 1px solid rgba(0, 0, 0, 0.1) !important;
   }
-
-  /* Technology carousel animation */
-  @keyframes carousel {
-    0% { transform: translateX(0); }
-    100% { transform: translateX(calc(-236px * 6)); }
-  }
-  
-  .animate-carousel {
-    animation: carousel 60s linear infinite forwards;
-  }
 }
 
+/* Technology carousel animation */
 /* Enhanced scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
@@ -1549,14 +1540,47 @@ p {
   animation: walletPulseRing 2s ease infinite;
 }
 
-/* Infinite carousel animation fix */
+/* Enhanced Infinite carousel animation */
 @keyframes carousel {
   0% { transform: translateX(0); }
-  100% { transform: translateX(calc(-236px * 6)); }
+  100% { transform: translateX(-33.333%); }
+}
+
+@keyframes carousel-mobile {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
 }
 
 .animate-carousel {
-  animation: carousel 60s linear infinite;
+  animation: carousel 45s linear infinite;
+  will-change: transform;
+}
+
+/* Pause animation on hover for desktop only */
+@media (min-width: 769px) {
+  .animate-carousel:hover {
+    animation-play-state: paused;
+  }
+}
+
+/* Mobile responsive carousel */
+@media (max-width: 768px) {
+  .animate-carousel {
+    animation: carousel-mobile 30s linear infinite;
+  }
+  
+  /* Keep animation running on mobile */
+  .animate-carousel:hover {
+    animation-play-state: running;
+  }
+}
+
+/* Respect user's reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .animate-carousel {
+    animation: none;
+    transform: translateX(0);
+  }
 }
 
 /* Pulse ring animation */

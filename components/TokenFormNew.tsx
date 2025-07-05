@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
+import { Switch } from '@/components/ui/switch';
 import { Check, AlertCircle, Loader2, ExternalLink, Clipboard, CheckCircle, Calculator, Copy, HelpCircle, Plus, Flame, Pause, Rocket } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
@@ -31,7 +32,7 @@ interface TokenFormProps {
   setTokenData?: (data: any) => void;
 }
 
-export default function TokenFormNew({ onTokenCreate, defaultNetwork = 'algorand-testnet', tokenData: externalTokenData, setTokenData: setExternalTokenData }: TokenFormProps) {
+export default function TokenFormNew({ onTokenCreate, defaultNetwork = 'algorand-mainnet', tokenData: externalTokenData, setTokenData: setExternalTokenData }: TokenFormProps) {
   const [formData, setFormData] = useState({
     name: externalTokenData?.name || 'My Custom Token',
     symbol: externalTokenData?.symbol || 'MCT',
@@ -80,13 +81,13 @@ export default function TokenFormNew({ onTokenCreate, defaultNetwork = 'algorand
   const router = useRouter();
   const { toast } = useToast();
 
-  // Calculate form completion progress and validation
+  // Calculate form completion progress and validation with enhanced supply validation
   useEffect(() => {
     const validations = {
       name: formData.name && formData.name.trim().length >= 3,
       symbol: formData.symbol && formData.symbol.trim().length >= 2 && formData.symbol.trim().length <= 8,
       description: formData.description && formData.description.trim().length >= 10,
-      totalSupply: formData.totalSupply && !isNaN(parseFloat(formData.totalSupply)) && parseFloat(formData.totalSupply) > 0
+      totalSupply: formData.totalSupply && !isNaN(parseFloat(formData.totalSupply)) && parseFloat(formData.totalSupply) > 0 && parseFloat(formData.totalSupply) <= 1000000000000 // Max 1 trillion
     };
     
     setFieldValidations(validations);
@@ -277,209 +278,403 @@ export default function TokenFormNew({ onTokenCreate, defaultNetwork = 'algorand
 
   return (
     <div className="w-full max-w-2xl mx-auto space-y-8">
-      {/* Progress Header */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-red-500/10 to-red-600/10 backdrop-blur-sm border border-red-500/20 p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h2 className="text-2xl font-bold text-foreground mb-1">Create Your Token</h2>
-            <p className="text-muted-foreground text-sm">Deploy your custom token with professional-grade features</p>
+      {/* Enhanced Progress Header */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-red-500/10 to-red-600/10 backdrop-blur-sm border border-red-500/20 p-8">
+        <div className="flex flex-col md:flex-row items-center justify-between mb-6 space-y-4 md:space-y-0">
+          <div className="text-center md:text-left">
+            <h2 className="text-3xl font-bold text-foreground mb-2">Create Your Token</h2>
+            <p className="text-muted-foreground">Deploy your custom token with professional-grade features</p>
           </div>
-          <div className="text-right">
-            <div className="text-2xl font-bold text-red-500">{Math.round(formProgress)}%</div>
-            <div className="text-xs text-muted-foreground">Complete</div>
+          <div className="text-center">
+            <div className="text-3xl font-bold text-red-500">{Math.round(formProgress)}%</div>
+            <div className="text-sm text-muted-foreground">Complete</div>
           </div>
         </div>
         
-        {/* Progress Bar */}
-        <div className="relative h-2 bg-muted rounded-full overflow-hidden">
+        {/* Enhanced Progress Bar */}
+        <div className="relative h-3 bg-muted/50 rounded-full overflow-hidden">
           <div 
-            className="absolute inset-y-0 left-0 bg-gradient-to-r from-red-500 to-red-600 rounded-full transition-all duration-700 ease-out"
+            className="absolute inset-y-0 left-0 bg-gradient-to-r from-red-500 via-red-600 to-green-500 rounded-full transition-all duration-700 ease-out shadow-lg"
             style={{ width: `${formProgress}%` }}
           />
           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-50 animate-pulse" />
         </div>
         
-        {/* Field Validation Indicators */}
-        <div className="grid grid-cols-4 gap-2 mt-4">
+        {/* Enhanced Field Validation Indicators */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
           {Object.entries(fieldValidations).map(([field, isValid]) => (
-            <div key={field} className={`flex items-center space-x-2 text-xs transition-all duration-300 ${isValid ? 'text-green-500' : 'text-muted-foreground'}`}>
-              <div className={`w-2 h-2 rounded-full transition-all duration-300 ${isValid ? 'bg-green-500 shadow-lg shadow-green-500/50' : 'bg-muted'}`} />
-              <span className="capitalize">{field}</span>
+            <div key={field} className={`flex items-center space-x-3 text-sm transition-all duration-300 ${isValid ? 'text-green-500' : 'text-muted-foreground'}`}>
+              <div className={`w-3 h-3 rounded-full transition-all duration-300 ${isValid ? 'bg-green-500 shadow-lg shadow-green-500/50' : 'bg-muted border-2 border-muted-foreground'}`} />
+              <span className="capitalize font-medium">{field === 'totalSupply' ? 'Supply' : field}</span>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Main Form Card */}
-      <Card className="relative overflow-hidden glass-card">
+      {/* Enhanced Main Form Card */}
+      <Card className="relative overflow-hidden glass-card border border-border">
         <div className="absolute inset-0 bg-gradient-to-br from-red-500/5 to-red-600/5" />
-        <CardContent className="relative z-10 p-8 space-y-6">
+        <CardContent className="relative z-10 p-10 space-y-10">
           
           {!isDeploying && !deploymentComplete && (
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Network Selection */}
-              <div className="space-y-2">
-                <Label htmlFor="network" className="text-foreground font-medium">Network</Label>
+            <form onSubmit={handleSubmit} className="space-y-10">
+              {/* Network Selection - Enhanced */}
+              <div className="space-y-6">
+                <Label htmlFor="network" className="text-foreground font-semibold text-xl flex items-center space-x-3">
+                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
+                    <div className="w-4 h-4 bg-white rounded-full" />
+                  </div>
+                  <span>Deployment Network</span>
+                </Label>
                 <select
                   id="network"
                   value={network}
                   onChange={(e) => setNetwork(e.target.value)}
-                  className="w-full p-3 rounded-lg bg-gray-800 border border-gray-700 text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  className="w-full p-5 rounded-xl bg-card border border-border text-foreground focus:border-red-500 focus:ring-2 focus:ring-red-500/20 transition-all duration-300 font-medium text-lg"
                 >
-                  <option value="algorand-testnet">Algorand Testnet</option>
-                  <option value="algorand-mainnet">Algorand Mainnet</option>
-                  <option value="solana-devnet">Solana Devnet</option>
+                  <option value="algorand-testnet">Algorand Testnet (Free Testing)</option>
+                  <option value="algorand-mainnet">Algorand Mainnet (~$0.001)</option>
+                  <option value="solana-devnet">Solana Devnet (Free Testing)</option>
                 </select>
               </div>
 
-              {/* Token Name */}
-              <div className="space-y-2">
-                <Label htmlFor="name" className="text-foreground font-medium">Token Name *</Label>
-                <Input
-                  id="name"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleInputChange}
-                  placeholder="My Awesome Token"
-                  className={`transition-all duration-300 ${fieldValidations.name ? 'border-green-500 focus:border-green-500' : 'border-gray-700 focus:border-blue-500'}`}
-                  required
-                />
+              {/* Token Basics Section */}
+              <div className="space-y-8">
+                <div className="flex items-center space-x-2 pb-2 border-b border-border">
+                  <h3 className="text-lg font-semibold text-foreground">Token Information</h3>
+                  <div className="flex-1 h-px bg-gradient-to-r from-red-500/50 to-transparent" />
+                </div>
+
+                {/* Token Name */}
+                <div className="space-y-4">
+                  <Label htmlFor="name" className="text-foreground font-semibold text-lg flex items-center space-x-3">
+                    <span className="relative">
+                      Token Name 
+                      <span className="text-red-500 font-bold text-xl ml-1">*</span>
+                    </span>
+                    {fieldValidations.name && <CheckCircle className="w-5 h-5 text-green-500" />}
+                  </Label>
+                  <Input
+                    id="name"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleInputChange}
+                    placeholder="e.g. My Awesome Token"
+                    className={`h-14 text-xl transition-all duration-300 ${fieldValidations.name ? 'border-green-500 focus:border-green-500 shadow-lg shadow-green-500/20' : 'border-border focus:border-red-500 shadow-lg shadow-red-500/20'}`}
+                    required
+                  />
+                  <p className="text-sm text-muted-foreground">The full name of your token (3+ characters)</p>
+                </div>
+
+                {/* Token Symbol */}
+                <div className="space-y-4">
+                  <Label htmlFor="symbol" className="text-foreground font-semibold text-lg flex items-center space-x-3">
+                    <span className="relative">
+                      Token Symbol 
+                      <span className="text-red-500 font-bold text-xl ml-1">*</span>
+                    </span>
+                    {fieldValidations.symbol && <CheckCircle className="w-5 h-5 text-green-500" />}
+                  </Label>
+                  <Input
+                    id="symbol"
+                    name="symbol"
+                    value={formData.symbol}
+                    onChange={handleInputChange}
+                    placeholder="e.g. MAT"
+                    className={`h-14 text-xl font-mono transition-all duration-300 ${fieldValidations.symbol ? 'border-green-500 focus:border-green-500 shadow-lg shadow-green-500/20' : 'border-border focus:border-red-500 shadow-lg shadow-red-500/20'}`}
+                    maxLength={8}
+                    style={{ textTransform: 'uppercase' }}
+                    required
+                  />
+                  <p className="text-sm text-muted-foreground">Short identifier (2-8 characters, e.g. BTC, ETH)</p>
+                </div>
+
+                {/* Description */}
+                <div className="space-y-4">
+                  <Label htmlFor="description" className="text-foreground font-semibold text-lg flex items-center space-x-3">
+                    <span className="relative">
+                      Description 
+                      <span className="text-red-500 font-bold text-xl ml-1">*</span>
+                    </span>
+                    {fieldValidations.description && <CheckCircle className="w-5 h-5 text-green-500" />}
+                  </Label>
+                  <Textarea
+                    id="description"
+                    name="description"
+                    value={formData.description}
+                    onChange={handleInputChange}
+                    placeholder="e.g. A versatile token for my community and ecosystem"
+                    className={`min-h-28 text-xl transition-all duration-300 ${fieldValidations.description ? 'border-green-500 focus:border-green-500 shadow-lg shadow-green-500/20' : 'border-border focus:border-red-500 shadow-lg shadow-red-500/20'}`}
+                    rows={3}
+                    required
+                  />
+                  <p className="text-xs text-muted-foreground">Brief description of your token's purpose (10+ characters)</p>
+                </div>
               </div>
 
-              {/* Token Symbol */}
-              <div className="space-y-2">
-                <Label htmlFor="symbol" className="text-foreground font-medium">Token Symbol *</Label>
-                <Input
-                  id="symbol"
-                  name="symbol"
-                  value={formData.symbol}
-                  onChange={handleInputChange}
-                  placeholder="MAT"
-                  className={`transition-all duration-300 ${fieldValidations.symbol ? 'border-green-500 focus:border-green-500' : 'border-gray-700 focus:border-blue-500'}`}
-                  maxLength={8}
-                  required
-                />
-              </div>
+              {/* Token Economics Section */}
+              <div className="space-y-6">
+                <div className="flex items-center space-x-2 pb-2 border-b border-border">
+                  <h3 className="text-lg font-semibold text-foreground">Token Economics</h3>
+                  <div className="flex-1 h-px bg-gradient-to-r from-green-500/50 to-transparent" />
+                </div>
 
-              {/* Description */}
-              <div className="space-y-2">
-                <Label htmlFor="description" className="text-foreground font-medium">Description *</Label>
-                <Textarea
-                  id="description"
-                  name="description"
-                  value={formData.description}
-                  onChange={handleInputChange}
-                  placeholder="A versatile token for my community and ecosystem"
-                  className={`transition-all duration-300 ${fieldValidations.description ? 'border-green-500 focus:border-green-500' : 'border-gray-700 focus:border-blue-500'}`}
-                  rows={3}
-                  required
-                />
-              </div>
-
-              {/* Total Supply */}
-              <div className="space-y-2">
-                <Label htmlFor="totalSupply" className="text-foreground font-medium">Total Supply *</Label>
-                <Input
-                  id="totalSupply"
-                  name="totalSupply"
-                  type="number"
-                  value={formData.totalSupply}
-                  onChange={handleInputChange}
-                  placeholder="1000000000"
-                  min="1"
-                  max="1000000000000"
-                  className={`transition-all duration-300 ${fieldValidations.totalSupply ? 'border-green-500 focus:border-green-500' : 'border-gray-700 focus:border-blue-500'}`}
-                  required
-                />
-                <p className="text-xs text-muted-foreground">
-                  Recommended: 1B (1,000,000,000) for utility tokens, 100M for governance tokens
-                </p>
-              </div>
-
-              {/* Decimals */}
-              <div className="space-y-2">
-                <Label htmlFor="decimals" className="text-foreground font-medium">Decimals</Label>
-                <Input
-                  id="decimals"
-                  name="decimals"
-                  type="number"
-                  value={formData.decimals}
-                  onChange={handleInputChange}
-                  min="0"
-                  max="18"
-                  className="border-gray-700 focus:border-blue-500"
-                />
-              </div>
-
-              {/* Logo URL */}
-              <div className="space-y-2">
-                <Label htmlFor="logoUrl" className="text-foreground font-medium">Logo URL</Label>
-                <Input
-                  id="logoUrl"
-                  name="logoUrl"
-                  value={formData.logoUrl}
-                  onChange={handleInputChange}
-                  placeholder="https://example.com/logo.png"
-                  className="border-gray-700 focus:border-blue-500"
-                />
-              </div>
-
-              {/* Token Features */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-foreground">Token Features</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <label className="flex items-center space-x-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={formData.mintable}
-                      onChange={(e) => setFormData(prev => ({ ...prev, mintable: e.target.checked }))}
-                      className="w-4 h-4 text-blue-600 bg-gray-800 border-gray-600 rounded focus:ring-blue-500"
+                {/* Enhanced Total Supply */}
+                <div className="space-y-4">
+                  <Label htmlFor="totalSupply" className="text-foreground font-semibold text-lg flex items-center space-x-3">
+                    <span className="relative">
+                      Total Supply 
+                      <span className="text-red-500 font-bold text-xl ml-1">*</span>
+                    </span>
+                    {fieldValidations.totalSupply && <CheckCircle className="w-5 h-5 text-green-500" />}
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      id="totalSupply"
+                      name="totalSupply"
+                      type="number"
+                      value={formData.totalSupply}
+                      onChange={handleInputChange}
+                      placeholder="1000000000"
+                      min="1"
+                      max="1000000000000"
+                      step="1"
+                      className={`h-14 text-xl pr-24 transition-all duration-300 ${fieldValidations.totalSupply ? 'border-green-500 focus:border-green-500 shadow-lg shadow-green-500/20' : 'border-border focus:border-red-500 shadow-lg shadow-red-500/20'}`}
+                      required
                     />
-                    <span className="text-sm text-foreground">Mintable</span>
-                  </label>
+                    <div className="absolute right-4 top-1/2 transform -translate-y-1/2 text-base text-muted-foreground font-medium">
+                      {formData.totalSupply && parseFloat(formData.totalSupply) >= 1000000000 
+                        ? `${(parseFloat(formData.totalSupply) / 1000000000).toFixed(1)}B` 
+                        : formData.totalSupply && parseFloat(formData.totalSupply) >= 1000000
+                        ? `${(parseFloat(formData.totalSupply) / 1000000).toFixed(1)}M`
+                        : 'tokens'}
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                    {[
+                      { label: '1M', value: '1000000' },
+                      { label: '100M', value: '100000000' },
+                      { label: '1B', value: '1000000000' },
+                      { label: '1T', value: '1000000000000' }
+                    ].map((preset) => (
+                      <Button
+                        key={preset.label}
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="text-xs"
+                        onClick={() => setFormData(prev => ({ ...prev, totalSupply: preset.value }))}
+                      >
+                        {preset.label}
+                      </Button>
+                    ))}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Maximum: 1 trillion tokens. Popular choices: 1B for utility, 100M for governance
+                  </p>
+                </div>
+
+                {/* Decimals */}
+                <div className="space-y-3">
+                  <Label htmlFor="decimals" className="text-foreground font-medium">Decimal Places</Label>
+                  <Input
+                    id="decimals"
+                    name="decimals"
+                    type="number"
+                    value={formData.decimals}
+                    onChange={handleInputChange}
+                    min="0"
+                    max="18"
+                    className="h-12 border-border focus:border-blue-500"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Recommended: 9 decimals (like SOL) or 18 decimals (like ETH)
+                  </p>
+                </div>
+              </div>
+
+              {/* Social Links Section */}
+              <div className="space-y-6">
+                <div className="flex items-center space-x-2 pb-2 border-b border-border">
+                  <h3 className="text-lg font-semibold text-foreground">Links & Branding</h3>
+                  <div className="flex-1 h-px bg-gradient-to-r from-blue-500/50 to-transparent" />
+                </div>
+
+                {/* Logo URL */}
+                <div className="space-y-3">
+                  <Label htmlFor="logoUrl" className="text-foreground font-medium">Logo URL</Label>
+                  <Input
+                    id="logoUrl"
+                    name="logoUrl"
+                    value={formData.logoUrl}
+                    onChange={handleInputChange}
+                    placeholder="https://example.com/logo.png"
+                    className="h-12 border-border focus:border-blue-500"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Square image (512x512px recommended). Supports PNG, JPG, SVG
+                  </p>
+                </div>
+
+                {/* Social Links Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="website" className="text-foreground font-medium">Website</Label>
+                    <Input
+                      id="website"
+                      name="website"
+                      value={formData.website}
+                      onChange={handleInputChange}
+                      placeholder="https://example.com"
+                      className="h-12 border-border focus:border-blue-500"
+                    />
+                  </div>
                   
-                  <label className="flex items-center space-x-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={formData.burnable}
-                      onChange={(e) => setFormData(prev => ({ ...prev, burnable: e.target.checked }))}
-                      className="w-4 h-4 text-red-600 bg-gray-800 border-gray-600 rounded focus:ring-red-500"
+                  <div className="space-y-2">
+                    <Label htmlFor="twitter" className="text-foreground font-medium">Twitter</Label>
+                    <Input
+                      id="twitter"
+                      name="twitter"
+                      value={formData.twitter}
+                      onChange={handleInputChange}
+                      placeholder="@username"
+                      className="h-12 border-border focus:border-blue-500"
                     />
-                    <span className="text-sm text-foreground">Burnable</span>
-                  </label>
+                  </div>
                   
-                  <label className="flex items-center space-x-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={formData.pausable}
-                      onChange={(e) => setFormData(prev => ({ ...prev, pausable: e.target.checked }))}
-                      className="w-4 h-4 text-yellow-600 bg-gray-800 border-gray-600 rounded focus:ring-yellow-500"
+                  <div className="space-y-2">
+                    <Label htmlFor="github" className="text-foreground font-medium">GitHub</Label>
+                    <Input
+                      id="github"
+                      name="github"
+                      value={formData.github}
+                      onChange={handleInputChange}
+                      placeholder="username/repo"
+                      className="h-12 border-border focus:border-blue-500"
                     />
-                    <span className="text-sm text-foreground">Pausable</span>
-                  </label>
+                  </div>
+                </div>
+              </div>
+
+              {/* Enhanced Token Features */}
+              <div className="space-y-6">
+                <div className="flex items-center space-x-2 pb-2 border-b border-border">
+                  <h3 className="text-lg font-semibold text-foreground">Advanced Features</h3>
+                  <div className="flex-1 h-px bg-gradient-to-r from-purple-500/50 to-transparent" />
+                </div>
+                
+                <div className="grid grid-cols-1 gap-4">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <label className="flex items-center justify-between p-4 rounded-xl border border-border hover:border-green-500/30 transition-all duration-300 cursor-pointer">
+                          <div className="flex items-center space-x-4">
+                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300 ${formData.mintable ? 'bg-green-500/20 border border-green-500/30' : 'bg-muted/50'}`}>
+                              <Plus className={`w-6 h-6 ${formData.mintable ? 'text-green-500' : 'text-muted-foreground'}`} />
+                            </div>
+                            <div>
+                              <h4 className="font-semibold text-foreground">Mintable</h4>
+                              <p className="text-sm text-muted-foreground">Allow creating more tokens later</p>
+                            </div>
+                          </div>
+                          <Switch
+                            checked={formData.mintable}
+                            onCheckedChange={(checked) => setFormData(prev => ({ ...prev, mintable: checked }))}
+                          />
+                        </label>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>If enabled, you can mint additional tokens after deployment</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <label className="flex items-center justify-between p-4 rounded-xl border border-border hover:border-red-500/30 transition-all duration-300 cursor-pointer">
+                          <div className="flex items-center space-x-4">
+                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300 ${formData.burnable ? 'bg-red-500/20 border border-red-500/30' : 'bg-muted/50'}`}>
+                              <Flame className={`w-6 h-6 ${formData.burnable ? 'text-red-500' : 'text-muted-foreground'}`} />
+                            </div>
+                            <div>
+                              <h4 className="font-semibold text-foreground">Burnable</h4>
+                              <p className="text-sm text-muted-foreground">Allow token holders to destroy tokens</p>
+                            </div>
+                          </div>
+                          <Switch
+                            checked={formData.burnable}
+                            onCheckedChange={(checked) => setFormData(prev => ({ ...prev, burnable: checked }))}
+                          />
+                        </label>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>If enabled, token holders can permanently destroy their tokens</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <label className="flex items-center justify-between p-4 rounded-xl border border-border hover:border-yellow-500/30 transition-all duration-300 cursor-pointer">
+                          <div className="flex items-center space-x-4">
+                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300 ${formData.pausable ? 'bg-yellow-500/20 border border-yellow-500/30' : 'bg-muted/50'}`}>
+                              <Pause className={`w-6 h-6 ${formData.pausable ? 'text-yellow-500' : 'text-muted-foreground'}`} />
+                            </div>
+                            <div>
+                              <h4 className="font-semibold text-foreground">Pausable</h4>
+                              <p className="text-sm text-muted-foreground">Emergency stop functionality</p>
+                            </div>
+                          </div>
+                          <Switch
+                            checked={formData.pausable}
+                            onCheckedChange={(checked) => setFormData(prev => ({ ...prev, pausable: checked }))}
+                          />
+                        </label>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>If enabled, you can pause all token transfers in emergencies</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </div>
               </div>
 
               {error && (
-                <Alert variant="destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertTitle>Error</AlertTitle>
-                  <AlertDescription>{error}</AlertDescription>
+                <Alert variant="destructive" className="border-red-500/50 bg-red-500/10">
+                  <AlertCircle className="h-5 w-5" />
+                  <AlertTitle className="text-lg">Deployment Error</AlertTitle>
+                  <AlertDescription className="text-base">{error}</AlertDescription>
                 </Alert>
               )}
 
-              <Button 
-                type="submit" 
-                className={`w-full h-14 text-lg font-medium transition-all duration-300 ${
-                  isFormValid 
-                    ? 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white shadow-lg shadow-red-500/25 hover:shadow-xl hover:shadow-red-500/30 hover:scale-[1.02]' 
-                    : 'bg-muted text-muted-foreground cursor-not-allowed'
-                }`}
-                disabled={!isFormValid}
-              >
-                <Rocket className="w-5 h-5 mr-3" />
-                Launch Token on {network.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
-              </Button>
+              {/* Enhanced Deploy Button */}
+              <div className="pt-4">
+                <Button 
+                  type="submit" 
+                  className={`w-full h-16 text-xl font-bold transition-all duration-300 relative overflow-hidden ${
+                    isFormValid 
+                      ? 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white shadow-2xl shadow-red-500/30 hover:shadow-red-500/50 hover:scale-[1.02] border-0' 
+                      : 'bg-muted text-muted-foreground cursor-not-allowed border-border'
+                  }`}
+                  disabled={!isFormValid}
+                >
+                  {isFormValid && (
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300" />
+                  )}
+                  <div className="relative z-10 flex items-center justify-center space-x-3">
+                    <Rocket className="w-6 h-6" />
+                    <span>Deploy Token on {network.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}</span>
+                  </div>
+                </Button>
+                
+                {!isFormValid && (
+                  <p className="text-center text-sm text-muted-foreground mt-3">
+                    Complete all required fields to enable deployment
+                  </p>
+                )}
+              </div>
             </form>
           )}
 

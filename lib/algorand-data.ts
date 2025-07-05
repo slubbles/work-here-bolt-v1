@@ -238,6 +238,196 @@ export async function getAlgorandWalletSummary(walletAddress: string, network: s
   }
 }
 
+// Real market data integration
+export async function getAlgorandMarketData(): Promise<{
+  success: boolean;
+  data?: {
+    algoPrice: number;
+    priceChange24h: number;
+    marketCap: number;
+    volume24h: number;
+  };
+  error?: string;
+}> {
+  try {
+    // Use CoinGecko API for real market data
+    const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=algorand&vs_currencies=usd&include_24hr_change=true&include_market_cap=true&include_24hr_vol=true');
+    
+    if (!response.ok) {
+      throw new Error('Failed to fetch market data');
+    }
+    
+    const data = await response.json();
+    const algorandData = data.algorand;
+    
+    if (!algorandData) {
+      throw new Error('Algorand data not available');
+    }
+    
+    return {
+      success: true,
+      data: {
+        algoPrice: algorandData.usd || 0,
+        priceChange24h: algorandData.usd_24h_change || 0,
+        marketCap: algorandData.usd_market_cap || 0,
+        volume24h: algorandData.usd_24h_vol || 0
+      }
+    };
+  } catch (error) {
+    console.error('❌ Error fetching Algorand market data:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to fetch market data'
+    };
+  }
+}
+
+// Enhanced wallet summary with real portfolio values
+export async function getAlgorandWalletSummaryWithMarketData(walletAddress: string, network: string): Promise<{ 
+  success: boolean; 
+  data?: {
+    totalTokens: number;
+    totalValue: number;
+    algoBalance: number;
+    algoValueUSD: number;
+    recentTransactions: number;
+    portfolioChange24h: number;
+  }; 
+  error?: string;
+}> {
+  try {
+    console.log(`🔍 Getting enhanced Algorand wallet summary for: ${walletAddress}`);
+    
+    // Get basic wallet summary and market data in parallel
+    const [summaryResult, marketResult] = await Promise.allSettled([
+      getAlgorandWalletSummary(walletAddress, network),
+      getAlgorandMarketData()
+    ]);
+    
+    let basicSummary = {
+      totalTokens: 0,
+      totalValue: 0,
+      algoBalance: 0,
+      recentTransactions: 0
+    };
+    
+    if (summaryResult.status === 'fulfilled' && summaryResult.value.success) {
+      basicSummary = summaryResult.value.data!;
+    }
+    
+    let marketData = {
+      algoPrice: 0.175, // Fallback price
+      priceChange24h: 0
+    };
+    
+    if (marketResult.status === 'fulfilled' && marketResult.value.success) {
+      marketData = {
+        algoPrice: marketResult.value.data!.algoPrice,
+        priceChange24h: marketResult.value.data!.priceChange24h
+      };
+    }
+    
+    const algoValueUSD = basicSummary.algoBalance * marketData.algoPrice;
+    const portfolioChange24h = (algoValueUSD * marketData.priceChange24h) / 100;
+    
+    return {
+      success: true,
+      data: {
+        ...basicSummary,
+        algoValueUSD,
+        portfolioChange24h,
+        totalValue: algoValueUSD + basicSummary.totalValue // Add token values
+      }
+    };
+  } catch (error) {
+    console.error('❌ Error getting enhanced wallet summary:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to get enhanced wallet summary'
+    };
+  }
+}
+
+// Get asset creation history for a wallet
+export async function getAlgorandAssetCreationHistory(walletAddress: string, network: string): Promise<{
+  success: boolean;
+  data?: Array<{
+    assetId: number;
+    name: string;
+    symbol: string;
+    totalSupply: number;
+    decimals: number;
+    createdAt: string;
+    transactionId: string;
+    explorerUrl: string;
+  }>;
+  error?: string;
+}> {
+  try {
+    console.log(`🔍 Fetching asset creation history for: ${walletAddress} on ${network}`);
+    
+    const indexerClient = getAlgorandIndexerClient(network);
+    const networkConfig = getAlgorandNetwork(network);
+    
+    // Get all transactions for the account where they created assets
+    const transactions = await indexerClient
+      .lookupAccountTransactions(walletAddress)
+      .txType('acfg') // Asset configuration transactions (includes creation)
+      .do();
+    
+    const createdAssets: Array<{
+      assetId: number;
+      name: string;
+      symbol: string;
+      totalSupply: number;
+      decimals: number;
+      createdAt: string;
+      transactionId: string;
+      explorerUrl: string;
+    }> = [];
+    
+    for (const tx of transactions.transactions || []) {
+      // Check if this is an asset creation transaction (not modification)
+      const assetConfigTx = (tx as any)['asset-config-transaction'];
+      if (assetConfigTx && assetConfigTx['asset-id'] === 0) { // 0 means creation
+        
+        const params = assetConfigTx.params;
+        
+        if (params && tx.id) {
+          const createdAsset = {
+            assetId: (tx as any)['created-asset-index'] || 0,
+            name: params['name'] || 'Unknown Asset',
+            symbol: params['unit-name'] || 'UNK',
+            totalSupply: params['total'] || 0,
+            decimals: params['decimals'] || 0,
+            createdAt: new Date(((tx as any)['round-time'] || 0) * 1000).toISOString(),
+            transactionId: tx.id,
+            explorerUrl: `${networkConfig.explorer}/asset/${(tx as any)['created-asset-index'] || 0}`
+          };
+          
+          createdAssets.push(createdAsset);
+        }
+      }
+    }
+    
+    // Sort by creation date (newest first)
+    createdAssets.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    
+    console.log(`✅ Found ${createdAssets.length} created assets`);
+    
+    return {
+      success: true,
+      data: createdAssets
+    };
+  } catch (error) {
+    console.error('❌ Error fetching asset creation history:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to fetch asset creation history'
+    };
+  }
+}
+
 // Helper functions for transaction parsing
 function getTransactionType(tx: any): string {
   if (tx['tx-type'] === 'pay') return 'Payment';
